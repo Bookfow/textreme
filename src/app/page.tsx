@@ -710,7 +710,7 @@ export default function TeXTREME() {
                 {isPwaInstalled ? "설치 완료" : "웹앱으로 설치"}
               </span>
               <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
-                {isPwaInstalled ? "TeXTREME ✓" : "TeXTREME Web App"}
+                {isPwaInstalled ? "TeXTREME ✓" : "TeXTREME PDF to EPUB 변환기"}
               </span>
             </div>
           </button>
