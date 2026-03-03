@@ -478,7 +478,7 @@ export default function TeXTREME() {
         <h1 className="fade-up-d1" style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 900, fontSize: "clamp(36px, 6vw, 64px)", lineHeight: 1.15, textAlign: "center", color: "#fff", maxWidth: 700, letterSpacing: "-0.03em" }}>
           한글 PDF를<br />
           <span style={{ background: "linear-gradient(135deg, #F59E0B, #FBBF24, #F59E0B)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            완벽한 전자책
+            완벽한 EPUB
           </span>으로
         </h1>
 
@@ -502,7 +502,7 @@ export default function TeXTREME() {
             클릭하여 파일 열기
           </p>
           <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>
-            PDF · EPUB · TXT · DOCX 지원
+            PDF → EPUB 변환 · EPUB/TXT/DOCX → 바로 읽기
           </p>
           <input ref={fileInputRef} type="file" accept=".pdf,.epub,.txt,.docx" style={{ display: "none" }}
             onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
