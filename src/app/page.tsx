@@ -127,7 +127,7 @@ ${fontLink}
 `
 
 function calcPrice(pages: number): number {
-  return Math.max(500, Math.round((pages * PRICE_PER_PAGE) / 100) * 100)
+  return Math.max(500, Math.floor((pages * PRICE_PER_PAGE) / 100) * 100)
 }
 
 export default function TeXTREME() {
@@ -297,7 +297,6 @@ export default function TeXTREME() {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (view === "pricing") {
     const price = calcPrice(filePages)
-    const freePages = Math.min(10, filePages)
     return (
       <div style={{ fontFamily: "'Noto Sans KR', sans-serif", minHeight: "100vh", background: "#06060c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <style>{globalStyles}</style>
@@ -353,13 +352,6 @@ export default function TeXTREME() {
               <span style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>최종 결제액</span>
               <span style={{ fontFamily: "'Outfit'", color: "#F59E0B", fontSize: 24, fontWeight: 800 }}>₩{price.toLocaleString()}</span>
             </div>
-          </div>
-
-          {/* Free preview note */}
-          <div className="fade-up-d2" style={{ padding: "14px 20px", borderRadius: 12, background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)", marginBottom: 32, textAlign: "center" }}>
-            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.6 }}>
-              <span style={{ color: "#22c55e", fontWeight: 700 }}>무료 미리보기</span> — 처음 {freePages}페이지는 결제 전 미리 확인할 수 있습니다
-            </p>
           </div>
 
           {/* Buttons */}
