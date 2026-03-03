@@ -8,10 +8,11 @@ import { Upload, FileText, Zap, Download, ChevronRight, Check, BookOpen, Smartph
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const PRICING = [
-  { pages: "~50p", price: "₩1,900", per: "38원/p", popular: false },
-  { pages: "~100p", price: "₩3,900", per: "39원/p", popular: true },
-  { pages: "~200p", price: "₩6,900", per: "34원/p", popular: false },
-  { pages: "~300p", price: "₩9,900", per: "33원/p", popular: false },
+  { pages: "~50p", price: "₩990", per: "20원/p", popular: false },
+  { pages: "~100p", price: "₩1,900", per: "19원/p", popular: false },
+  { pages: "~200p", price: "₩2,900", per: "15원/p", popular: true },
+  { pages: "~300p", price: "₩4,900", per: "16원/p", popular: false },
+  { pages: "~500p", price: "₩7,900", per: "16원/p", popular: false },
 ]
 
 const SAMPLE_PAGES = [
@@ -181,7 +182,7 @@ export default function TeXTREME() {
 
           <div className="fade-up" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 40, border: "1px solid rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.06)", marginBottom: 28 }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px #22c55e" }} />
-            <span style={{ color: "#F59E0B", fontSize: 13, fontWeight: 600 }}>Gemini AI 기반 변환 엔진</span>
+            <span style={{ color: "#F59E0B", fontSize: 13, fontWeight: 600 }}>AI 기반 변환 엔진</span>
           </div>
 
           <h1 className="fade-up-d1" style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 900, fontSize: "clamp(36px, 6vw, 64px)", lineHeight: 1.15, textAlign: "center", color: "#fff", maxWidth: 700, letterSpacing: "-0.03em" }}>
@@ -209,7 +210,7 @@ export default function TeXTREME() {
               <Upload size={28} color="#F59E0B" />
             </div>
             <p style={{ color: "#fff", fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-              PDF 파일을 드래그하거나 클릭하여 업로드
+              PDF 파일을 웹/앱 아이콘으로 드래그하거나 클릭하여 업로드
             </p>
             <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>
               최대 500페이지 · PDF 형식만 지원
@@ -221,9 +222,9 @@ export default function TeXTREME() {
           {/* Stats */}
           <div className="fade-up-d4" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, marginTop: 60, maxWidth: 520, width: "100%" }}>
             {[
-              { value: "₩2.1", label: "페이지당 원가", sub: "업계 최저" },
-              { value: "~10초", label: "페이지당 변환", sub: "Gemini Flash" },
-              { value: "99%+", label: "한글 인식률", sub: "AI 비전" },
+              { value: "₩990~", label: "50페이지부터", sub: "건당 과금" },
+              { value: "~10초", label: "페이지당 변환", sub: "AI 비전 엔진" },
+              { value: "99%+", label: "한글 인식률", sub: "한글 특화" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center" }}>
                 <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 28, color: "#F59E0B", letterSpacing: "-0.02em" }}>{s.value}</div>
@@ -246,7 +247,7 @@ export default function TeXTREME() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}>
               {[
                 { icon: <Upload size={24} />, num: "01", title: "PDF 업로드", desc: "변환할 PDF 파일을 드래그 앤 드롭으로 올려주세요", color: "#3b82f6" },
-                { icon: <Zap size={24} />, num: "02", title: "AI가 분석·변환", desc: "Gemini AI가 페이지별로 텍스트 구조를 분석합니다", color: "#F59E0B" },
+                { icon: <Zap size={24} />, num: "02", title: "AI가 분석·변환", desc: "AI가 페이지별로 텍스트 구조를 분석합니다", color: "#F59E0B" },
                 { icon: <Download size={24} />, num: "03", title: "EPUB 다운로드", desc: "변환된 전자책을 미리보기 후 다운로드하세요", color: "#22c55e" },
               ].map((step, i) => (
                 <div key={i} style={{ padding: 32, borderRadius: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden" }}>
@@ -338,14 +339,14 @@ export default function TeXTREME() {
 
         {/* PRICING */}
         <section style={{ padding: "100px 24px", background: "radial-gradient(ellipse 80% 50% at 50% 100%, rgba(245,158,11,0.04) 0%, transparent 60%), #06060c" }}>
-          <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <div style={{ maxWidth: 900, margin: "0 auto" }}>
             <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em", marginBottom: 12 }}>
               심플한 가격
             </h2>
             <p style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 16, marginBottom: 48 }}>
               구독 없이, 변환할 때만 결제하세요
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 16 }}>
               {PRICING.map((p, i) => (
                 <div key={i} style={{
                   padding: 28, borderRadius: 16, textAlign: "center", position: "relative", overflow: "hidden",
@@ -556,7 +557,7 @@ export default function TeXTREME() {
               boxShadow: "0 0 30px rgba(245,158,11,0.15)",
             }}>
               <Download size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 8 }} />
-              ₩3,900에 EPUB 다운로드
+              EPUB 다운로드
             </button>
             <p style={{ color: rt.muted, fontSize: 11, marginTop: 12 }}>결제 즉시 .epub 파일 다운로드</p>
           </div>
