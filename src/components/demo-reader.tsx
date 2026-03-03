@@ -481,7 +481,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
       </div></>)}
 
       {/* 페이지네이션 본문 */}
-      <div className={`flex-1 min-h-0 relative ${focusMode ? 'epub-focus-active' : ''}`} style={{ backgroundColor: themeStyle.bg, userSelect: 'text', WebkitUserSelect: 'text' as any, overflow: 'clip' }} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE} onMouseDown={onMD} onClick={onClick} onMouseUp={onSelEnd} onDoubleClick={e => { const cx = e.clientX; const w = window.innerWidth; if (cx < w * 0.45 || cx > w * 0.55) { e.preventDefault(); window.getSelection()?.removeAllRanges() } }}>
+      <div className={`flex-1 min-h-0 relative ${focusMode ? 'epub-focus-active' : ''}`} style={{ backgroundColor: themeStyle.bg, userSelect: 'text', WebkitUserSelect: 'text' as any, overflow: 'clip' }} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE} onMouseDown={onMD} onClick={onClick} onMouseUp={onSelEnd}>
         <div style={{ maxWidth: MAX_WIDTH, margin: '0 auto', padding: `2rem ${marginSize}px`, height: '100%' }}>
           <div ref={paginationContainerRef} className="relative" style={{ height: '100%', overflow: 'clip' }}>
             {currentChapterData ? <div ref={contentColumnRef} style={{ columnWidth: columnWidthPx > 0 ? `${columnWidthPx - 40}px` : '100vw', columnGap: '40px', columnFill: 'auto', height: '100%' }} /> : <p className="text-center py-8" style={{ color: themeStyle.muted }}>(표시할 내용 없음)</p>}
