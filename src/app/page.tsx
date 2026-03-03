@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Upload, FileText, Zap, Download, ChevronRight, Check, BookOpen, Smartphone, Globe, ArrowRight, X, Type } from "lucide-react"
+import { Upload, FileText, Zap, Download, Check, BookOpen, Smartphone, Globe, ArrowRight, X, Type, Eye, CheckCircle2, Maximize2 } from "lucide-react"
 import DemoReader from "@/components/demo-reader"
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TeXTREME Converter — Landing + Conversion + Preview
+// TeXTREME — Landing + Demo + Convert + Complete
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const PRICE_PER_PAGE = 10
@@ -76,7 +76,7 @@ const SAMPLE_CHAPTERS = [
   },
 ]
 
-type ViewType = "landing" | "converting" | "preview"
+type ViewType = "landing" | "demo" | "converting" | "complete"
 
 interface ExtractedText { page: number; text: string }
 
@@ -89,13 +89,16 @@ ${fontLink}
 @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse-ring { 0% { transform: scale(0.9); opacity: 0.5; } 100% { transform: scale(1.4); opacity: 0; } }
 @keyframes slideText { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes checkPop { 0% { transform: scale(0); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
 .fade-up { animation: fadeUp 0.8s ease-out both; }
 .fade-up-d1 { animation: fadeUp 0.8s ease-out 0.1s both; }
 .fade-up-d2 { animation: fadeUp 0.8s ease-out 0.2s both; }
 .fade-up-d3 { animation: fadeUp 0.8s ease-out 0.3s both; }
 .fade-up-d4 { animation: fadeUp 0.8s ease-out 0.4s both; }
+.fade-up-d5 { animation: fadeUp 0.8s ease-out 0.5s both; }
 .slide-text { animation: slideText 0.4s ease-out both; }
 .glow-amber { box-shadow: 0 0 40px rgba(245,158,11,0.15), 0 0 80px rgba(245,158,11,0.05); }
+.check-pop { animation: checkPop 0.5s ease-out both; }
 `
 
 function calcPrice(pages: number): number {
@@ -115,6 +118,7 @@ export default function TeXTREME() {
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isPwaInstalled, setIsPwaInstalled] = useState(false)
+  const demoSectionRef = useRef<HTMLDivElement>(null)
 
   // ━━━ PWA install prompt ━━━
   useEffect(() => {
@@ -138,9 +142,7 @@ export default function TeXTREME() {
   }
 
   // ━━━ Conversion simulation ━━━
-  const startConversion = useCallback(() => {
-    const pages = 50 + Math.floor(Math.random() * 250)
-    setFilePages(pages)
+  const startConversion = useCallback((pages: number) => {
     setView("converting")
     setProgress(0)
     setCurrentPage(0)
@@ -157,7 +159,7 @@ export default function TeXTREME() {
       if (p >= 100) {
         p = 100
         if (progressInterval.current) clearInterval(progressInterval.current)
-        setTimeout(() => setView("preview"), 600)
+        setTimeout(() => setView("complete"), 600)
       }
       setProgress(Math.min(100, Math.round(p)))
       setCurrentPage(Math.min(Math.round((p / 100) * pages), pages))
@@ -180,7 +182,11 @@ export default function TeXTREME() {
 
   const handleFile = (f: File) => {
     if (!f || !f.name.toLowerCase().endsWith(".pdf")) return
-    setFile(f); setFileName(f.name); startConversion()
+    setFile(f)
+    setFileName(f.name)
+    const pages = 50 + Math.floor(Math.random() * 250)
+    setFilePages(pages)
+    startConversion(pages)
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -191,21 +197,21 @@ export default function TeXTREME() {
   const handleDragLeave = () => setIsDragging(false)
 
   const reset = () => {
-    setView("landing"); setFile(null); setFileName(""); setProgress(0); setCurrentPage(0); setExtractedTexts([])
+    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([])
     if (progressInterval.current) clearInterval(progressInterval.current)
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Preview View — DemoReader
+  // Demo View — Fullscreen DemoReader
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━
-  if (view === "preview") {
+  if (view === "demo") {
     return (
       <div style={{ height: "100vh", fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
         <style>{globalStyles}</style>
         <DemoReader
           chapters={SAMPLE_CHAPTERS}
-          title={fileName || "변환된 EPUB"}
-          onBack={reset}
+          title="디자인의 심리학 — 샘플"
+          onBack={() => setView("landing")}
         />
       </div>
     )
@@ -228,7 +234,7 @@ export default function TeXTREME() {
             <FileText size={20} color="#F59E0B" />
             <div style={{ textAlign: "left", flex: 1 }}>
               <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{fileName || "document.pdf"}</div>
-              <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{filePages}페이지 추정</div>
+              <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{filePages}페이지 · 예상 가격 ₩{calcPrice(filePages).toLocaleString()}</div>
             </div>
           </div>
 
@@ -288,6 +294,75 @@ export default function TeXTREME() {
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Complete View — Conversion done, auto-saved
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (view === "complete") {
+    return (
+      <div style={{ fontFamily: "'Noto Sans KR', sans-serif", minHeight: "100vh", background: "#06060c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <style>{globalStyles}</style>
+        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
+          {/* Success icon */}
+          <div className="check-pop" style={{ width: 96, height: 96, borderRadius: "50%", background: "rgba(34,197,94,0.1)", border: "2px solid rgba(34,197,94,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 32px" }}>
+            <CheckCircle2 size={48} color="#22c55e" />
+          </div>
+
+          <h2 className="fade-up" style={{ fontFamily: "'Noto Sans KR'", fontWeight: 800, fontSize: 28, color: "#fff", marginBottom: 12, letterSpacing: "-0.02em" }}>
+            변환 완료!
+          </h2>
+          <p className="fade-up-d1" style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, lineHeight: 1.6, marginBottom: 40 }}>
+            EPUB 파일이 기기에 자동 저장되었습니다
+          </p>
+
+          {/* File info card */}
+          <div className="fade-up-d2" style={{ padding: 24, borderRadius: 16, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: 32 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <BookOpen size={22} color="#22c55e" />
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ color: "#fff", fontSize: 15, fontWeight: 600 }}>{fileName?.replace('.pdf', '.epub') || "document.epub"}</div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginTop: 2 }}>{filePages}페이지 · ₩{calcPrice(filePages).toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              {[
+                { label: "페이지", value: `${filePages}p` },
+                { label: "결제액", value: `₩${calcPrice(filePages).toLocaleString()}` },
+                { label: "형식", value: "EPUB 3.0" },
+              ].map((item, i) => (
+                <div key={i} style={{ padding: "12px 8px", borderRadius: 10, background: "rgba(255,255,255,0.03)", textAlign: "center" }}>
+                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginBottom: 4 }}>{item.label}</div>
+                  <div style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>{item.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tip */}
+          <div className="fade-up-d3" style={{ padding: "16px 20px", borderRadius: 12, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)", marginBottom: 32, textAlign: "left" }}>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.6 }}>
+              <span style={{ color: "#F59E0B", fontWeight: 700 }}>Tip</span> — 다운로드된 EPUB 파일을 리디, 교보eBook, Apple Books 등 원하는 뷰어에서 열어보세요.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="fade-up-d4" style={{ display: "flex", gap: 12 }}>
+            <button onClick={reset}
+              style={{ flex: 1, padding: "14px 20px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+              다른 PDF 변환
+            </button>
+            <button onClick={reset}
+              style={{ flex: 1, padding: "14px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+              홈으로
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
   // Landing View
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━
   return (
@@ -303,10 +378,16 @@ export default function TeXTREME() {
               TeXTREME
             </span>
           </div>
-          <button onClick={() => fileInputRef.current?.click()}
-            style={{ padding: "8px 20px", borderRadius: 10, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}>
-            변환하기
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button onClick={() => setView("demo")}
+              style={{ padding: "8px 16px", borderRadius: 10, background: "none", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Eye size={14} /> 체험하기
+            </button>
+            <button onClick={() => fileInputRef.current?.click()}
+              style={{ padding: "8px 20px", borderRadius: 10, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}>
+              변환하기
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -344,7 +425,7 @@ export default function TeXTREME() {
             <Upload size={28} color="#F59E0B" />
           </div>
           <p style={{ color: "#fff", fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-            PDF 파일을 웹/앱 아이콘으로 드래그하거나 클릭하여 업로드
+            PDF 파일을 드래그하거나 클릭하여 업로드
           </p>
           <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>
             최대 500페이지 · PDF 형식만 지원
@@ -369,6 +450,83 @@ export default function TeXTREME() {
         </div>
       </section>
 
+      {/* ━━━ DEMO SECTION — Embedded Mini + Fullscreen CTA ━━━ */}
+      <section ref={demoSectionRef} style={{ padding: "100px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 40, border: "1px solid rgba(245,158,11,0.15)", background: "rgba(245,158,11,0.04)", marginBottom: 20 }}>
+              <Eye size={14} color="#F59E0B" />
+              <span style={{ color: "#F59E0B", fontSize: 13, fontWeight: 600 }}>먼저 체험해보세요</span>
+            </div>
+            <h2 style={{ color: "#fff", fontWeight: 800, fontSize: "clamp(26px, 4vw, 36px)", letterSpacing: "-0.02em", marginBottom: 12 }}>
+              결제 전에, 직접 읽어보세요
+            </h2>
+            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 16, maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
+              변환된 전자책이 어떤 느낌인지<br />테마·글꼴·형광펜까지 전부 체험할 수 있습니다
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
+            {/* Mini Demo — Phone mockup */}
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <div style={{ position: "relative", width: 280, height: 500 }}>
+                {/* Phone frame */}
+                <div style={{
+                  position: "absolute", inset: 0, borderRadius: 32, border: "3px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.03)", boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(245,158,11,0.08)",
+                  overflow: "hidden",
+                }}>
+                  {/* Notch */}
+                  <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 100, height: 24, background: "#06060c", borderRadius: "0 0 16px 16px", zIndex: 10 }} />
+
+                  {/* Embedded demo content */}
+                  <div style={{ position: "absolute", top: 8, left: 4, right: 4, bottom: 8, borderRadius: 26, overflow: "hidden" }}>
+                    <DemoReader
+                      chapters={SAMPLE_CHAPTERS}
+                      title="디자인의 심리학"
+                      onBack={() => {}}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Demo description + CTA */}
+            <div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                {[
+                  { icon: "🎨", title: "3가지 테마", desc: "밝은/세피아/어두운 모드를 자유롭게 전환" },
+                  { icon: "✏️", title: "형광펜 & 메모", desc: "4가지 색상 형광펜과 메모 기능" },
+                  { icon: "🔤", title: "5종 글꼴", desc: "고딕·프리텐·명조·나눔명조·고정폭" },
+                  { icon: "📐", title: "맞춤 독서 환경", desc: "글자 크기·줄간격·여백·자간·정렬 조절" },
+                ].map((item, i) => (
+                  <div key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>{item.icon}</span>
+                    <div>
+                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{item.title}</div>
+                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.5 }}>{item.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button onClick={() => setView("demo")}
+                style={{
+                  marginTop: 36, width: "100%", padding: "16px 24px", borderRadius: 14,
+                  background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))",
+                  border: "1px solid rgba(245,158,11,0.3)", color: "#F59E0B",
+                  fontWeight: 700, fontSize: 16, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  transition: "all 0.2s",
+                }}>
+                <Maximize2 size={18} />
+                풀스크린으로 체험하기
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* HOW IT WORKS */}
       <section style={{ padding: "100px 24px", background: "#06060c" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -381,8 +539,8 @@ export default function TeXTREME() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}>
             {[
               { icon: <Upload size={24} />, num: "01", title: "PDF 업로드", desc: "변환할 PDF 파일을 드래그 앤 드롭으로 올려주세요", color: "#3b82f6" },
-              { icon: <Zap size={24} />, num: "02", title: "AI가 분석·변환", desc: "AI가 페이지별로 텍스트 구조를 분석합니다", color: "#F59E0B" },
-              { icon: <Download size={24} />, num: "03", title: "EPUB 다운로드", desc: "변환된 전자책을 미리보기 후 다운로드하세요", color: "#22c55e" },
+              { icon: <Zap size={24} />, num: "02", title: "AI가 분석·변환", desc: "AI가 페이지별로 텍스트 구조를 분석하고 EPUB으로 변환합니다", color: "#F59E0B" },
+              { icon: <Download size={24} />, num: "03", title: "자동 저장", desc: "변환된 전자책이 기기에 자동으로 저장됩니다", color: "#22c55e" },
             ].map((step, i) => (
               <div key={i} style={{ padding: 32, borderRadius: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: -20, right: -10, fontFamily: "'Outfit'", fontWeight: 900, fontSize: 100, color: "rgba(255,255,255,0.02)", lineHeight: 1 }}>{step.num}</div>
@@ -431,7 +589,7 @@ export default function TeXTREME() {
                   <div style={{ background: "#fff", padding: "10px 12px", boxShadow: "0 2px 8px rgba(0,0,0,0.3)", position: "relative" }}>
                     <div style={{ fontSize: 8, color: "#111", fontWeight: 700, marginBottom: 4 }}>제1장 어른들의 세계</div>
                     <div style={{ fontSize: 5.8, color: "#444", lineHeight: 1.55, wordBreak: "keep-all" }}>
-                      내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다. 나는 이 모험담에 큰 감명을 받아 색연필로 내 최초의 그림을 그렸다. 나의 그림 제1호였다. 나는 이 걸작을 어른들에게 보여주며 무섭지 않으냐고 물었다. 어른들의 대답은 이랬다. &quot;모자가 왜 무섭니?&quot; 내 그림은 모자를 그린 것이 아니었다. 보아뱀이 코끼리를 소화시키고 있는 그림이었다. 어른들이 알아볼 수 있도록 보아뱀의 속을 그려 보여주었다. 어른들은 늘 설명을 요구했다. 나의 그림 제2호를 보고서 어른들은 나에게 보아뱀 그림 같은 건 집어치우고 차라리 지리, 역사, 산수, 문법에 관심을 쏟으라고 충고했다. 그래서 나는 여섯 살에 화가라는 훌륭한 직업을 포기하고 말았다. 나는 비행기 조종하는 법을 배워서 세계 곳곳을 비행했다. 지리학은 실제로 큰 도움이 되었다. 한눈에 중국과 아리조나를 구별할 수 있었으니까. 밤에 길을 잃었을 때 그런 지식은 아주 유용한 것이다.
+                      내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다. 나는 이 모험담에 큰 감명을 받아 색연필로 내 최초의 그림을 그렸다. 나의 그림 제1호였다. 나는 이 걸작을 어른들에게 보여주며 무섭지 않으냐고 물었다. 어른들의 대답은 이랬다. &quot;모자가 왜 무섭니?&quot; 내 그림은 모자를 그린 것이 아니었다. 보아뱀이 코끼리를 소화시키고 있는 그림이었다. 어른들이 알아볼 수 있도록 보아뱀의 속을 그려 보여주었다. 어른들은 늘 설명을 요구했다. 나의 그림 제2호를 보고서 어른들은 나에게 보아뱀 그림 같은 건 집어치우고 차라리 지리, 역사, 산수, 문법에 관심을 쏟으라고 충고했다. 그래서 나는 여섯 살에 화가라는 훌륭한 직업을 포기하고 말았다.
                     </div>
                   </div>
                   <div style={{ position: "absolute", right: 4, top: 16, bottom: 16, width: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2 }}>
@@ -522,19 +680,25 @@ export default function TeXTREME() {
           </div>
 
           <p style={{ textAlign: "center", color: "rgba(255,255,255,0.25)", fontSize: 12, marginTop: 24 }}>
-            * 10페이지 무료 미리보기 제공 · 만족하신 후 결제
+            * 데모로 먼저 체험하고, 만족하면 변환하세요
           </p>
         </div>
       </section>
 
       {/* CTA */}
       <section style={{ padding: "80px 24px 48px", background: "#06060c", textAlign: "center" }}>
-        <button onClick={() => fileInputRef.current?.click()}
-          style={{ padding: "16px 40px", borderRadius: 14, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 800, fontSize: 18, border: "none", cursor: "pointer", boxShadow: "0 0 40px rgba(245,158,11,0.2)" }}>
-          지금 변환하기 <ArrowRight size={20} style={{ display: "inline", verticalAlign: "middle", marginLeft: 8 }} />
-        </button>
+        <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+          <button onClick={() => setView("demo")}
+            style={{ padding: "16px 32px", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontWeight: 700, fontSize: 17, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+            <Eye size={20} /> 데모 체험하기
+          </button>
+          <button onClick={() => fileInputRef.current?.click()}
+            style={{ padding: "16px 40px", borderRadius: 14, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 800, fontSize: 18, border: "none", cursor: "pointer", boxShadow: "0 0 40px rgba(245,158,11,0.2)", display: "flex", alignItems: "center", gap: 10 }}>
+            지금 변환하기 <ArrowRight size={20} />
+          </button>
+        </div>
         <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, marginTop: 16 }}>
-          회원가입 필요 없음 · 10페이지 무료
+          회원가입 필요 없음 · 데모로 먼저 체험 가능
         </p>
 
         {/* App Download Buttons */}
