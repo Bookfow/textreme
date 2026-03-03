@@ -310,10 +310,6 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
   // 클릭
   const onMD = (e: React.MouseEvent) => {
     mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() }
-    if (!focusMode && !showSettings && !showToc && !showNotesPanel && !showSearch ) {
-      const cx = e.clientX; const w = window.innerWidth
-      if (cx < w * 0.45 || cx > w * 0.55) { e.preventDefault(); window.getSelection()?.removeAllRanges() }
-    }
   }
   const onClick = (e: React.MouseEvent) => {
     if (showSettings || showToc || showNotesPanel || showMemoModal || showNotesPanel || showSearch) return
