@@ -1072,8 +1072,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
     const id = 'epub-lite-styles'; let el = document.getElementById(id) as HTMLStyleElement | null
     if (!el) { el = document.createElement('style'); el.id = id; document.head.appendChild(el) }
     el.textContent = `
-      .epub-content::selection,.epub-content *::selection { background-color:rgba(245,158,11,0.4) !important; }
-      .epub-content::-moz-selection,.epub-content *::-moz-selection { background-color:rgba(245,158,11,0.4) !important; }
+      .epub-content::selection,.epub-content *::selection { background-color:rgba(245,158,11,0.18) !important;color:inherit !important; }
       .epub-content mark[data-hl-color="yellow"] { background-color:rgba(250,220,50,0.3) !important; }
       .epub-content mark[data-hl-color="green"] { background-color:rgba(100,220,100,0.25) !important; }
       .epub-content mark[data-hl-color="blue"] { background-color:rgba(90,180,250,0.25) !important; }
