@@ -262,14 +262,21 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
   const onTE = () => { if (showPaywall) return; const s = touchStartRef.current; const e = touchEndRef.current; if (!s || !e) return; const dx = s.x - e.x; if (Math.abs(dx) > 50 && Math.abs(s.y - e.y) < Math.abs(dx)) { dx > 0 ? goNext() : goPrev() }; touchStartRef.current = null; touchEndRef.current = null }
 
   // 클릭
-  const onMD = (e: React.MouseEvent) => { mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() } }
+  const onMD = (e: React.MouseEvent) => {
+    mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() }
+    // 네비게이션 영역(좌우 45%) 클릭 시 텍스트 선택 방지
+    if (!focusMode && !showSettings && !showToc && !showNotesPanel && !showSearch && !showPaywall) {
+      const cx = e.clientX; const w = window.innerWidth
+      if (cx < w * 0.45 || cx > w * 0.55) { e.preventDefault(); window.getSelection()?.removeAllRanges() }
+    }
+  }
   const onClick = (e: React.MouseEvent) => {
     if (showSettings || showToc || showNotesPanel || showMemoModal || showNotesPanel || showSearch || showPaywall) return
     const md = mouseDownPosRef.current; const quick = md?.t && Date.now() - md.t < 300; if (md && Math.sqrt((e.clientX - md.x) ** 2 + (e.clientY - md.y) ** 2) > 5) { mouseDownPosRef.current = null; return }; mouseDownPosRef.current = null
     if (quick) { window.getSelection()?.removeAllRanges(); setShowHighlightMenu(false) }
     const sel = window.getSelection(); if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return
     if (focusMode) { contentColumnRef.current?.querySelectorAll('[data-epub-focused],[data-epub-adjacent]').forEach(el => { el.removeAttribute('data-epub-focused'); el.removeAttribute('data-epub-adjacent') }); return }
-    const cx = e.clientX; const w = window.innerWidth; if (cx < w * 0.45) goPrev(); else if (cx > w * 0.55) goNext()
+    const cx = e.clientX; const w = window.innerWidth; if (cx < w * 0.45) { window.getSelection()?.removeAllRanges(); goPrev() } else if (cx > w * 0.55) { window.getSelection()?.removeAllRanges(); goNext() }
   }
 
   // 텍스트 선택 → 하이라이트
@@ -510,7 +517,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
       </div></>)}
 
       {/* 페이지네이션 본문 */}
-      <div className={`flex-1 min-h-0 relative ${focusMode ? 'epub-focus-active' : ''}`} style={{ backgroundColor: themeStyle.bg, userSelect: isPaywalled ? 'none' : 'text', WebkitUserSelect: (isPaywalled ? 'none' : 'text') as any, overflow: 'clip', filter: isPaywalled ? 'blur(4px)' : 'none', transition: 'filter 0.3s' }} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE} onMouseDown={onMD} onClick={onClick} onMouseUp={onSelEnd}>
+      <div className={`flex-1 min-h-0 relative ${focusMode ? 'epub-focus-active' : ''}`} style={{ backgroundColor: themeStyle.bg, userSelect: isPaywalled ? 'none' : 'text', WebkitUserSelect: (isPaywalled ? 'none' : 'text') as any, overflow: 'clip', filter: isPaywalled ? 'blur(4px)' : 'none', transition: 'filter 0.3s' }} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE} onMouseDown={onMD} onClick={onClick} onMouseUp={onSelEnd} onDoubleClick={e => { const cx = e.clientX; const w = window.innerWidth; if (cx < w * 0.45 || cx > w * 0.55) { e.preventDefault(); window.getSelection()?.removeAllRanges() } }}>
         <div style={{ maxWidth: MAX_WIDTH, margin: '0 auto', padding: `2rem ${marginSize}px`, height: '100%' }}>
           <div ref={paginationContainerRef} className="relative" style={{ height: '100%', overflow: 'clip' }}>
             {currentChapterData ? <div ref={contentColumnRef} style={{ columnWidth: columnWidthPx > 0 ? `${columnWidthPx - 40}px` : '100vw', columnGap: '40px', columnFill: 'auto', height: '100%' }} /> : <p className="text-center py-8" style={{ color: themeStyle.muted }}>(표시할 내용 없음)</p>}
