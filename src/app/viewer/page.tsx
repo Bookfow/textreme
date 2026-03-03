@@ -107,7 +107,8 @@ export default function ViewerPage() {
   // ━━━ 뷰어 모드 ━━━
   if (state === 'viewing' && epubUrl) {
     return (
-      <div style={{ width: '100vw', height: '100dvh' }}>
+      <div style={{ width: '100vw', height: '100dvh', fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
+        <style>{`* { margin: 0; padding: 0; box-sizing: border-box; }`}</style>
         <EpubViewerLite
           epubUrl={epubUrl}
           onBack={handleBack}
