@@ -99,6 +99,27 @@ ${fontLink}
 .slide-text { animation: slideText 0.4s ease-out both; }
 .glow-amber { box-shadow: 0 0 40px rgba(245,158,11,0.15), 0 0 80px rgba(245,158,11,0.05); }
 .check-pop { animation: checkPop 0.5s ease-out both; }
+.card-hover { transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; cursor: default; }
+.card-hover:hover { transform: translateY(-4px); border-color: rgba(245,158,11,0.25) !important; box-shadow: 0 8px 24px rgba(245,158,11,0.08); }
+.icon-float { transition: transform 0.3s ease; display: inline-flex; }
+.card-hover:hover .icon-float { transform: translateY(-2px) scale(1.1); }
+.btn-glow { transition: all 0.25s ease; }
+.btn-glow:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245,158,11,0.2); border-color: rgba(245,158,11,0.5) !important; }
+.step-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.step-card:hover { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
+@keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+.shimmer-text { background: linear-gradient(90deg, #F59E0B 30%, #fde68a 50%, #F59E0B 70%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 3s linear infinite; }
+.compare-glow { transition: all 0.3s ease; }
+.compare-glow:hover { box-shadow: 0 8px 32px rgba(34,197,94,0.12); transform: translateY(-2px); }
+.card-hover:hover .icon-float { transform: translateY(-2px) scale(1.1); }
+.btn-glow { transition: all 0.25s ease; }
+.btn-glow:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245,158,11,0.2); border-color: rgba(245,158,11,0.5) !important; }
+.step-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.step-card:hover { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
+@keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+.shimmer-text { background: linear-gradient(90deg, #F59E0B 30%, #fde68a 50%, #F59E0B 70%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 3s linear infinite; }
+.compare-glow { transition: all 0.3s ease; }
+.compare-glow:hover { box-shadow: 0 8px 32px rgba(34,197,94,0.12); transform: translateY(-2px); }
 .compare-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
 @media (min-width: 640px) { .compare-grid { grid-template-columns: 1fr 1fr; } }
 `
@@ -381,7 +402,7 @@ export default function TeXTREME() {
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button onClick={() => setView("demo")}
+            <button className="btn-glow" onClick={() => setView("demo")}
               style={{ padding: "8px 16px", borderRadius: 10, background: "none", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <Eye size={14} /> 체험하기
             </button>
@@ -476,7 +497,7 @@ export default function TeXTREME() {
                   { icon: "🔤", title: "한글 정확도 99%+", desc: "조사·어미·띄어쓰기 정확" },
                   { icon: "⚡", title: "구조 자동 보존", desc: "제목·본문·인용 분석" },
                 ].map((item, i) => (
-                  <div key={i} style={{ padding: "14px 10px", borderRadius: 10, background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.1)", textAlign: "center" }}>
+                  <div key={i} style={{ padding: "14px 10px", borderRadius: 10, background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.1)", textAlign: "center" }} className="card-hover">
                     <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
                     <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, marginBottom: 3 }}>{item.title}</div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, lineHeight: 1.4 }}>{item.desc}</div>
@@ -484,7 +505,7 @@ export default function TeXTREME() {
                 ))}
               </div>
 
-              <button onClick={() => setView("demo")}
+              <button className="btn-glow" onClick={() => setView("demo")}
                 style={{
                   marginTop: 28, width: "100%", maxWidth: 360, padding: "13px 20px", borderRadius: 12,
                   background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))",
@@ -511,11 +532,11 @@ export default function TeXTREME() {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}>
             {[
-              { icon: <Upload size={24} />, num: "01", title: "PDF 업로드", desc: "변환할 PDF 파일을 드래그 앤 드롭으로 올려주세요", color: "#3b82f6" },
+              { icon: <Upload size={24} />, num: "01", title: "PDF 업로드", desc: "변환할 PDF 파일을 드래그앤드롭으로 올려주세요", color: "#3b82f6" },
               { icon: <Zap size={24} />, num: "02", title: "AI가 분석·변환", desc: "AI가 페이지별로 텍스트 구조를 분석하고 EPUB으로 변환합니다", color: "#F59E0B" },
               { icon: <Download size={24} />, num: "03", title: "자동 저장", desc: "변환된 전자책이 기기에 자동으로 저장됩니다", color: "#22c55e" },
             ].map((step, i) => (
-              <div key={i} style={{ padding: 32, borderRadius: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden" }}>
+              <div key={i} style={{ padding: 32, borderRadius: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden" }} className="step-card">
                 <div style={{ position: "absolute", top: -20, right: -10, fontFamily: "'Outfit'", fontWeight: 900, fontSize: 100, color: "rgba(255,255,255,0.02)", lineHeight: 1 }}>{step.num}</div>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: `${step.color}15`, display: "flex", alignItems: "center", justifyContent: "center", color: step.color, marginBottom: 20 }}>
                   {step.icon}
@@ -542,7 +563,7 @@ export default function TeXTREME() {
             <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
               <div style={{ padding: "12px 16px", background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.15)", display: "flex", alignItems: "center", gap: 8 }}>
                 <X size={16} color="#ef4444" />
-                <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>PDF (모바일)</span>
+                <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>PDF</span>
               </div>
               <div style={{ padding: 0, background: "#525659" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "#3b3b3b", borderBottom: "1px solid #2a2a2a" }}>
@@ -576,10 +597,10 @@ export default function TeXTREME() {
               </div>
             </div>
             {/* After */}
-            <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid rgba(34,197,94,0.2)" }} className="glow-amber">
+            <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid rgba(34,197,94,0.2)" }} className="glow-amber compare-glow">
               <div style={{ padding: "12px 16px", background: "rgba(34,197,94,0.08)", borderBottom: "1px solid rgba(34,197,94,0.15)", display: "flex", alignItems: "center", gap: 8 }}>
                 <Check size={16} color="#22c55e" />
-                <span style={{ color: "#22c55e", fontSize: 13, fontWeight: 600 }}>EPUB (TeXTREME)</span>
+                <span style={{ color: "#22c55e", fontSize: 13, fontWeight: 600 }}>EPUB</span>
               </div>
               <div style={{ padding: 20, background: "rgba(255,255,255,0.02)", minHeight: 280 }}>
                 <div style={{ background: "#1a1410", borderRadius: 8, padding: 16 }}>
@@ -603,7 +624,7 @@ export default function TeXTREME() {
       <section style={{ padding: "100px 24px", background: "#06060c" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em", marginBottom: 56 }}>
-            왜 텍스트림 PDF 변환기인가
+            왜 TeXTREME PDF to EPUB 변환기인가
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
             {[
@@ -612,7 +633,7 @@ export default function TeXTREME() {
               { icon: <Smartphone size={22} />, title: "모바일 최적화", desc: "화면 크기에 맞춰 자동 리플로우" },
               { icon: <Globe size={22} />, title: "어디서든 변환", desc: "PC·태블릿·스마트폰, 어디서든" },
             ].map((f, i) => (
-              <div key={i} style={{ padding: "16px 14px", borderRadius: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div key={i} style={{ padding: "16px 14px", borderRadius: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }} className="card-hover">
                 <div style={{ color: "#F59E0B", marginBottom: 14 }}>{f.icon}</div>
                 <h4 style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{f.title}</h4>
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>{f.desc}</p>
@@ -661,7 +682,7 @@ export default function TeXTREME() {
       {/* CTA */}
       <section style={{ padding: "80px 24px 48px", background: "#06060c", textAlign: "center" }}>
         <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => setView("demo")}
+          <button className="btn-glow" onClick={() => setView("demo")}
             style={{ padding: "16px 32px", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontWeight: 700, fontSize: 17, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
             <Eye size={20} /> 데모 체험하기
           </button>
