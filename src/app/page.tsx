@@ -99,6 +99,12 @@ ${fontLink}
 .slide-text { animation: slideText 0.4s ease-out both; }
 .glow-amber { box-shadow: 0 0 40px rgba(245,158,11,0.15), 0 0 80px rgba(245,158,11,0.05); }
 .check-pop { animation: checkPop 0.5s ease-out both; }
+.demo-grid { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; }
+.demo-phone { width: 240px; height: 430px; }
+@media (min-width: 1024px) { .demo-grid { grid-template-columns: 1fr 1fr; gap: 48px; } }
+@media (min-width: 900px) { .demo-phone { width: 280px; height: 500px; } }
+.compare-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+@media (min-width: 640px) { .compare-grid { grid-template-columns: 1fr 1fr; } }
 `
 
 function calcPrice(pages: number): number {
@@ -466,10 +472,10 @@ export default function TeXTREME() {
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }}>
+          <div className="demo-grid">
             {/* Mini Demo — Phone mockup */}
             <div style={{ display: "flex", justifyContent: "center" }}>
-              <div style={{ position: "relative", width: 280, height: 500 }}>
+              <div className="demo-phone" style={{ position: "relative" }}>
                 {/* Phone frame */}
                 <div style={{
                   position: "absolute", inset: 0, borderRadius: 32, border: "3px solid rgba(255,255,255,0.12)",
@@ -564,7 +570,7 @@ export default function TeXTREME() {
           <p style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 16, marginBottom: 56 }}>
             모바일에서 PDF를 읽어본 적 있다면, 이 고통을 아실 겁니다
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          <div className="compare-grid">
             {/* Before */}
             <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
               <div style={{ padding: "12px 16px", background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.15)", display: "flex", alignItems: "center", gap: 8 }}>
