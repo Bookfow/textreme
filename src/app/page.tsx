@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Upload, FileText, Zap, Download, Check, BookOpen, Smartphone, Globe, ArrowRight, X, Type, Eye, CheckCircle2, Maximize2 } from "lucide-react"
 import DemoReader from "@/components/demo-reader"
+import EpubViewerLite from "@/components/epub-viewer-lite"
+import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TeXTREME — Landing + Demo + Convert + Complete
@@ -76,7 +78,7 @@ const SAMPLE_CHAPTERS = [
   },
 ]
 
-type ViewType = "landing" | "demo" | "converting" | "complete"
+type ViewType = "landing" | "demo" | "converting" | "complete" | "viewer"
 
 interface ExtractedText { page: number; text: string }
 
@@ -133,7 +135,6 @@ export default function TeXTREME() {
   const [file, setFile] = useState<File | null>(null)
   const [fileName, setFileName] = useState("")
   const [filePages, setFilePages] = useState(0)
-  const [isDragging, setIsDragging] = useState(false)
   const [progress, setProgress] = useState(0)
   const [currentPage, setCurrentPage] = useState(0)
   const [extractedTexts, setExtractedTexts] = useState<ExtractedText[]>([])
@@ -142,6 +143,7 @@ export default function TeXTREME() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isPwaInstalled, setIsPwaInstalled] = useState(false)
   const demoSectionRef = useRef<HTMLDivElement>(null)
+  const [epubUrl, setEpubUrl] = useState<string | null>(null)
 
   // ━━━ PWA install prompt ━━━
   useEffect(() => {
@@ -203,24 +205,59 @@ export default function TeXTREME() {
     return () => { if (progressInterval.current) clearInterval(progressInterval.current) }
   }, [])
 
-  const handleFile = (f: File) => {
-    if (!f || !f.name.toLowerCase().endsWith(".pdf")) return
-    setFile(f)
+  const handleFile = async (f: File) => {
+    if (!f) return
+    const ext = f.name.split('.').pop()?.toLowerCase() || ''
     setFileName(f.name)
-    const pages = 50 + Math.floor(Math.random() * 250)
-    setFilePages(pages)
-    startConversion(pages)
-  }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault(); setIsDragging(false)
-    const f = e.dataTransfer?.files?.[0]; if (f) handleFile(f)
+    // EPUB → 바로 뷰어
+    if (ext === 'epub') {
+      const url = URL.createObjectURL(f)
+      setEpubUrl(url)
+      setView("viewer")
+      return
+    }
+
+    // TXT → EPUB 변환 후 뷰어
+    if (ext === 'txt') {
+      try {
+        const text = await f.text()
+        if (!text.trim()) return
+        const title = f.name.replace(/\.txt$/i, '')
+        const blob = await convertTxtToEpub(text, title, '')
+        const url = URL.createObjectURL(blob)
+        setEpubUrl(url)
+        setView("viewer")
+      } catch {}
+      return
+    }
+
+    // DOCX → EPUB 변환 후 뷰어
+    if (ext === 'docx') {
+      try {
+        const arrayBuffer = await f.arrayBuffer()
+        const title = f.name.replace(/\.docx$/i, '')
+        const blob = await convertDocxToEpub(arrayBuffer, title, '')
+        const url = URL.createObjectURL(blob)
+        setEpubUrl(url)
+        setView("viewer")
+      } catch {}
+      return
+    }
+
+    // PDF → AI 변환 플로우
+    if (ext === 'pdf') {
+      setFile(f)
+      const pages = 50 + Math.floor(Math.random() * 250)
+      setFilePages(pages)
+      startConversion(pages)
+      return
+    }
   }
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }
-  const handleDragLeave = () => setIsDragging(false)
 
   const reset = () => {
-    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([])
+    if (epubUrl) URL.revokeObjectURL(epubUrl)
+    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null)
     if (progressInterval.current) clearInterval(progressInterval.current)
   }
 
@@ -235,6 +272,21 @@ export default function TeXTREME() {
           chapters={SAMPLE_CHAPTERS}
           title="디자인의 심리학 — 샘플"
           onBack={() => setView("landing")}
+        />
+      </div>
+    )
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Viewer — EpubViewerLite (EPUB/TXT/DOCX)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (view === "viewer" && epubUrl) {
+    return (
+      <div style={{ width: "100vw", height: "100dvh", fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
+        <style>{`* { margin: 0; padding: 0; box-sizing: border-box; }`}</style>
+        <EpubViewerLite
+          epubUrl={epubUrl}
+          onBack={reset}
         />
       </div>
     )
@@ -436,24 +488,23 @@ export default function TeXTREME() {
 
         {/* Upload Zone */}
         <div className="fade-up-d3"
-          onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
           onClick={() => fileInputRef.current?.click()}
           style={{
             width: "100%", maxWidth: 500, padding: "48px 32px", borderRadius: 20,
-            border: isDragging ? "2px solid #F59E0B" : "2px dashed rgba(255,255,255,0.12)",
-            background: isDragging ? "rgba(245,158,11,0.06)" : "rgba(255,255,255,0.02)",
+            border: "2px dashed rgba(255,255,255,0.12)",
+            background: "rgba(255,255,255,0.02)",
             cursor: "pointer", textAlign: "center", transition: "all 0.3s",
           }}>
           <div style={{ width: 64, height: 64, borderRadius: 16, background: "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", animation: "float 4s ease-in-out infinite" }}>
             <Upload size={28} color="#F59E0B" />
           </div>
           <p style={{ color: "#fff", fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-            PDF 파일을 드래그하거나 클릭하여 업로드
+            클릭하여 파일 열기
           </p>
           <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>
-            최대 500페이지 · PDF 형식만 지원
+            PDF · EPUB · TXT · DOCX 지원
           </p>
-          <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: "none" }}
+          <input ref={fileInputRef} type="file" accept=".pdf,.epub,.txt,.docx" style={{ display: "none" }}
             onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
         </div>
 
@@ -532,7 +583,7 @@ export default function TeXTREME() {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}>
             {[
-              { icon: <Upload size={24} />, num: "01", title: "PDF 업로드", desc: "변환할 PDF 파일을 드래그앤드롭으로 올려주세요", color: "#3b82f6" },
+              { icon: <Upload size={24} />, num: "01", title: "PDF 업로드", desc: "변환할 PDF 파일을 올려주세요", color: "#3b82f6" },
               { icon: <Zap size={24} />, num: "02", title: "AI가 분석·변환", desc: "AI가 페이지별로 텍스트 구조를 분석하고 EPUB으로 변환합니다", color: "#F59E0B" },
               { icon: <Download size={24} />, num: "03", title: "자동 저장", desc: "변환된 전자책이 기기에 자동으로 저장됩니다", color: "#22c55e" },
             ].map((step, i) => (
