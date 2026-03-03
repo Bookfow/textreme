@@ -469,19 +469,17 @@ export default function TeXTREME() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: 480, margin: "0 auto" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "center" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, width: "100%" }}>
                 {[
-                  { icon: "📖", title: "모든 EPUB 뷰어에서 사용 가능", desc: "원하는 EPUB 뷰어 앱에서 바로 열기" },
-                  { icon: "📐", title: "표준 EPUB 3.0 출력", desc: "어떤 기기·운영체제든 호환되는 표준 포맷" },
-                  { icon: "🔤", title: "한글 인식 정확도 99%+", desc: "조사·어미·띄어쓰기까지 정확하게 변환" },
-                  { icon: "⚡", title: "문서 구조 자동 보존", desc: "제목·본문·인용·리스트 구분까지 AI가 분석" },
+                  { icon: "📖", title: "모든 EPUB 뷰어 호환", desc: "원하는 앱에서 바로 열기" },
+                  { icon: "📐", title: "EPUB 3.0 표준", desc: "모든 기기·OS 호환" },
+                  { icon: "🔤", title: "한글 정확도 99%+", desc: "조사·어미·띄어쓰기 정확" },
+                  { icon: "⚡", title: "구조 자동 보존", desc: "제목·본문·인용 분석" },
                 ].map((item, i) => (
-                  <div key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-                    <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>{item.icon}</span>
-                    <div>
-                      <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{item.title}</div>
-                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.5 }}>{item.desc}</div>
-                    </div>
+                  <div key={i} style={{ padding: "14px 10px", borderRadius: 10, background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.1)", textAlign: "center" }}>
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
+                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, marginBottom: 3 }}>{item.title}</div>
+                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, lineHeight: 1.4 }}>{item.desc}</div>
                   </div>
                 ))}
               </div>
@@ -532,7 +530,7 @@ export default function TeXTREME() {
 
       {/* BEFORE / AFTER */}
       <section style={{ padding: "100px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 100%)" }}>
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+        <div style={{ maxWidth: 500, margin: "0 auto" }}>
           <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em", marginBottom: 12 }}>
             이런 차이가 납니다
           </h2>
@@ -607,14 +605,14 @@ export default function TeXTREME() {
           <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em", marginBottom: 56 }}>
             왜 텍스트림 PDF 변환기인가
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
             {[
-              { icon: <Type size={22} />, title: "한글 특화", desc: "한글 조사·어미·띄어쓰기를 정확히 인식하는 AI 엔진" },
-              { icon: <BookOpen size={22} />, title: "구조 보존", desc: "제목·본문·인용·리스트 구분까지 자동 분석" },
-              { icon: <Smartphone size={22} />, title: "모바일 최적화", desc: "화면 크기에 맞춰 글이 자동으로 리플로우" },
-              { icon: <Globe size={22} />, title: "어디서든 변환", desc: "PC·태블릿·스마트폰, 어디서든 PDF를 EPUB으로" },
+              { icon: <Type size={22} />, title: "한글 특화", desc: "한글 조사·어미·띄어쓰기를 정확히 인식" },
+              { icon: <BookOpen size={22} />, title: "구조 보존", desc: "제목·본문·인용·리스트 자동 분석" },
+              { icon: <Smartphone size={22} />, title: "모바일 최적화", desc: "화면 크기에 맞춰 자동 리플로우" },
+              { icon: <Globe size={22} />, title: "어디서든 변환", desc: "PC·태블릿·스마트폰, 어디서든" },
             ].map((f, i) => (
-              <div key={i} style={{ padding: 24, borderRadius: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div key={i} style={{ padding: "16px 14px", borderRadius: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
                 <div style={{ color: "#F59E0B", marginBottom: 14 }}>{f.icon}</div>
                 <h4 style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{f.title}</h4>
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>{f.desc}</p>
