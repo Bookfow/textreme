@@ -99,10 +99,6 @@ ${fontLink}
 .slide-text { animation: slideText 0.4s ease-out both; }
 .glow-amber { box-shadow: 0 0 40px rgba(245,158,11,0.15), 0 0 80px rgba(245,158,11,0.05); }
 .check-pop { animation: checkPop 0.5s ease-out both; }
-.demo-grid { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: center; }
-.demo-phone { width: 240px; height: 430px; }
-@media (min-width: 1024px) { .demo-grid { grid-template-columns: 1fr 1fr; gap: 32px; } }
-@media (min-width: 900px) { .demo-phone { width: 280px; height: 500px; } }
 .compare-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
 @media (min-width: 640px) { .compare-grid { grid-template-columns: 1fr 1fr; } }
 `
@@ -472,33 +468,7 @@ export default function TeXTREME() {
             </p>
           </div>
 
-          <div className="demo-grid">
-            {/* Mini Demo — Phone mockup */}
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <div className="demo-phone" style={{ position: "relative" }}>
-                {/* Phone frame */}
-                <div style={{
-                  position: "absolute", inset: 0, borderRadius: 32, border: "3px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.03)", boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(245,158,11,0.08)",
-                  overflow: "hidden",
-                }}>
-                  {/* Notch */}
-                  <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 100, height: 24, background: "#06060c", borderRadius: "0 0 16px 16px", zIndex: 10 }} />
-
-                  {/* Embedded demo content */}
-                  <div style={{ position: "absolute", top: 8, left: 4, right: 4, bottom: 8, borderRadius: 26, overflow: "hidden" }}>
-                    <DemoReader
-                      chapters={SAMPLE_CHAPTERS}
-                      title="디자인의 심리학"
-                      onBack={() => {}}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Demo description + CTA */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: 480, margin: "0 auto" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "center" }}>
                 {[
                   { icon: "📖", title: "모든 EPUB 뷰어에서 사용 가능", desc: "원하는 EPUB 뷰어 앱에서 바로 열기" },
@@ -529,7 +499,6 @@ export default function TeXTREME() {
                 변환 결과 데모 풀스크린으로 확인
               </button>
             </div>
-          </div>
         </div>
       </section>
 
