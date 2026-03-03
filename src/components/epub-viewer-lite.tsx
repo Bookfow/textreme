@@ -917,7 +917,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
               mark.setAttribute('data-hl-id', hl.id); mark.setAttribute('data-hl-color', hl.color || 'yellow')
               if (hl.memo) mark.setAttribute('data-memo', hl.memo)
               mark.style.backgroundColor = HIGHLIGHT_COLORS[hl.color] || HIGHLIGHT_COLORS.yellow
-              range.surroundContents(mark)
+              const frag = range.extractContents(); mark.appendChild(frag); range.insertNode(mark)
             } catch {}
           }
         }
