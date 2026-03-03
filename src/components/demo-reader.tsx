@@ -7,6 +7,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   ChevronLeft, ChevronRight, Minus, Plus, List, AlignLeft, AlignJustify,
   Settings2, Focus, Highlighter, Trash2, X, Bookmark, BookmarkCheck, Search,
+  Maximize2, Minimize2,
 } from 'lucide-react'
 
 export interface DemoChapter { title: string; paragraphs: string[] }
@@ -51,7 +52,6 @@ function openDB(): Promise<IDBDatabase> {
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => {
-      // If version conflict, delete and retry
       indexedDB.deleteDatabase(DB_NAME)
       const retry = indexedDB.open(DB_NAME, DB_VERSION)
       retry.onupgradeneeded = () => {
@@ -116,6 +116,29 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
   const [columnWidthPx, setColumnWidthPx] = useState(0)
   const themeStyle = THEMES[theme]; const fontStyle = FONTS[font]
 
+  // ━━━ Fullscreen ━━━
+  const readerContainerRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        const el = readerContainerRef.current || document.documentElement
+        await el.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch (err) {
+      console.warn('Fullscreen not supported:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
   // ━━━ Paywall & UX states ━━━
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [onboardingStep, setOnboardingStep] = useState(0)
@@ -123,9 +146,6 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
   const virtualPageNumber = useMemo(() => { let p = 1; for (let i = 0; i < currentChapterIdx; i++) p += chapterPageCounts[i] || 1; p += pageInChapter; return p }, [currentChapterIdx, pageInChapter, chapterPageCounts])
   const virtualTotalPages = useMemo(() => chapterPageCounts.length === 0 ? internalChapters.length || 1 : Math.max(chapterPageCounts.reduce((s, c) => s + (c || 1), 0), 1), [internalChapters, chapterPageCounts])
   const isCurrentPageBookmarked = useMemo(() => bookmarks.some(b => b.chapter_idx === currentChapterIdx && b.page_in_chapter === pageInChapter), [bookmarks, currentChapterIdx, pageInChapter])
-
-
-  // ━━━ Paywall trigger ━━━
 
   // ━━━ Onboarding (first visit) ━━━
   useEffect(() => {
@@ -227,7 +247,6 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
     return () => { c.removeEventListener('click', onClick); c.removeEventListener('mouseover', onOver); c.removeEventListener('mouseout', onOut) }
   }, [highlights])
 
-  // 선택 오버레이 — 비활성화 (CSS ::selection만 사용)
   useEffect(() => {}, [])
 
   // 웹폰트 로드
@@ -249,7 +268,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
   const goToVP = useCallback((vp: number) => { let acc = 0; for (let i = 0; i < internalChapters.length; i++) { const c = chapterPageCounts[i] || 1; if (acc + c >= vp) { setCurrentChapterIdx(i); setPageInChapter(vp - acc - 1); return }; acc += c }; if (internalChapters.length > 0) { setCurrentChapterIdx(internalChapters.length - 1); setPageInChapter(Math.max(0, (chapterPageCounts[internalChapters.length - 1] || 1) - 1)) } }, [internalChapters.length, chapterPageCounts])
 
   // 키보드
-  useEffect(() => { const h = (e: KeyboardEvent) => { const t = (e.target as HTMLElement)?.tagName; if (t === 'INPUT' || t === 'TEXTAREA') return; if (showSettings || showToc || showNotesPanel || showNotesPanel || showSearch) return; if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goPrev() } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goNext() } else if ((e.key === 'f' || e.key === 'F') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setShowSearch(p => !p) } }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h) }, [goNext, goPrev, showSettings, showToc, showNotesPanel, showNotesPanel, showSearch])
+  useEffect(() => { const h = (e: KeyboardEvent) => { const t = (e.target as HTMLElement)?.tagName; if (t === 'INPUT' || t === 'TEXTAREA') return; if (showSettings || showToc || showNotesPanel || showNotesPanel || showSearch) return; if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goPrev() } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goNext() } else if ((e.key === 'f' || e.key === 'F') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setShowSearch(p => !p) } else if (e.key === 'F11') { e.preventDefault(); toggleFullscreen() } }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h) }, [goNext, goPrev, showSettings, showToc, showNotesPanel, showSearch, toggleFullscreen])
 
   // 터치
   const onTS = (e: React.TouchEvent) => { touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; touchEndRef.current = null }
@@ -259,7 +278,6 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
   // 클릭
   const onMD = (e: React.MouseEvent) => {
     mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() }
-    // 네비게이션 영역(좌우 45%) 클릭 시 텍스트 선택 방지
     if (!focusMode && !showSettings && !showToc && !showNotesPanel && !showSearch ) {
       const cx = e.clientX; const w = window.innerWidth
       if (cx < w * 0.45 || cx > w * 0.55) { e.preventDefault(); window.getSelection()?.removeAllRanges() }
@@ -303,7 +321,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
   const isLast = currentChapterIdx === internalChapters.length - 1 && pageInChapter >= totalPagesInChapter - 1
 
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: themeStyle.pageBg, fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
+    <div ref={readerContainerRef} className="h-full flex flex-col" style={{ backgroundColor: themeStyle.pageBg, fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
 
       {/* ━━━ ONBOARDING OVERLAY ━━━ */}
       {showOnboarding && (
@@ -329,17 +347,14 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
         </div>
       )}
 
-
-
       {/* TOC 패널 */}
       {showToc && (<div className="fixed inset-0 z-[60] flex"><div className="absolute inset-0 bg-black/40" onClick={() => setShowToc(false)} /><div className="relative w-72 max-w-[80vw] h-full flex flex-col shadow-2xl" style={{ backgroundColor: themeStyle.bg }}><div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: themeStyle.border }}><h3 className="font-semibold text-sm" style={{ color: themeStyle.headingColor }}>목차</h3><button onClick={() => setShowToc(false)} className="p-1 rounded hover:opacity-70" style={{ color: themeStyle.muted }}>✕</button></div><div className="flex-1 overflow-y-auto">{tocItems.map((item, i) => (<button key={i} onClick={() => { goToChapter(item.chapterIndex); setShowToc(false) }} className={`w-full text-left py-3 px-4 border-b text-sm ${item.chapterIndex === currentChapterIdx ? 'font-semibold' : 'hover:opacity-80'}`} style={{ borderColor: themeStyle.border, color: item.chapterIndex === currentChapterIdx ? ACCENT : themeStyle.text, backgroundColor: item.chapterIndex === currentChapterIdx ? 'rgba(245,158,11,0.06)' : 'transparent' }}>{item.title}</button>))}</div></div></div>)}
 
-      {/* 노트 패널 (형광펜 + 책갈피 통합) */}
+      {/* 노트 패널 */}
       {showNotesPanel && (
         <div className="fixed inset-0 z-[60] flex justify-end">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowNotesPanel(false)} />
           <div className="relative w-80 max-w-[85vw] h-full flex flex-col shadow-2xl" style={{ backgroundColor: themeStyle.bg }}>
-            {/* 헤더 + 탭 */}
             <div style={{ borderBottom: `1px solid ${themeStyle.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 0' }}>
                 <h3 style={{ color: themeStyle.headingColor, fontWeight: 600, fontSize: 14 }}>노트</h3>
@@ -353,7 +368,6 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
                 ))}
               </div>
             </div>
-            {/* 콘텐츠 */}
             <div className="flex-1 overflow-y-auto">
               {notesTab === 'highlights' ? (
                 highlights.length > 0 ? [...highlights].sort((a, b) => a.page_number - b.page_number).map(hl => (
@@ -392,7 +406,6 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
                 )
               )}
             </div>
-            {/* 하단 — 현재 페이지 책갈피 추가/제거 */}
             {notesTab === 'bookmarks' && (
               <div style={{ padding: '12px 16px', borderTop: `1px solid ${themeStyle.border}` }}>
                 <button onClick={e => { e.stopPropagation(); toggleBM() }} style={{ width: '100%', padding: '10px', borderRadius: 10, border: `1px solid ${isCurrentPageBookmarked ? 'rgba(239,68,68,0.3)' : ACCENT + '40'}`, background: isCurrentPageBookmarked ? 'rgba(239,68,68,0.06)' : `${ACCENT}08`, color: isCurrentPageBookmarked ? '#ef4444' : ACCENT, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -404,37 +417,32 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
         </div>
       )}
 
-      {/* 상단 바 */}
+      {/* 상단 바 — 8칸 그리드 (풀스크린 추가) */}
       <div style={{ borderColor: themeStyle.border, display: "flex", justifyContent: "center", borderBottom: `1px solid ${themeStyle.border}`, flexShrink: 0, boxShadow: `0 1px 8px ${themeStyle.border}40` }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 12, padding: "14px 24px", width: "100%", maxWidth: 520 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 8, padding: "14px 20px", width: "100%", maxWidth: 560 }}>
         <button onClick={e => { e.stopPropagation(); setShowToc(!showToc) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showToc ? ACCENT : themeStyle.muted }}><List className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>목차</span></button>
         <button onClick={e => { e.stopPropagation(); setShowSearch(!showSearch) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showSearch ? ACCENT : themeStyle.muted }}><Search className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>검색</span></button>
         <button onClick={e => { e.stopPropagation(); setFocusMode(!focusMode) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg" style={{ color: focusMode ? ACCENT : themeStyle.muted, backgroundColor: focusMode ? `${ACCENT}15` : 'transparent' }}><Focus className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>집중</span></button>
         <div className="flex items-center justify-center"><span className="text-[10px] font-medium" style={{ color: themeStyle.muted }}>{virtualPageNumber}/{virtualTotalPages}</span></div>
         <button onClick={e => { e.stopPropagation(); setNotesTab('highlights'); setShowNotesPanel(!showNotesPanel) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg" style={{ color: showNotesPanel && notesTab === 'highlights' ? ACCENT : highlights.length > 0 ? ACCENT : themeStyle.muted }}><Highlighter className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>형광펜</span></button>
         <button onClick={e => { e.stopPropagation(); setNotesTab('bookmarks'); setShowNotesPanel(!showNotesPanel) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showNotesPanel && notesTab === 'bookmarks' ? ACCENT : isCurrentPageBookmarked ? ACCENT : themeStyle.muted }}>{isCurrentPageBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}<span style={{ fontSize: 10, marginTop: 5 }}>책갈피</span></button>
+        <button onClick={e => { e.stopPropagation(); toggleFullscreen() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: isFullscreen ? ACCENT : themeStyle.muted, backgroundColor: isFullscreen ? `${ACCENT}15` : 'transparent' }}>{isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}<span style={{ fontSize: 10, marginTop: 5 }}>{isFullscreen ? '축소' : '전체'}</span></button>
         <button onClick={e => { e.stopPropagation(); setShowSettings(!showSettings) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showSettings ? ACCENT : themeStyle.muted }}><Settings2 className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>설정</span></button>
       </div>
       </div>
 
-      {/* 검색 패널 — 상단 바 아래 인라인 */}
+      {/* 검색 패널 */}
       {showSearch && (<div style={{ borderBottom: `1px solid ${themeStyle.border}`, backgroundColor: themeStyle.bg, flexShrink: 0, display: 'flex', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 520, padding: '14px 28px' }}><div className="flex items-center gap-4 px-6 py-3.5 rounded-2xl border" style={{ borderColor: themeStyle.border, backgroundColor: themeStyle.pageBg }}><Search className="w-4 h-4 flex-shrink-0" style={{ color: themeStyle.muted }} /><input ref={searchInputRef} type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); doSearch(e.target.value) }} onKeyDown={e => { if (e.key === 'Escape') setShowSearch(false) }} placeholder="본문 검색..." className="flex-1 bg-transparent outline-none text-sm" style={{ color: themeStyle.text }} />{searchQuery && <span className="text-[10px] flex-shrink-0" style={{ color: themeStyle.muted }}>{searchResults.length}건</span>}<button onClick={() => { setShowSearch(false); setSearchQuery(''); setSearchResults([]) }} className="p-1.5 rounded-lg hover:opacity-70 flex-shrink-0" style={{ color: themeStyle.muted }}><X className="w-4 h-4" /></button></div>{searchResults.length > 0 && (<div className="mt-2 rounded-xl border overflow-y-auto" style={{ borderColor: themeStyle.border, maxHeight: '40vh' }}>{searchResults.map((r, i) => (<button key={i} className="w-full text-left px-3 py-2.5 border-b hover:opacity-80" style={{ borderColor: themeStyle.border }} onClick={() => { goToChapter(r.chapterIdx); setShowSearch(false) }}><span className="text-[10px] font-medium block mb-0.5" style={{ color: ACCENT }}>{r.chapterTitle}</span><p className="text-xs leading-relaxed" style={{ color: themeStyle.text }} dangerouslySetInnerHTML={{ __html: r.snippet.replace(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), `<span style="background:${ACCENT}44;border-radius:2px;padding:0 2px">$1</span>`) }} /></button>))}</div>)}{searchQuery && searchResults.length === 0 && <p className="text-center text-xs py-3" style={{ color: themeStyle.muted }}>검색 결과가 없습니다</p>}</div></div>)}
 
       {/* 설정 바텀시트 */}
       {showSettings && (<><div className="fixed inset-0 z-[55]" onClick={() => setShowSettings(false)} /><div className="fixed z-[56] overflow-y-auto" style={{ bottom: 12, left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 32px)', maxWidth: 420, maxHeight: '75vh', borderRadius: 20, backgroundColor: theme === 'dark' ? 'rgba(26,22,18,0.52)' : theme === 'sepia' ? 'rgba(243,235,218,0.52)' : 'rgba(250,250,248,0.52)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: `1px solid ${themeStyle.border}`, boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 14, paddingBottom: 6 }}><div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: themeStyle.border }} /></div>
         <div style={{ padding: '8px 28px 36px', display: 'flex', flexDirection: 'column', gap: 28 }}>
-          {/* 배경 테마 */}
           <div><p style={{ fontSize: 12, fontWeight: 500, color: themeStyle.muted, marginBottom: 16 }}>배경 테마</p><div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>{(Object.keys(THEMES) as ReflowTheme[]).map(t => (<button key={t} onClick={() => setTheme(t)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><div style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: THEMES[t].bg, border: theme === t ? `2.5px solid ${ACCENT}` : `2px solid ${THEMES[t].border}`, boxShadow: theme === t ? `0 0 0 3px ${ACCENT}30` : 'none' }} /><span style={{ fontSize: 11, color: theme === t ? ACCENT : themeStyle.muted }}>{t === 'light' ? '밝은' : t === 'sepia' ? '세피아' : '어두운'}</span></button>))}</div></div>
-          {/* 글꼴 */}
           <div><p style={{ fontSize: 12, fontWeight: 500, color: themeStyle.muted, marginBottom: 14 }}>글꼴</p><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{(Object.keys(FONTS) as ReflowFont[]).map(f => (<button key={f} onClick={() => setFont(f)} style={{ flex: '1 1 auto', minWidth: 60, padding: '10px 4px', borderRadius: 12, fontSize: 13, fontFamily: FONTS[f].family, border: `1.5px solid ${font === f ? ACCENT : themeStyle.border}`, backgroundColor: font === f ? `${ACCENT}12` : 'transparent', color: font === f ? ACCENT : themeStyle.text, cursor: 'pointer', fontWeight: font === f ? 600 : 400 }}>{FONTS[f].label}</button>))}</div></div>
-          {/* 글자 크기 */}
           <div><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}><p style={{ fontSize: 12, fontWeight: 500, color: themeStyle.muted }}>글자 크기</p><span style={{ fontSize: 12, fontFamily: 'monospace', color: themeStyle.text }}>{fontSize}px</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 14 }}><button onClick={() => setFontSize(s => Math.max(12, s - 1))} style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${themeStyle.border}`, background: 'none', color: themeStyle.muted, cursor: 'pointer', flexShrink: 0 }}><Minus style={{ width: 16, height: 16 }} /></button><input type="range" min={12} max={32} value={fontSize} onChange={e => setFontSize(Number(e.target.value))} className="flex-1 accent-amber-500" style={{ height: 4 }} /><button onClick={() => setFontSize(s => Math.min(32, s + 1))} style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${themeStyle.border}`, background: 'none', color: themeStyle.muted, cursor: 'pointer', flexShrink: 0 }}><Plus style={{ width: 16, height: 16 }} /></button></div></div>
-          {/* 줄간격 */}
           <div><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}><p style={{ fontSize: 12, fontWeight: 500, color: themeStyle.muted }}>줄간격</p><span style={{ fontSize: 12, fontFamily: 'monospace', color: themeStyle.text }}>{lineHeight.toFixed(1)}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 14 }}><button onClick={() => setLineHeight(h => Math.max(1.2, Math.round((h - 0.1) * 10) / 10))} style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${themeStyle.border}`, background: 'none', color: themeStyle.muted, cursor: 'pointer', flexShrink: 0 }}><Minus style={{ width: 16, height: 16 }} /></button><input type="range" min={1.2} max={2.4} step={0.1} value={lineHeight} onChange={e => setLineHeight(Number(e.target.value))} className="flex-1 accent-amber-500" style={{ height: 4 }} /><button onClick={() => setLineHeight(h => Math.min(2.4, Math.round((h + 0.1) * 10) / 10))} style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${themeStyle.border}`, background: 'none', color: themeStyle.muted, cursor: 'pointer', flexShrink: 0 }}><Plus style={{ width: 16, height: 16 }} /></button></div></div>
-          {/* 여백 / 자간 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}><div><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}><p style={{ fontSize: 11, fontWeight: 500, color: themeStyle.muted }}>여백</p><span style={{ fontSize: 11, fontFamily: 'monospace', color: themeStyle.text }}>{marginSize}px</span></div><input type="range" min={8} max={80} step={4} value={marginSize} onChange={e => setMarginSize(Number(e.target.value))} className="w-full accent-amber-500" style={{ height: 4 }} /></div><div><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}><p style={{ fontSize: 11, fontWeight: 500, color: themeStyle.muted }}>자간</p><span style={{ fontSize: 11, fontFamily: 'monospace', color: themeStyle.text }}>{(letterSpacing * 0.5).toFixed(1)}px</span></div><input type="range" min={-2} max={4} step={0.5} value={letterSpacing} onChange={e => setLetterSpacing(Number(e.target.value))} className="w-full accent-amber-500" style={{ height: 4 }} /></div></div>
-          {/* 정렬 */}
           <div><p style={{ fontSize: 12, fontWeight: 500, color: themeStyle.muted, marginBottom: 14 }}>정렬</p><div style={{ display: 'flex', gap: 10 }}>{(['left', 'justify'] as ReflowAlign[]).map(a => (<button key={a} onClick={() => setTextAlign(a)} style={{ flex: 1, padding: '11px 0', borderRadius: 12, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: `1.5px solid ${textAlign === a ? ACCENT : themeStyle.border}`, backgroundColor: textAlign === a ? `${ACCENT}12` : 'transparent', color: textAlign === a ? ACCENT : themeStyle.text, cursor: 'pointer', fontWeight: textAlign === a ? 600 : 400 }}>{a === 'left' ? <><AlignLeft style={{ width: 16, height: 16 }} /> 왼쪽</> : <><AlignJustify style={{ width: 16, height: 16 }} /> 양쪽</>}</button>))}</div></div>
         </div>
       </div></>)}
