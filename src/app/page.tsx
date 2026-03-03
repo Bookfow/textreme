@@ -84,6 +84,37 @@ export default function TeXTREME() {
   const [showReaderSettings, setShowReaderSettings] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [isPwaInstalled, setIsPwaInstalled] = useState(false)
+
+  // ━━━ PWA install prompt ━━━
+  useEffect(() => {
+    // Service worker registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsPwaInstalled(true)
+    }
+    // Capture install prompt
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstallPwa = async () => {
+    if (!deferredPrompt) return
+    deferredPrompt.prompt()
+    const result = await deferredPrompt.userChoice
+    if (result.outcome === 'accepted') {
+      setIsPwaInstalled(true)
+    }
+    setDeferredPrompt(null)
+  }
 
   const rt = THEMES[readerTheme]
 
@@ -376,6 +407,39 @@ export default function TeXTREME() {
           <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, marginTop: 16 }}>
             회원가입 필요 없음 · 10페이지 무료
           </p>
+
+          {/* App Download Buttons */}
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 32, flexWrap: "wrap" }}>
+            <button onClick={handleInstallPwa}
+              style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "12px 24px", borderRadius: 12,
+                background: isPwaInstalled ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.06)",
+                border: isPwaInstalled ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(255,255,255,0.1)",
+                color: isPwaInstalled ? "#22c55e" : "#fff", cursor: isPwaInstalled ? "default" : "pointer",
+                transition: "all 0.2s",
+              }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <span style={{ fontSize: 10, color: isPwaInstalled ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.4)", fontWeight: 500 }}>
+                  {isPwaInstalled ? "설치 완료" : "웹앱으로 설치"}
+                </span>
+                <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                  {isPwaInstalled ? "TeXTREME ✓" : "TeXTREME Web App"}
+                </span>
+              </div>
+            </button>
+
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "12px 24px", borderRadius: 12,
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              color: "rgba(255,255,255,0.3)", cursor: "default",
+            }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontWeight: 500 }}>Google Play</span>
+                <span style={{ fontSize: 15, fontWeight: 700 }}>곧 출시</span>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* FOOTER */}
