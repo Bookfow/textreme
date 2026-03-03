@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Upload, FileText, Zap, Download, Check, BookOpen, Smartphone, Globe, ArrowRight, X, Type, Eye, CheckCircle2, Maximize2 } from "lucide-react"
+import { Upload, FileText, Zap, Download, Check, BookOpen, Smartphone, Globe, ArrowRight, X, Type, Eye, CheckCircle2 } from "lucide-react"
 import DemoReader from "@/components/demo-reader"
 import EpubViewerLite from "@/components/epub-viewer-lite"
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
@@ -113,17 +113,11 @@ ${fontLink}
 .shimmer-text { background: linear-gradient(90deg, #F59E0B 30%, #fde68a 50%, #F59E0B 70%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 3s linear infinite; }
 .compare-glow { transition: all 0.3s ease; }
 .compare-glow:hover { box-shadow: 0 8px 32px rgba(34,197,94,0.12); transform: translateY(-2px); }
-.card-hover:hover .icon-float { transform: translateY(-2px) scale(1.1); }
-.btn-glow { transition: all 0.25s ease; }
-.btn-glow:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245,158,11,0.2); border-color: rgba(245,158,11,0.5) !important; }
-.step-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
-.step-card:hover { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
-@keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
-.shimmer-text { background: linear-gradient(90deg, #F59E0B 30%, #fde68a 50%, #F59E0B 70%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 3s linear infinite; }
-.compare-glow { transition: all 0.3s ease; }
-.compare-glow:hover { box-shadow: 0 8px 32px rgba(34,197,94,0.12); transform: translateY(-2px); }
-.compare-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
-@media (min-width: 640px) { .compare-grid { grid-template-columns: 1fr 1fr; } }
+@keyframes attention { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245,158,11,0.3); } 50% { transform: scale(1.03); box-shadow: 0 0 20px 4px rgba(245,158,11,0.15); } }
+.demo-attention-btn { animation: attention 2.5s ease-in-out infinite; transition: all 0.2s; }
+.demo-attention-btn:hover { animation: none; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(245,158,11,0.25); border-color: rgba(245,158,11,0.6) !important; }
+.compare-grid { display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 280px; margin: 0 auto; }
+@media (min-width: 640px) { .compare-grid { grid-template-columns: 1fr 1fr; max-width: 100%; } }
 `
 
 function calcPrice(pages: number): number {
@@ -530,6 +524,9 @@ export default function TeXTREME() {
             <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 20, color: "#fff", letterSpacing: "-0.02em" }}>
               TeXTREME
             </span>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", fontWeight: 500, marginLeft: 6 }}>
+              PDF to EPUB 변환기
+            </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button className="btn-glow" onClick={() => setView("demo")}
@@ -576,12 +573,19 @@ export default function TeXTREME() {
           <div style={{ width: 64, height: 64, borderRadius: 16, background: "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", animation: "float 4s ease-in-out infinite" }}>
             <Upload size={28} color="#F59E0B" />
           </div>
-          <p style={{ color: "#fff", fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+          <p style={{ color: "#fff", fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
             클릭하여 파일 열기
           </p>
-          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>
-            PDF → EPUB 변환 · EPUB/TXT/DOCX → 바로 읽기
-          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <span style={{ padding: "3px 8px", borderRadius: 6, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 12, fontWeight: 600 }}>PDF</span>
+              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>→ EPUB 변환 (유료)</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <span style={{ padding: "3px 8px", borderRadius: 6, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", color: "#22c55e", fontSize: 12, fontWeight: 600 }}>EPUB · TXT · DOCX</span>
+              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>→ 바로 읽기</span>
+            </div>
+          </div>
           <input ref={fileInputRef} type="file" accept=".pdf,.epub,.txt,.docx" style={{ display: "none" }}
             onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
         </div>
@@ -606,10 +610,6 @@ export default function TeXTREME() {
       <section ref={demoSectionRef} style={{ padding: "100px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 40, border: "1px solid rgba(245,158,11,0.15)", background: "rgba(245,158,11,0.04)", marginBottom: 20 }}>
-              <Eye size={14} color="#F59E0B" />
-              <span style={{ color: "#F59E0B", fontSize: 13, fontWeight: 600 }}>변환 결과 미리보기</span>
-            </div>
             <h2 style={{ color: "#fff", fontWeight: 800, fontSize: "clamp(26px, 4vw, 36px)", letterSpacing: "-0.02em", marginBottom: 12 }}>
               결제 전에, 변환 품질을 직접 확인하세요
             </h2>
@@ -634,17 +634,16 @@ export default function TeXTREME() {
                 ))}
               </div>
 
-              <button className="btn-glow" onClick={() => setView("demo")}
+              <button className="demo-attention-btn" onClick={() => setView("demo")}
                 style={{
                   marginTop: 28, width: "100%", maxWidth: 360, padding: "13px 20px", borderRadius: 12,
-                  background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))",
-                  border: "1px solid rgba(245,158,11,0.3)", color: "#F59E0B",
+                  background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.08))",
+                  border: "1.5px solid rgba(245,158,11,0.4)", color: "#F59E0B",
                   fontWeight: 700, fontSize: 15, cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                  transition: "all 0.2s",
                 }}>
-                <Maximize2 size={18} />
-                변환 결과 데모 풀스크린으로 확인
+                <Eye size={18} />
+                변환 결과 데모 확인
               </button>
             </div>
         </div>
