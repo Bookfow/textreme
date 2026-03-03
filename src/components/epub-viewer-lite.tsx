@@ -1275,8 +1275,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
       {/* ━━━ 설정 바텀시트 ━━━ */}
       {showSettings && (<>
         <div className="fixed inset-0 z-[55]" onClick={() => setShowSettings(false)} />
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[56] rounded-t-2xl shadow-2xl max-h-[70vh] overflow-y-auto w-full max-w-lg"
-          style={{ backgroundColor: theme === 'dark' ? 'rgba(36,30,24,0.85)' : theme === 'sepia' ? 'rgba(248,241,227,0.85)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderTop: `1px solid ${themeStyle.border}` }}>
+        <div className="fixed z-[56] overflow-y-auto" style={{ bottom: 12, left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 32px)', maxWidth: 420, maxHeight: '75vh', borderRadius: 20, backgroundColor: theme === 'dark' ? 'rgba(26,22,18,0.52)' : theme === 'sepia' ? 'rgba(243,235,218,0.52)' : 'rgba(250,250,248,0.52)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: `1px solid ${themeStyle.border}`, boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
           <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full" style={{ backgroundColor: themeStyle.border }} /></div>
           <div className="px-5 pb-6 space-y-5">
             {/* 테마 */}
@@ -1312,7 +1311,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
               <div className="flex items-center justify-between mb-3"><p className="text-xs font-medium" style={{ color: themeStyle.muted }}>글자 크기</p><span className="text-xs font-mono" style={{ color: themeStyle.text }}>{fontSize}px</span></div>
               <div className="flex items-center gap-3">
                 <button onClick={() => setFontSize(s => Math.max(12, s - 1))} className="w-9 h-9 rounded-xl flex items-center justify-center border" style={{ borderColor: themeStyle.border, color: themeStyle.muted }}><Minus className="w-4 h-4" /></button>
-                <input type="range" min={12} max={32} value={fontSize} onChange={e => setFontSize(Number(e.target.value))} className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer accent-amber-500" style={{ backgroundColor: themeStyle.border }} />
+                <input type="range" min={12} max={32} value={fontSize} onChange={e => setFontSize(Number(e.target.value))} className="flex-1 accent-amber-500" style={{ height: 4 }} />
                 <button onClick={() => setFontSize(s => Math.min(32, s + 1))} className="w-9 h-9 rounded-xl flex items-center justify-center border" style={{ borderColor: themeStyle.border, color: themeStyle.muted }}><Plus className="w-4 h-4" /></button>
               </div>
             </div>
@@ -1321,7 +1320,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
               <div className="flex items-center justify-between mb-2"><p className="text-xs font-medium" style={{ color: themeStyle.muted }}>줄간격</p><span className="text-xs font-mono" style={{ color: themeStyle.text }}>{lineHeight.toFixed(1)}</span></div>
               <div className="flex items-center gap-3">
                 <button onClick={() => setLineHeight(h => Math.max(1.2, Math.round((h - 0.1) * 10) / 10))} className="w-9 h-9 rounded-xl flex items-center justify-center border" style={{ borderColor: themeStyle.border, color: themeStyle.muted }}><Minus className="w-4 h-4" /></button>
-                <input type="range" min={1.2} max={2.4} step={0.1} value={lineHeight} onChange={e => setLineHeight(Number(e.target.value))} className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer accent-amber-500" style={{ backgroundColor: themeStyle.border }} />
+                <input type="range" min={1.2} max={2.4} step={0.1} value={lineHeight} onChange={e => setLineHeight(Number(e.target.value))} className="flex-1 accent-amber-500" style={{ height: 4 }} />
                 <button onClick={() => setLineHeight(h => Math.min(2.4, Math.round((h + 0.1) * 10) / 10))} className="w-9 h-9 rounded-xl flex items-center justify-center border" style={{ borderColor: themeStyle.border, color: themeStyle.muted }}><Plus className="w-4 h-4" /></button>
               </div>
             </div>
@@ -1329,11 +1328,11 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <div className="flex items-center justify-between mb-2"><p className="text-[10px] font-medium" style={{ color: themeStyle.muted }}>여백</p><span className="text-[10px] font-mono" style={{ color: themeStyle.text }}>{marginSize}px</span></div>
-                <input type="range" min={8} max={80} step={4} value={marginSize} onChange={e => setMarginSize(Number(e.target.value))} className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-amber-500" style={{ backgroundColor: themeStyle.border }} />
+                <input type="range" min={8} max={80} step={4} value={marginSize} onChange={e => setMarginSize(Number(e.target.value))} className="w-full accent-amber-500" style={{ height: 4 }} />
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2"><p className="text-[10px] font-medium" style={{ color: themeStyle.muted }}>자간</p><span className="text-[10px] font-mono" style={{ color: themeStyle.text }}>{(letterSpacing * 0.5).toFixed(1)}px</span></div>
-                <input type="range" min={-2} max={4} step={0.5} value={letterSpacing} onChange={e => setLetterSpacing(Number(e.target.value))} className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-amber-500" style={{ backgroundColor: themeStyle.border }} />
+                <input type="range" min={-2} max={4} step={0.5} value={letterSpacing} onChange={e => setLetterSpacing(Number(e.target.value))} className="w-full accent-amber-500" style={{ height: 4 }} />
               </div>
             </div>
             {/* 정렬 */}
@@ -1438,7 +1437,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
               goToVirtualPage(Math.max(1, Math.round(ratio * virtualTotalPages)))
             }}>
               <div className="h-1.5 rounded-full cursor-pointer" style={{ backgroundColor: themeStyle.border }}>
-                <div className="h-full rounded-full transition-all duration-200" style={{ width: `${virtualTotalPages > 1 ? ((virtualPageNumber - 1) / (virtualTotalPages - 1)) * 100 : 0}%`, backgroundColor: ACCENT }} />
+                <div className="h-full rounded-full transition-all duration-200" style={{ width: `${virtualTotalPages > 1 ? ((virtualPageNumber - 1) / (virtualTotalPages - 1)) * 100 : 0}%`, background: `linear-gradient(90deg, ${ACCENT}, #E8860A)`, boxShadow: `0 0 8px ${ACCENT}50` }} />
               </div>
               <input type="range" min={1} max={virtualTotalPages} value={virtualPageNumber}
                 onChange={e => { e.stopPropagation(); goToVirtualPage(Number(e.target.value)) }} onClick={e => e.stopPropagation()}
