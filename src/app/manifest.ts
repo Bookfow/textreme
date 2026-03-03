@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'TeXTREME — 한글 PDF를 전자책으로',
+    name: 'TeXTREME ???��? PDF�??�자책으�?,
     short_name: 'TeXTREME',
-    description: 'AI가 한글 PDF를 완벽한 EPUB 전자책으로 변환합니다',
+    description: 'AI가 ?��? PDF�??�벽??EPUB ?�자책으�?변?�합?�다',
     start_url: '/',
     display: 'standalone',
     background_color: '#06060c',
@@ -20,7 +20,7 @@ export default function manifest(): MetadataRoute.Manifest {
         src: '/icon-512.png',
         sizes: '512x512',
         type: 'image/png',
-        purpose: 'any maskable',
+        purpose: 'maskable',
       },
     ],
   }
