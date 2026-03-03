@@ -188,6 +188,40 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
 }
 
+/** 블록 내 텍스트 노드 추출 (공백 전용 직속 노드 제외) — 저장/렌더링 공통 */
+function getTextNodesOf(root: Node): { node: Text; start: number }[] {
+  const nodes: { node: Text; start: number }[] = []; let offset = 0
+  const walk = (n: Node) => {
+    if (n.nodeType === Node.TEXT_NODE) {
+      const t = (n as Text).textContent || ''
+      if (t.trim().length === 0 && n.parentNode === root) return
+      nodes.push({ node: n as Text, start: offset }); offset += t.length
+    } else { for (let i = 0; i < n.childNodes.length; i++) walk(n.childNodes[i]) }
+  }; walk(root); return nodes
+}
+
+/** 블록 내 특정 위치까지의 텍스트 offset 계산 */
+function calcOffsetInBlock(blockEl: Node, targetNode: Node, targetOffset: number): number {
+  const textNodes = getTextNodesOf(blockEl)
+  // targetNode가 텍스트 노드인 경우
+  if (targetNode.nodeType === Node.TEXT_NODE) {
+    for (const tn of textNodes) {
+      if (tn.node === targetNode) return tn.start + Math.min(targetOffset, (tn.node.textContent?.length || 0))
+    }
+  }
+  // targetNode가 요소 노드인 경우 — childNodes[targetOffset] 앞의 텍스트 계산
+  const childBefore = targetOffset < targetNode.childNodes.length ? targetNode.childNodes[targetOffset] : null
+  let total = 0
+  for (const tn of textNodes) {
+    if (childBefore && tn.node.compareDocumentPosition(childBefore) & Node.DOCUMENT_POSITION_PRECEDING) break
+    if (!childBefore) { total = tn.start + (tn.node.textContent?.length || 0); continue }
+    if (childBefore.contains(tn.node) || tn.node.compareDocumentPosition(childBefore) & Node.DOCUMENT_POSITION_FOLLOWING) {
+      total = tn.start + (tn.node.textContent?.length || 0)
+    }
+  }
+  return total
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // EPUB 파싱 유틸
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -769,11 +803,11 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
     if (!blockEl) return
     const blockId = blockEl.getAttribute('data-block-id'); if (!blockId) return
     const range = sel.getRangeAt(0)
-    const preRange = document.createRange(); preRange.setStart(blockEl, 0); preRange.setEnd(range.startContainer, range.startOffset)
-    const startOffset = preRange.toString().length
+    const startOffset = calcOffsetInBlock(blockEl, range.startContainer, range.startOffset)
+    const endOffset = calcOffsetInBlock(blockEl, range.endContainer, range.endOffset)
     const rect = range.getBoundingClientRect()
     setHighlightMenuPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 })
-    setPendingSelection({ blockId, start: startOffset, end: startOffset + text.length, text })
+    setPendingSelection({ blockId, start: startOffset, end: endOffset, text })
     setShowHighlightMenu(true)
   }
 
@@ -792,11 +826,11 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
         if (!blockEl) return
         const blockId = blockEl.getAttribute('data-block-id'); if (!blockId) return
         const range = sel.getRangeAt(0)
-        const preRange = document.createRange(); preRange.setStart(blockEl, 0); preRange.setEnd(range.startContainer, range.startOffset)
-        const startOffset = preRange.toString().length
+        const startOffset = calcOffsetInBlock(blockEl, range.startContainer, range.startOffset)
+        const endOffset = calcOffsetInBlock(blockEl, range.endContainer, range.endOffset)
         const rect = range.getBoundingClientRect()
         setHighlightMenuPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 })
-        setPendingSelection({ blockId, start: startOffset, end: startOffset + text.length, text })
+        setPendingSelection({ blockId, start: startOffset, end: endOffset, text })
         setShowHighlightMenu(true)
       }, 500)
     }
@@ -895,20 +929,9 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
         const parser = new DOMParser()
         const doc = parser.parseFromString(`<div>${contentHtml}</div>`, 'text/html')
         const root = doc.body.firstElementChild as HTMLElement
-        const getTextNodes = (el: Node): { node: Text; start: number }[] => {
-          const nodes: { node: Text; start: number }[] = []; let offset = 0
-          const walk = (n: Node) => {
-            if (n.nodeType === Node.TEXT_NODE) {
-              const t = (n as Text).textContent || ''
-              if (t.trim().length === 0 && n.parentElement === root) { return }
-              nodes.push({ node: n as Text, start: offset }); offset += t.length
-            }
-            else { for (let i = 0; i < n.childNodes.length; i++) walk(n.childNodes[i]) }
-          }; walk(el); return nodes
-        }
         const sorted = [...chapterHighlights].sort((a, b) => b.start_offset - a.start_offset)
         for (const hl of sorted) {
-          const textNodes = getTextNodes(root)
+          const textNodes = getTextNodesOf(root)
           for (let i = textNodes.length - 1; i >= 0; i--) {
             const tn = textNodes[i]; const tnLen = tn.node.textContent?.length || 0; const tnEnd = tn.start + tnLen
             if (tnEnd <= hl.start_offset || tn.start >= hl.end_offset) continue
