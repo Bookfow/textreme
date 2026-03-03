@@ -330,7 +330,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
     const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.toString().trim()) { setShowHighlightMenu(false); return }; const text = sel.toString().trim(); if (text.length < 2) return
     const an = sel.anchorNode; if (!an) return; const bl = (an.nodeType === 3 ? an.parentElement : an as HTMLElement)?.closest('[data-block-id]'); if (!bl) return; const bid = bl.getAttribute('data-block-id'); if (!bid) return
     const range = sel.getRangeAt(0); const so = calcOffsetInBlock(bl, range.startContainer, range.startOffset); const eo = calcOffsetInBlock(bl, range.endContainer, range.endOffset)
-    const rect = range.getBoundingClientRect(); setHighlightMenuPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 }); setPendingSelection({ blockId: bid, start: so, end: so + text.length, text }); setShowHighlightMenu(true)
+    const rect = range.getBoundingClientRect(); setHighlightMenuPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 }); setPendingSelection({ blockId: bid, start: so, end: eo, text }); setShowHighlightMenu(true)
   }
 
   // 모바일 selectionchange
