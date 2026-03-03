@@ -196,7 +196,7 @@ export default function TeXTREME() {
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Preview View — DemoReader with paywall
+  // Preview View — DemoReader
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (view === "preview") {
     return (
@@ -206,9 +206,6 @@ export default function TeXTREME() {
           chapters={SAMPLE_CHAPTERS}
           title={fileName || "변환된 EPUB"}
           onBack={reset}
-          totalBookPages={filePages}
-          freePreviewPages={10}
-          pricePerPage={PRICE_PER_PAGE}
         />
       </div>
     )
