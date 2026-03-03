@@ -99,9 +99,9 @@ ${fontLink}
 .slide-text { animation: slideText 0.4s ease-out both; }
 .glow-amber { box-shadow: 0 0 40px rgba(245,158,11,0.15), 0 0 80px rgba(245,158,11,0.05); }
 .check-pop { animation: checkPop 0.5s ease-out both; }
-.demo-grid { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; }
+.demo-grid { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: center; }
 .demo-phone { width: 240px; height: 430px; }
-@media (min-width: 1024px) { .demo-grid { grid-template-columns: 1fr 1fr; gap: 48px; } }
+@media (min-width: 1024px) { .demo-grid { grid-template-columns: 1fr 1fr; gap: 32px; } }
 @media (min-width: 900px) { .demo-phone { width: 280px; height: 500px; } }
 .compare-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
 @media (min-width: 640px) { .compare-grid { grid-template-columns: 1fr 1fr; } }
@@ -498,8 +498,8 @@ export default function TeXTREME() {
             </div>
 
             {/* Demo description + CTA */}
-            <div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "center" }}>
                 {[
                   { icon: "📖", title: "모든 EPUB 뷰어에서 사용 가능", desc: "원하는 EPUB 뷰어 앱에서 바로 열기" },
                   { icon: "📐", title: "표준 EPUB 3.0 출력", desc: "어떤 기기·운영체제든 호환되는 표준 포맷" },
@@ -518,15 +518,15 @@ export default function TeXTREME() {
 
               <button onClick={() => setView("demo")}
                 style={{
-                  marginTop: 36, width: "100%", padding: "16px 24px", borderRadius: 14,
+                  marginTop: 28, width: "100%", maxWidth: 360, padding: "13px 20px", borderRadius: 12,
                   background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))",
                   border: "1px solid rgba(245,158,11,0.3)", color: "#F59E0B",
-                  fontWeight: 700, fontSize: 16, cursor: "pointer",
+                  fontWeight: 700, fontSize: 15, cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
                   transition: "all 0.2s",
                 }}>
                 <Maximize2 size={18} />
-                변환 결과 풀스크린으로 데모 확인
+                변환 결과 데모 풀스크린으로 확인
               </button>
             </div>
           </div>
