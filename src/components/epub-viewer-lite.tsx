@@ -6,7 +6,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Minus, Plus, List, AlignLeft, AlignJustify, Settings2, Focus, Highlighter, Trash2, X, Bookmark, BookmarkCheck, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Minus, Plus, List, AlignLeft, AlignJustify, Settings2, Focus, Highlighter, Trash2, X, Bookmark, BookmarkCheck, Search, Maximize2, Minimize2, Home } from 'lucide-react'
 import JSZip from 'jszip'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -15,6 +15,7 @@ import JSZip from 'jszip'
 
 interface EpubViewerLiteProps {
   epubUrl: string
+  onBack?: () => void
   onPageChange?: (page: number, total: number) => void
   onDocumentLoad?: (numPages: number) => void
   onError?: (error: string) => void
@@ -66,13 +67,15 @@ interface SearchResult {
   matchStart: number
 }
 
-type ReflowFont = 'sans' | 'serif' | 'mono'
+type ReflowFont = 'sans' | 'pretendard' | 'serif' | 'nanum' | 'mono'
 type ReflowTheme = 'light' | 'sepia' | 'dark'
 type ReflowAlign = 'left' | 'justify'
 
 const FONTS: Record<ReflowFont, { label: string; family: string }> = {
   sans: { label: '고딕', family: 'system-ui, -apple-system, "Noto Sans KR", sans-serif' },
+  pretendard: { label: '프리텐', family: '"Pretendard", system-ui, -apple-system, sans-serif' },
   serif: { label: '명조', family: '"Noto Serif KR", "Batang", Georgia, serif' },
+  nanum: { label: '나눔명조', family: '"Nanum Myeongjo", "Batang", Georgia, serif' },
   mono: { label: '고정폭', family: '"Noto Sans Mono", "D2Coding", monospace' },
 }
 
@@ -80,9 +83,9 @@ const THEMES: Record<ReflowTheme, {
   bg: string; text: string; muted: string; border: string
   pageBg: string; headingColor: string; linkColor: string
 }> = {
-  light: { bg: '#FFFFFF', text: '#2D2016', muted: '#9C8B7A', border: '#E7D8C9', pageBg: '#F7F2EF', headingColor: '#2D2016', linkColor: '#3b82f6' },
-  sepia: { bg: '#f8f1e3', text: '#5b4636', muted: '#8b7355', border: '#d4c5a9', pageBg: '#ede4d3', headingColor: '#3d2b1f', linkColor: '#8b5e3c' },
-  dark: { bg: '#241E18', text: '#EEE4E1', muted: '#9C8B7A', border: '#3A302A', pageBg: '#1A1410', headingColor: '#EEE4E1', linkColor: '#93c5fd' },
+  light: { bg: '#FAFAF8', text: '#1A1510', muted: '#6E6358', border: '#E6DDD4', pageBg: '#F3EFEB', headingColor: '#1A1510', linkColor: '#4A8FE7' },
+  sepia: { bg: '#F3EBDA', text: '#4A3626', muted: '#887256', border: '#D4C4A6', pageBg: '#E8DFCE', headingColor: '#2E1C0E', linkColor: '#9A6840' },
+  dark: { bg: '#1A1612', text: '#E8E0D8', muted: '#A89A8E', border: '#2E2822', pageBg: '#141110', headingColor: '#F0E8E2', linkColor: '#7EB8F0' },
 }
 
 const HIGHLIGHT_COLORS: Record<string, string> = {
@@ -279,7 +282,7 @@ function parseTocNav(navHtml: string, navDir: string): TocItem[] {
 // 메인 컴포넌트
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, onError }: EpubViewerLiteProps) {
+export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocumentLoad, onError }: EpubViewerLiteProps) {
   // ─── EPUB 데이터 ───
   const [chapters, setChapters] = useState<EpubChapter[]>([])
   const [tocItems, setTocItems] = useState<TocItem[]>([])
@@ -296,12 +299,12 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
   const slideDirectionRef = useRef<'left' | 'right' | ''>('')
 
   // ─── 뷰어 설정 ───
-  const [fontSize, setFontSize] = useState(18)
-  const [lineHeight, setLineHeight] = useState(1.8)
-  const [font, setFont] = useState<ReflowFont>('sans')
+  const [fontSize, setFontSize] = useState(13)
+  const [lineHeight, setLineHeight] = useState(1.7)
+  const [font, setFont] = useState<ReflowFont>('pretendard')
   const [theme, setTheme] = useState<ReflowTheme>('dark')
   const [showSettings, setShowSettings] = useState(false)
-  const [marginSize, setMarginSize] = useState(40)
+  const [marginSize, setMarginSize] = useState(28)
   const [letterSpacing, setLetterSpacing] = useState(0)
   const [textAlign, setTextAlign] = useState<ReflowAlign>('left')
   const [showToc, setShowToc] = useState(false)
@@ -321,12 +324,12 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
   const [editingHighlight, setEditingHighlight] = useState<Highlight | null>(null)
   const [memoText, setMemoText] = useState('')
   const [showMemoModal, setShowMemoModal] = useState(false)
-  const [showHighlightPanel, setShowHighlightPanel] = useState(false)
+  const [showNotesPanel, setShowNotesPanel] = useState(false)
+  const [notesTab, setNotesTab] = useState<'highlights' | 'bookmarks'>('highlights')
   const [memoTooltip, setMemoTooltip] = useState<{ text: string; x: number; y: number } | null>(null)
 
   // ─── 북마크 ───
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([])
-  const [showBookmarkPanel, setShowBookmarkPanel] = useState(false)
 
   // ─── 본문 검색 ───
   const [showSearch, setShowSearch] = useState(false)
@@ -346,7 +349,30 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
   const themeStyle = THEMES[theme]
   const fontStyle = FONTS[font]
 
-  // ━━━ 가상 페이지 번호 ━━━
+  // ━━━ Fullscreen ━━━
+  const readerContainerRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        const el = readerContainerRef.current || document.documentElement
+        await el.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch (err) {
+      console.warn('Fullscreen not supported:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
+    // ━━━ 가상 페이지 번호 ━━━
   const virtualPageNumber = useMemo(() => {
     let page = 1
     for (let i = 0; i < currentChapterIdx; i++) page += chapterPageCounts[i] || 1
@@ -663,18 +689,19 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      if (showSettings || showToc || showHighlightPanel || showBookmarkPanel || showSearch) return
+      if (showSettings || showToc || showNotesPanel || showSearch) return
       switch (e.key) {
         case 'ArrowLeft': case 'ArrowUp': e.preventDefault(); goToPrevPage(); break
         case 'ArrowRight': case 'ArrowDown': case ' ': e.preventDefault(); goToNextPage(); break
         case 'f': case 'F':
           if (e.ctrlKey || e.metaKey) { e.preventDefault(); setShowSearch(prev => !prev) }
           break
+        case 'F11': e.preventDefault(); toggleFullscreen(); break
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [goToNextPage, goToPrevPage, showSettings, showToc, showHighlightPanel, showBookmarkPanel, showSearch])
+  }, [goToNextPage, goToPrevPage, showSettings, showToc, showNotesPanel, showSearch, toggleFullscreen])
 
   const goToChapter = useCallback((chIdx: number) => {
     setCurrentChapterIdx(Math.max(0, Math.min(chIdx, chapters.length - 1))); setPageInChapter(0)
@@ -707,7 +734,7 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
   // 클릭 좌/우
   const handleMouseDown = (e: React.MouseEvent) => { mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() } }
   const handleClick = (e: React.MouseEvent) => {
-    if (showSettings || showToc || showHighlightPanel || showMemoModal || showBookmarkPanel || showSearch) return
+    if (showSettings || showToc || showNotesPanel || showMemoModal || showSearch) return
     const mdp = mouseDownPosRef.current
     const isQuickClick = mdp?.t && Date.now() - mdp.t < 300
     if (mdp && Math.sqrt((e.clientX - mdp.x) ** 2 + (e.clientY - mdp.y) ** 2) > 5) { mouseDownPosRef.current = null; return }
@@ -1030,6 +1057,16 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
     return () => { document.removeEventListener('selectionchange', onSelChange); document.removeEventListener('mouseup', onMouseUp) }
   }, [])
 
+
+  // ━━━ 웹폰트 로드 ━━━
+  useEffect(() => {
+    const fonts = [
+      { id: 'font-pretendard', href: 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css' },
+      { id: 'font-nanum', href: 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap' },
+    ]
+    fonts.forEach(f => { if (!document.getElementById(f.id)) { const l = document.createElement('link'); l.id = f.id; l.rel = 'stylesheet'; l.href = f.href; document.head.appendChild(l) } })
+  }, [])
+
   // ━━━ 글로벌 스타일 ━━━
   useEffect(() => {
     const id = 'epub-lite-styles'; let el = document.getElementById(id) as HTMLStyleElement | null
@@ -1081,7 +1118,7 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
   const ACCENT = '#F59E0B'
 
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: themeStyle.pageBg }}>
+    <div ref={readerContainerRef} className="h-full flex flex-col" style={{ backgroundColor: themeStyle.pageBg }}>
 
       {/* ━━━ TOC 패널 ━━━ */}
       {showToc && (
@@ -1111,70 +1148,72 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
         </div>
       )}
 
-      {/* ━━━ 하이라이트 패널 ━━━ */}
-      {showHighlightPanel && (
+      {showNotesPanel && (
         <div className="fixed inset-0 z-[60] flex justify-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowHighlightPanel(false)} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowNotesPanel(false)} />
           <div className="relative w-80 max-w-[85vw] h-full flex flex-col shadow-2xl" style={{ backgroundColor: themeStyle.bg }}>
-            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: themeStyle.border }}>
-              <h3 className="font-semibold text-sm" style={{ color: themeStyle.headingColor }}>형광펜 ({highlights.length})</h3>
-              <button onClick={() => setShowHighlightPanel(false)} className="p-1 rounded hover:opacity-70" style={{ color: themeStyle.muted }}>✕</button>
+            <div style={{ borderBottom: `1px solid ${themeStyle.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 0' }}>
+                <h3 style={{ color: themeStyle.headingColor, fontWeight: 600, fontSize: 14 }}>노트</h3>
+                <button onClick={() => setShowNotesPanel(false)} style={{ padding: 4, borderRadius: 6, border: 'none', background: 'none', color: themeStyle.muted, cursor: 'pointer' }}>✕</button>
+              </div>
+              <div style={{ display: 'flex', padding: '8px 16px 0' }}>
+                {(['highlights', 'bookmarks'] as const).map(tab => (
+                  <button key={tab} onClick={() => setNotesTab(tab)} style={{ flex: 1, padding: '8px 0 10px', fontSize: 13, fontWeight: notesTab === tab ? 600 : 400, color: notesTab === tab ? ACCENT : themeStyle.muted, background: 'none', border: 'none', borderBottom: `2px solid ${notesTab === tab ? ACCENT : 'transparent'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    {tab === 'highlights' ? <><Highlighter style={{ width: 14, height: 14 }} /> 형광펜 ({highlights.length})</> : <><Bookmark style={{ width: 14, height: 14 }} /> 책갈피 ({bookmarks.length})</>}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto">
-              {highlights.length > 0 ? [...highlights].sort((a, b) => a.page_number - b.page_number).map(hl => (
-                <div key={hl.id} className="px-4 py-3 border-b cursor-pointer hover:opacity-80" style={{ borderColor: themeStyle.border }}
-                  onClick={() => { goToVirtualPage(hl.page_number); setShowHighlightPanel(false) }}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor: HIGHLIGHT_COLORS[hl.color], color: themeStyle.text }}>p.{hl.page_number}</span>
-                    <button onClick={e => { e.stopPropagation(); deleteHighlight(hl.id) }} className="p-1 rounded hover:bg-red-500/10" style={{ color: '#ef4444' }}><Trash2 className="w-3 h-3" /></button>
+              {notesTab === 'highlights' ? (
+                highlights.length > 0 ? [...highlights].sort((a, b) => a.page_number - b.page_number).map(hl => (
+                  <div key={hl.id} style={{ padding: '12px 16px', borderBottom: `1px solid ${themeStyle.border}`, cursor: 'pointer' }} onClick={() => { goToVirtualPage(hl.page_number); setShowNotesPanel(false) }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 6px', borderRadius: 4, backgroundColor: HIGHLIGHT_COLORS[hl.color], color: themeStyle.text }}>p.{hl.page_number}</span>
+                      <button onClick={e => { e.stopPropagation(); deleteHighlight(hl.id) }} style={{ padding: 4, borderRadius: 6, border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 style={{ width: 12, height: 12 }} /></button>
+                    </div>
+                    <p style={{ fontSize: 12, lineHeight: 1.5, color: themeStyle.text }}>{hl.selected_text.length > 80 ? hl.selected_text.slice(0, 80) + '...' : hl.selected_text}</p>
+                    {hl.memo && <p style={{ fontSize: 10, marginTop: 6, color: themeStyle.muted }}>💬 {hl.memo.slice(0, 50)}</p>}
                   </div>
-                  <p className="text-xs leading-relaxed" style={{ color: themeStyle.text }}>{hl.selected_text.length > 80 ? hl.selected_text.slice(0, 80) + '...' : hl.selected_text}</p>
-                  {hl.memo && <p className="text-[10px] mt-1.5" style={{ color: themeStyle.muted }}>💬 {hl.memo.slice(0, 50)}</p>}
-                </div>
-              )) : (
-                <div className="px-4 py-12 text-center">
-                  <Highlighter className="w-8 h-8 mx-auto mb-3" style={{ color: themeStyle.border }} />
-                  <p className="text-sm mb-1" style={{ color: themeStyle.muted }}>형광펜이 없습니다</p>
-                  <p className="text-xs" style={{ color: themeStyle.muted }}>텍스트를 길게 선택하면<br />형광펜을 추가할 수 있어요</p>
-                </div>
+                )) : (
+                  <div style={{ padding: '48px 16px', textAlign: 'center' }}>
+                    <Highlighter style={{ width: 32, height: 32, margin: '0 auto 12px', display: 'block', color: themeStyle.border }} />
+                    <p style={{ fontSize: 14, color: themeStyle.muted, marginBottom: 4 }}>형광펜이 없습니다</p>
+                    <p style={{ fontSize: 12, color: themeStyle.muted }}>텍스트를 길게 선택하면<br/>형광펜을 추가할 수 있어요</p>
+                  </div>
+                )
+              ) : (
+                bookmarks.length > 0 ? [...bookmarks].sort((a, b) => a.virtual_page - b.virtual_page).map(bm => (
+                  <div key={bm.id} style={{ padding: '12px 16px', borderBottom: `1px solid ${themeStyle.border}`, cursor: 'pointer' }} onClick={() => { setCurrentChapterIdx(bm.chapter_idx); setPageInChapter(bm.page_in_chapter); setShowNotesPanel(false) }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 6px', borderRadius: 4, backgroundColor: `${ACCENT}22`, color: ACCENT }}>p.{bm.virtual_page}</span>
+                        <span style={{ fontSize: 12, color: themeStyle.text }}>{bm.title}</span>
+                      </div>
+                      <button onClick={e => { e.stopPropagation(); deleteBookmark(bm.id) }} style={{ padding: 4, borderRadius: 6, border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 style={{ width: 12, height: 12 }} /></button>
+                    </div>
+                  </div>
+                )) : (
+                  <div style={{ padding: '48px 16px', textAlign: 'center' }}>
+                    <Bookmark style={{ width: 32, height: 32, margin: '0 auto 12px', display: 'block', color: themeStyle.border }} />
+                    <p style={{ fontSize: 14, color: themeStyle.muted, marginBottom: 4 }}>책갈피가 없습니다</p>
+                    <p style={{ fontSize: 12, color: themeStyle.muted }}>아래 버튼으로 현재 페이지를<br/>책갈피에 추가하세요</p>
+                  </div>
+                )
               )}
             </div>
+            {notesTab === 'bookmarks' && (
+              <div style={{ padding: '12px 16px', borderTop: `1px solid ${themeStyle.border}` }}>
+                <button onClick={e => { e.stopPropagation(); toggleBookmark() }} style={{ width: '100%', padding: '10px', borderRadius: 10, border: `1px solid ${isCurrentPageBookmarked ? 'rgba(239,68,68,0.3)' : ACCENT + '40'}`, background: isCurrentPageBookmarked ? 'rgba(239,68,68,0.06)' : `${ACCENT}08`, color: isCurrentPageBookmarked ? '#ef4444' : ACCENT, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {isCurrentPageBookmarked ? <><BookmarkCheck style={{ width: 16, height: 16 }} /> p.{virtualPageNumber} 책갈피 제거</> : <><Bookmark style={{ width: 16, height: 16 }} /> p.{virtualPageNumber} 책갈피 추가</>}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* ━━━ 북마크 패널 ━━━ */}
-      {showBookmarkPanel && (
-        <div className="fixed inset-0 z-[60] flex justify-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowBookmarkPanel(false)} />
-          <div className="relative w-80 max-w-[85vw] h-full flex flex-col shadow-2xl" style={{ backgroundColor: themeStyle.bg }}>
-            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: themeStyle.border }}>
-              <h3 className="font-semibold text-sm" style={{ color: themeStyle.headingColor }}>책갈피 ({bookmarks.length})</h3>
-              <button onClick={() => setShowBookmarkPanel(false)} className="p-1 rounded hover:opacity-70" style={{ color: themeStyle.muted }}>✕</button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {bookmarks.length > 0 ? [...bookmarks].sort((a, b) => a.virtual_page - b.virtual_page).map(bm => (
-                <div key={bm.id} className="px-4 py-3 border-b cursor-pointer hover:opacity-80" style={{ borderColor: themeStyle.border }}
-                  onClick={() => { setCurrentChapterIdx(bm.chapter_idx); setPageInChapter(bm.page_in_chapter); setShowBookmarkPanel(false) }}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: `${ACCENT}22`, color: ACCENT }}>p.{bm.virtual_page}</span>
-                      <span className="text-xs" style={{ color: themeStyle.text }}>{bm.title}</span>
-                    </div>
-                    <button onClick={e => { e.stopPropagation(); deleteBookmark(bm.id) }} className="p-1 rounded hover:bg-red-500/10" style={{ color: '#ef4444' }}><Trash2 className="w-3 h-3" /></button>
-                  </div>
-                </div>
-              )) : (
-                <div className="px-4 py-12 text-center">
-                  <Bookmark className="w-8 h-8 mx-auto mb-3" style={{ color: themeStyle.border }} />
-                  <p className="text-sm mb-1" style={{ color: themeStyle.muted }}>책갈피가 없습니다</p>
-                  <p className="text-xs" style={{ color: themeStyle.muted }}>상단 바에서 🔖 버튼으로<br />현재 페이지를 저장하세요</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ━━━ 검색 패널 ━━━ */}
       {showSearch && (
@@ -1214,34 +1253,19 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
         </div>
       )}
 
-      {/* ━━━ 상단 바 (7버튼) ━━━ */}
-      <div className="grid grid-cols-7 px-1 py-2 border-b max-w-lg mx-auto w-full" style={{ borderColor: themeStyle.border }}>
-        <button onClick={() => setShowToc(!showToc)} className="flex flex-col items-center justify-center py-1 rounded-lg hover:opacity-70" style={{ color: showToc ? ACCENT : themeStyle.muted }}>
-          <List className="w-4 h-4" /><span className="text-[9px] mt-0.5">목차</span>
-        </button>
-        <button onClick={() => setShowSearch(!showSearch)} className="flex flex-col items-center justify-center py-1 rounded-lg hover:opacity-70" style={{ color: showSearch ? ACCENT : themeStyle.muted }}>
-          <Search className="w-4 h-4" /><span className="text-[9px] mt-0.5">검색</span>
-        </button>
-        <button onClick={() => setFocusMode(!focusMode)} className="flex flex-col items-center justify-center py-1 rounded-lg"
-          style={{ color: focusMode ? ACCENT : themeStyle.muted, backgroundColor: focusMode ? `${ACCENT}15` : 'transparent' }}>
-          <Focus className="w-4 h-4" /><span className="text-[9px] mt-0.5">집중</span>
-        </button>
-        <div className="flex items-center justify-center">
-          <span className="text-[10px] font-medium" style={{ color: themeStyle.muted }}>{virtualPageNumber}/{virtualTotalPages}</span>
-        </div>
-        <button onClick={() => setShowHighlightPanel(!showHighlightPanel)} className="flex flex-col items-center justify-center py-1 rounded-lg"
-          style={{ color: showHighlightPanel ? ACCENT : highlights.length > 0 ? ACCENT : themeStyle.muted }}>
-          <Highlighter className="w-4 h-4" /><span className="text-[9px] mt-0.5">형광펜</span>
-        </button>
-        <button onClick={toggleBookmark} onContextMenu={e => { e.preventDefault(); setShowBookmarkPanel(!showBookmarkPanel) }}
-          className="flex flex-col items-center justify-center py-1 rounded-lg hover:opacity-70"
-          style={{ color: isCurrentPageBookmarked ? ACCENT : themeStyle.muted }}>
-          {isCurrentPageBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-          <span className="text-[9px] mt-0.5">책갈피</span>
-        </button>
-        <button onClick={() => setShowSettings(!showSettings)} className="flex flex-col items-center justify-center py-1 rounded-lg hover:opacity-70" style={{ color: showSettings ? ACCENT : themeStyle.muted }}>
-          <Settings2 className="w-4 h-4" /><span className="text-[9px] mt-0.5">설정</span>
-        </button>
+      {/* ━━━ 상단 바 (9버튼) ━━━ */}
+      <div style={{ borderColor: themeStyle.border, display: "flex", justifyContent: "center", borderBottom: `1px solid ${themeStyle.border}`, flexShrink: 0, boxShadow: `0 1px 8px ${themeStyle.border}40` }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gap: 8, padding: "14px 20px", width: "100%", maxWidth: 560 }}>
+        <button onClick={e => { e.stopPropagation(); if (onBack) onBack() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: themeStyle.muted }}><Home className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>나가기</span></button>
+        <button onClick={e => { e.stopPropagation(); setShowToc(!showToc) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showToc ? ACCENT : themeStyle.muted }}><List className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>목차</span></button>
+        <button onClick={e => { e.stopPropagation(); setShowSearch(!showSearch) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showSearch ? ACCENT : themeStyle.muted }}><Search className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>검색</span></button>
+        <button onClick={e => { e.stopPropagation(); setFocusMode(!focusMode) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg" style={{ color: focusMode ? ACCENT : themeStyle.muted, backgroundColor: focusMode ? `${ACCENT}15` : 'transparent' }}><Focus className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>집중</span></button>
+        <div className="flex items-center justify-center"><span className="text-[10px] font-medium" style={{ color: themeStyle.muted }}>{virtualPageNumber}/{virtualTotalPages}</span></div>
+        <button onClick={e => { e.stopPropagation(); setNotesTab('highlights'); setShowNotesPanel(!showNotesPanel) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg" style={{ color: showNotesPanel && notesTab === 'highlights' ? ACCENT : highlights.length > 0 ? ACCENT : themeStyle.muted }}><Highlighter className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>형광펜</span></button>
+        <button onClick={e => { e.stopPropagation(); toggleBookmark() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: isCurrentPageBookmarked ? ACCENT : themeStyle.muted }}>{isCurrentPageBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}<span style={{ fontSize: 10, marginTop: 5 }}>책갈피</span></button>
+        <button onClick={e => { e.stopPropagation(); toggleFullscreen() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: isFullscreen ? ACCENT : themeStyle.muted, backgroundColor: isFullscreen ? `${ACCENT}15` : 'transparent' }}>{isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}<span style={{ fontSize: 10, marginTop: 5 }}>{isFullscreen ? '축소' : '전체'}</span></button>
+        <button onClick={e => { e.stopPropagation(); setShowSettings(!showSettings) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showSettings ? ACCENT : themeStyle.muted }}><Settings2 className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>설정</span></button>
+      </div>
       </div>
 
       {/* ━━━ 설정 바텀시트 ━━━ */}
@@ -1322,7 +1346,7 @@ export default function EpubViewerLite({ epubUrl, onPageChange, onDocumentLoad, 
               </div>
             </div>
             {/* 북마크 목록 바로가기 */}
-            <button onClick={() => { setShowSettings(false); setShowBookmarkPanel(true) }}
+            <button onClick={() => { setShowSettings(false); setNotesTab('bookmarks'); setShowNotesPanel(true) }}
               className="w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 border" style={{ borderColor: themeStyle.border, color: themeStyle.text }}>
               <Bookmark className="w-4 h-4" /> 책갈피 목록 ({bookmarks.length})
             </button>

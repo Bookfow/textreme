@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'TeXTREME — 한글 PDF를 전자책으로',
+    name: 'TeXTREME - PDF to EPUB',
     short_name: 'TeXTREME',
-    description: 'AI가 한글 PDF를 완벽한 EPUB 전자책으로 변환합니다',
+    description: 'AI PDF to EPUB converter and EPUB/TXT/DOCX viewer',
     start_url: '/',
     display: 'standalone',
     background_color: '#06060c',
@@ -21,6 +21,16 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',
+      },
+    ],
+    file_handlers: [
+      {
+        action: '/viewer',
+        accept: {
+          'application/epub+zip': ['.epub'],
+          'text/plain': ['.txt'],
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+        },
       },
     ],
   }
