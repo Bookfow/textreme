@@ -324,7 +324,7 @@ export default function TeXTREME() {
                 { icon: <Type size={22} />, title: "한글 특화", desc: "한글 조사·어미·띄어쓰기를 정확히 인식하는 AI 엔진" },
                 { icon: <BookOpen size={22} />, title: "구조 보존", desc: "제목·본문·인용·리스트 구분까지 자동 분석" },
                 { icon: <Smartphone size={22} />, title: "모바일 최적화", desc: "화면 크기에 맞춰 글이 자동으로 리플로우" },
-                { icon: <Globe size={22} />, title: "웹에서 바로", desc: "설치 없이 브라우저에서 변환·미리보기·다운로드" },
+                { icon: <Globe size={22} />, title: "어디서든 변환", desc: "PC·태블릿·스마트폰, 어디서든 PDF를 EPUB으로" },
               ].map((f, i) => (
                 <div key={i} style={{ padding: 24, borderRadius: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
                   <div style={{ color: "#F59E0B", marginBottom: 14 }}>{f.icon}</div>
