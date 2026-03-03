@@ -79,7 +79,7 @@ function genId(): string { return Date.now().toString(36) + Math.random().toStri
 
 // ━━━ 메인 컴포넌트 ━━━
 export default function DemoReader({ chapters, title = '변환된 EPUB', onBack, totalBookPages, freePreviewPages, pricePerPage = 10, onPurchase }: DemoReaderProps) {
-  const internalChapters = useMemo(() => chapters.map((ch, i) => ({ title: ch.title, html: ch.paragraphs.map(p => `<p>${p}</p>`).join(''), textContent: ch.paragraphs.join(' '), order: i })), [chapters])
+  const internalChapters = useMemo(() => chapters.map((ch, i) => ({ title: ch.title, html: ch.paragraphs.map(p => `<p>${p}</p>`).join(''), textContent: ch.title + ' ' + ch.paragraphs.join(' '), order: i })), [chapters])
   const tocItems: TocItem[] = useMemo(() => internalChapters.map((ch, i) => ({ title: ch.title, chapterIndex: i })), [internalChapters])
 
   const [currentChapterIdx, setCurrentChapterIdx] = useState(0)
