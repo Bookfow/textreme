@@ -1,5 +1,5 @@
 // components/demo-reader.tsx
-// TeXTREME 데모 리더 — epub-viewer-lite 풀기능, 샘플 텍스트 기반
+// TeXTREME 데모 리더 — 풀기능 + 페이월 + 전환율 UX 전략
 
 'use client'
 
@@ -7,10 +7,19 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   ChevronLeft, ChevronRight, Minus, Plus, List, AlignLeft, AlignJustify,
   Settings2, Focus, Highlighter, Trash2, X, Bookmark, BookmarkCheck, Search,
+  Download, Clock, Zap, FileText, BookOpen,
 } from 'lucide-react'
 
 export interface DemoChapter { title: string; paragraphs: string[] }
-interface DemoReaderProps { chapters: DemoChapter[]; title?: string; onBack?: () => void; totalBookPages?: number }
+interface DemoReaderProps {
+  chapters: DemoChapter[]
+  title?: string
+  onBack?: () => void
+  totalBookPages?: number
+  freePreviewPages?: number
+  pricePerPage?: number
+  onPurchase?: () => void
+}
 interface Highlight { id: string; epub_key: string; block_id: string; start_offset: number; end_offset: number; selected_text: string; color: string; memo: string | null; page_number: number; created_at: number }
 interface BookmarkItem { id: string; epub_key: string; chapter_idx: number; page_in_chapter: number; virtual_page: number; title: string; created_at: number }
 interface SearchResult { chapterIdx: number; chapterTitle: string; snippet: string; matchStart: number }
@@ -32,6 +41,10 @@ const THEMES: Record<ReflowTheme, { bg: string; text: string; muted: string; bor
 const HIGHLIGHT_COLORS: Record<string, string> = { yellow: 'rgba(250,220,50,0.3)', green: 'rgba(100,220,100,0.25)', blue: 'rgba(90,180,250,0.25)', pink: 'rgba(245,130,180,0.3)' }
 const MAX_WIDTH = '42rem'; const DB_NAME = 'textreme_reader'; const DB_VERSION = 1; const ACCENT = '#F59E0B'; const DEMO_KEY = 'demo_preview'
 
+function calcPrice(pages: number, perPage: number): number {
+  return Math.max(500, Math.round((pages * perPage) / 100) * 100)
+}
+
 // ━━━ IndexedDB ━━━
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -52,7 +65,7 @@ async function dbGet<T>(store: string, key: string): Promise<T | null> { try { c
 function genId(): string { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8) }
 
 // ━━━ 메인 컴포넌트 ━━━
-export default function DemoReader({ chapters, title = '변환된 EPUB', onBack, totalBookPages }: DemoReaderProps) {
+export default function DemoReader({ chapters, title = '변환된 EPUB', onBack, totalBookPages, freePreviewPages, pricePerPage = 10, onPurchase }: DemoReaderProps) {
   const internalChapters = useMemo(() => chapters.map((ch, i) => ({ title: ch.title, html: ch.paragraphs.map(p => `<p>${p}</p>`).join(''), textContent: ch.paragraphs.join(' '), order: i })), [chapters])
   const tocItems: TocItem[] = useMemo(() => internalChapters.map((ch, i) => ({ title: ch.title, chapterIndex: i })), [internalChapters])
 
@@ -97,9 +110,42 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
   const [columnWidthPx, setColumnWidthPx] = useState(0)
   const themeStyle = THEMES[theme]; const fontStyle = FONTS[font]
 
+  // ━━━ Paywall & UX states ━━━
+  const [showPaywall, setShowPaywall] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [onboardingStep, setOnboardingStep] = useState(0)
+  const [showPdfCompare, setShowPdfCompare] = useState(false)
+
   const virtualPageNumber = useMemo(() => { let p = 1; for (let i = 0; i < currentChapterIdx; i++) p += chapterPageCounts[i] || 1; p += pageInChapter; return p }, [currentChapterIdx, pageInChapter, chapterPageCounts])
   const virtualTotalPages = useMemo(() => chapterPageCounts.length === 0 ? internalChapters.length || 1 : Math.max(chapterPageCounts.reduce((s, c) => s + (c || 1), 0), 1), [internalChapters, chapterPageCounts])
   const isCurrentPageBookmarked = useMemo(() => bookmarks.some(b => b.chapter_idx === currentChapterIdx && b.page_in_chapter === pageInChapter), [bookmarks, currentChapterIdx, pageInChapter])
+
+  const bookPrice = totalBookPages ? calcPrice(totalBookPages, pricePerPage) : 0
+  const isPaywalled = freePreviewPages != null && virtualPageNumber > freePreviewPages
+  const sunkCostCount = highlights.length + bookmarks.length
+
+  // ━━━ Paywall trigger ━━━
+  useEffect(() => {
+    if (isPaywalled && !showPaywall) setShowPaywall(true)
+  }, [isPaywalled])
+
+  // ━━━ Onboarding (first visit) ━━━
+  useEffect(() => {
+    try {
+      const key = 'textreme_onboarding_v1'
+      if (!localStorage.getItem(key)) {
+        const timer = setTimeout(() => setShowOnboarding(true), 1200)
+        localStorage.setItem(key, '1')
+        return () => clearTimeout(timer)
+      }
+    } catch {}
+  }, [])
+
+  const ONBOARDING_TIPS = [
+    { icon: '🎨', text: '테마와 글꼴을 자유롭게 바꿔보세요', sub: '상단 바의 설정 버튼을 눌러보세요' },
+    { icon: '🖍️', text: '텍스트를 길게 선택하면 형광펜을 쓸 수 있어요', sub: '하이라이트와 메모를 남겨보세요' },
+    { icon: '👆', text: '화면 좌우를 탭하거나 스와이프하면 페이지가 넘어갑니다', sub: '' },
+  ]
 
   // 설정 복원/저장
   useEffect(() => { try { const s = JSON.parse(localStorage.getItem('textreme_reader_settings') || '{}'); if (s.fontSize) setFontSize(s.fontSize); if (s.lineHeight) setLineHeight(s.lineHeight); if (s.font) setFont(s.font); if (s.theme) setTheme(s.theme); if (s.marginSize) setMarginSize(s.marginSize); if (s.letterSpacing !== undefined) setLetterSpacing(s.letterSpacing); if (s.textAlign) setTextAlign(s.textAlign); if (s.focusMode !== undefined) setFocusMode(s.focusMode) } catch {} }, [])
@@ -164,7 +210,6 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
 
   useEffect(() => { const c = contentColumnRef.current; if (!c) return; c.innerHTML = chapterStyledHtml; c.style.transform = `translateX(-${pageInChapter * columnWidthPx}px)`; recalcPages() }, [chapterStyledHtml])
 
-  // 페이지 슬라이드
   useEffect(() => { const c = contentColumnRef.current; if (!c || columnWidthPx <= 0) return; const d = slideDirectionRef.current; slideDirectionRef.current = ''; const tx = pageInChapter * columnWidthPx; if (d) { const o = d === 'left' ? 40 : -40; c.style.transition = 'none'; c.style.opacity = '0'; c.style.transform = `translateX(-${tx - o}px)`; requestAnimationFrame(() => { c.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out'; c.style.opacity = '1'; c.style.transform = `translateX(-${tx}px)` }) } else { c.style.transition = 'none'; c.style.transform = `translateX(-${tx}px)` } }, [pageInChapter, columnWidthPx])
 
   // 집중 모드
@@ -203,17 +248,17 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
   const goToVP = useCallback((vp: number) => { let acc = 0; for (let i = 0; i < internalChapters.length; i++) { const c = chapterPageCounts[i] || 1; if (acc + c >= vp) { setCurrentChapterIdx(i); setPageInChapter(vp - acc - 1); return }; acc += c }; if (internalChapters.length > 0) { setCurrentChapterIdx(internalChapters.length - 1); setPageInChapter(Math.max(0, (chapterPageCounts[internalChapters.length - 1] || 1) - 1)) } }, [internalChapters.length, chapterPageCounts])
 
   // 키보드
-  useEffect(() => { const h = (e: KeyboardEvent) => { const t = (e.target as HTMLElement)?.tagName; if (t === 'INPUT' || t === 'TEXTAREA') return; if (showSettings || showToc || showHighlightPanel || showBookmarkPanel || showSearch) return; if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goPrev() } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goNext() } else if ((e.key === 'f' || e.key === 'F') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setShowSearch(p => !p) } }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h) }, [goNext, goPrev, showSettings, showToc, showHighlightPanel, showBookmarkPanel, showSearch])
+  useEffect(() => { const h = (e: KeyboardEvent) => { const t = (e.target as HTMLElement)?.tagName; if (t === 'INPUT' || t === 'TEXTAREA') return; if (showSettings || showToc || showHighlightPanel || showBookmarkPanel || showSearch || showPaywall) return; if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goPrev() } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goNext() } else if ((e.key === 'f' || e.key === 'F') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setShowSearch(p => !p) } }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h) }, [goNext, goPrev, showSettings, showToc, showHighlightPanel, showBookmarkPanel, showSearch, showPaywall])
 
   // 터치
   const onTS = (e: React.TouchEvent) => { touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; touchEndRef.current = null }
   const onTM = (e: React.TouchEvent) => { touchEndRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY } }
-  const onTE = () => { const s = touchStartRef.current; const e = touchEndRef.current; if (!s || !e) return; const dx = s.x - e.x; if (Math.abs(dx) > 50 && Math.abs(s.y - e.y) < Math.abs(dx)) { dx > 0 ? goNext() : goPrev() }; touchStartRef.current = null; touchEndRef.current = null }
+  const onTE = () => { if (showPaywall) return; const s = touchStartRef.current; const e = touchEndRef.current; if (!s || !e) return; const dx = s.x - e.x; if (Math.abs(dx) > 50 && Math.abs(s.y - e.y) < Math.abs(dx)) { dx > 0 ? goNext() : goPrev() }; touchStartRef.current = null; touchEndRef.current = null }
 
   // 클릭
   const onMD = (e: React.MouseEvent) => { mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() } }
   const onClick = (e: React.MouseEvent) => {
-    if (showSettings || showToc || showHighlightPanel || showMemoModal || showBookmarkPanel || showSearch) return
+    if (showSettings || showToc || showHighlightPanel || showMemoModal || showBookmarkPanel || showSearch || showPaywall) return
     const md = mouseDownPosRef.current; const quick = md?.t && Date.now() - md.t < 300; if (md && Math.sqrt((e.clientX - md.x) ** 2 + (e.clientY - md.y) ** 2) > 5) { mouseDownPosRef.current = null; return }; mouseDownPosRef.current = null
     if (quick) { window.getSelection()?.removeAllRanges(); setShowHighlightMenu(false) }
     const sel = window.getSelection(); if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return
@@ -223,7 +268,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
 
   // 텍스트 선택 → 하이라이트
   const onSelEnd = () => {
-    if (focusMode || showSettings) return; const md = mouseDownPosRef.current; if (md?.t && Date.now() - md.t < 300) return
+    if (focusMode || showSettings || showPaywall) return; const md = mouseDownPosRef.current; if (md?.t && Date.now() - md.t < 300) return
     const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.toString().trim()) { setShowHighlightMenu(false); return }; const text = sel.toString().trim(); if (text.length < 2) return
     const an = sel.anchorNode; if (!an) return; const bl = (an.nodeType === 3 ? an.parentElement : an as HTMLElement)?.closest('[data-block-id]'); if (!bl) return; const bid = bl.getAttribute('data-block-id'); if (!bid) return
     const range = sel.getRangeAt(0); const pre = document.createRange(); pre.setStart(bl, 0); pre.setEnd(range.startContainer, range.startOffset); const so = pre.toString().length
@@ -231,7 +276,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
   }
 
   // 모바일 selectionchange
-  useEffect(() => { let t: ReturnType<typeof setTimeout>; const h = () => { clearTimeout(t); t = setTimeout(() => { if (focusMode || showSettings) return; const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.toString().trim()) return; const text = sel.toString().trim(); if (text.length < 2) return; const an = sel.anchorNode; if (!an) return; const bl = (an.nodeType === 3 ? an.parentElement : an as HTMLElement)?.closest('[data-block-id]'); if (!bl) return; const bid = bl.getAttribute('data-block-id'); if (!bid) return; const range = sel.getRangeAt(0); const pre = document.createRange(); pre.setStart(bl, 0); pre.setEnd(range.startContainer, range.startOffset); const so = pre.toString().length; const rect = range.getBoundingClientRect(); setHighlightMenuPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 }); setPendingSelection({ blockId: bid, start: so, end: so + text.length, text }); setShowHighlightMenu(true) }, 500) }; document.addEventListener('selectionchange', h); return () => { document.removeEventListener('selectionchange', h); clearTimeout(t) } }, [focusMode, showSettings, currentChapterIdx])
+  useEffect(() => { let t: ReturnType<typeof setTimeout>; const h = () => { clearTimeout(t); t = setTimeout(() => { if (focusMode || showSettings || showPaywall) return; const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.toString().trim()) return; const text = sel.toString().trim(); if (text.length < 2) return; const an = sel.anchorNode; if (!an) return; const bl = (an.nodeType === 3 ? an.parentElement : an as HTMLElement)?.closest('[data-block-id]'); if (!bl) return; const bid = bl.getAttribute('data-block-id'); if (!bid) return; const range = sel.getRangeAt(0); const pre = document.createRange(); pre.setStart(bl, 0); pre.setEnd(range.startContainer, range.startOffset); const so = pre.toString().length; const rect = range.getBoundingClientRect(); setHighlightMenuPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 }); setPendingSelection({ blockId: bid, start: so, end: so + text.length, text }); setShowHighlightMenu(true) }, 500) }; document.addEventListener('selectionchange', h); return () => { document.removeEventListener('selectionchange', h); clearTimeout(t) } }, [focusMode, showSettings, showPaywall, currentChapterIdx])
 
   // 하이라이트 CRUD
   const saveHL = async (color: string) => { if (!pendingSelection) return; const hl: Highlight = { id: genId(), epub_key: DEMO_KEY, block_id: pendingSelection.blockId, start_offset: pendingSelection.start, end_offset: pendingSelection.end, selected_text: pendingSelection.text, color, memo: null, page_number: virtualPageNumber, created_at: Date.now() }; await dbPut('highlights', hl); setHighlights(p => [...p, hl]); setShowHighlightMenu(false); setPendingSelection(null); window.getSelection()?.removeAllRanges(); if (selectionOverlayRef.current) selectionOverlayRef.current.innerHTML = '' }
@@ -251,6 +296,104 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
 
   return (
     <div className="h-full flex flex-col" style={{ backgroundColor: themeStyle.pageBg, fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
+
+      {/* ━━━ ONBOARDING OVERLAY ━━━ */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }} onClick={() => setShowOnboarding(false)}>
+          <div className="w-full max-w-sm mx-4 rounded-2xl overflow-hidden shadow-2xl" style={{ backgroundColor: themeStyle.bg, border: `1px solid ${themeStyle.border}` }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '28px 24px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>{ONBOARDING_TIPS[onboardingStep].icon}</div>
+              <p style={{ color: themeStyle.text, fontWeight: 700, fontSize: 16, marginBottom: 6, lineHeight: 1.4 }}>{ONBOARDING_TIPS[onboardingStep].text}</p>
+              {ONBOARDING_TIPS[onboardingStep].sub && <p style={{ color: themeStyle.muted, fontSize: 13 }}>{ONBOARDING_TIPS[onboardingStep].sub}</p>}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, padding: '0 24px 16px' }}>
+              {ONBOARDING_TIPS.map((_, i) => (
+                <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: i === onboardingStep ? ACCENT : themeStyle.border, transition: 'background 0.2s' }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', borderTop: `1px solid ${themeStyle.border}` }}>
+              <button onClick={() => setShowOnboarding(false)} style={{ flex: 1, padding: '14px', border: 'none', background: 'none', color: themeStyle.muted, fontSize: 14, cursor: 'pointer' }}>건너뛰기</button>
+              <button onClick={() => { if (onboardingStep < ONBOARDING_TIPS.length - 1) setOnboardingStep(s => s + 1); else setShowOnboarding(false) }} style={{ flex: 1, padding: '14px', border: 'none', borderLeft: `1px solid ${themeStyle.border}`, background: `${ACCENT}10`, color: ACCENT, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                {onboardingStep < ONBOARDING_TIPS.length - 1 ? '다음' : '시작하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ━━━ PAYWALL OVERLAY ━━━ */}
+      {showPaywall && (
+        <div className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-md mx-4 mb-4 sm:mb-0 rounded-2xl overflow-hidden shadow-2xl" style={{ backgroundColor: themeStyle.bg, border: `1px solid ${themeStyle.border}`, maxHeight: '90vh', overflowY: 'auto' }}>
+            {/* Header */}
+            <div style={{ padding: '28px 24px 0', textAlign: 'center' }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📖</div>
+              <h3 style={{ color: themeStyle.text, fontWeight: 800, fontSize: 20, marginBottom: 4 }}>무료 미리보기는 여기까지</h3>
+              <p style={{ color: themeStyle.muted, fontSize: 13 }}>
+                {freePreviewPages}페이지 미리보기를 읽으셨습니다
+              </p>
+            </div>
+
+            {/* Price + Anchoring */}
+            {totalBookPages && totalBookPages > 0 && (
+              <div style={{ margin: '20px 24px', padding: '20px', borderRadius: 16, background: `${ACCENT}08`, border: `1px solid ${ACCENT}30`, textAlign: 'center' }}>
+                <p style={{ color: themeStyle.muted, fontSize: 12, marginBottom: 4 }}>전체 {totalBookPages}페이지</p>
+                <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 36, color: ACCENT }}>₩{bookPrice.toLocaleString()}</div>
+                <p style={{ color: themeStyle.muted, fontSize: 13, marginTop: 8 }}>
+                  ☕ 커피 한 잔 가격으로 {totalBookPages}페이지를 편하게
+                </p>
+              </div>
+            )}
+
+            {/* Sunk cost — only if user made annotations */}
+            {sunkCostCount > 0 && (
+              <div style={{ margin: '0 24px 16px', padding: '14px 16px', borderRadius: 12, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                <p style={{ color: '#22c55e', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>
+                  ✨ 지금까지 만든 {highlights.length > 0 ? `형광펜 ${highlights.length}개` : ''}{highlights.length > 0 && bookmarks.length > 0 ? ', ' : ''}{bookmarks.length > 0 ? `책갈피 ${bookmarks.length}개` : ''}가<br />전체 EPUB에서도 유지됩니다
+                </p>
+              </div>
+            )}
+
+            {/* 24hr urgency */}
+            <div style={{ margin: '0 24px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Clock size={14} color={themeStyle.muted} />
+              <p style={{ color: themeStyle.muted, fontSize: 12 }}>변환 결과는 24시간 보관됩니다</p>
+            </div>
+
+            {/* PDF vs EPUB toggle */}
+            <div style={{ margin: '0 24px 20px' }}>
+              <button onClick={() => setShowPdfCompare(!showPdfCompare)} style={{ width: '100%', padding: '10px', borderRadius: 10, border: `1px solid ${themeStyle.border}`, background: 'none', color: themeStyle.muted, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <FileText size={14} /> PDF vs EPUB 비교 보기 {showPdfCompare ? '▲' : '▼'}
+              </button>
+              {showPdfCompare && (
+                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ padding: 12, borderRadius: 10, border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.04)', textAlign: 'center' }}>
+                    <X size={16} color="#ef4444" style={{ margin: '0 auto 4px' }} />
+                    <p style={{ color: '#ef4444', fontSize: 11, fontWeight: 600, marginBottom: 6 }}>PDF 모바일</p>
+                    <p style={{ color: themeStyle.muted, fontSize: 10, lineHeight: 1.4 }}>확대/축소 필수<br />좌우 스크롤<br />글꼴 변경 불가<br />형광펜 불가</p>
+                  </div>
+                  <div style={{ padding: 12, borderRadius: 10, border: `1px solid ${ACCENT}40`, background: `${ACCENT}06`, textAlign: 'center' }}>
+                    <Zap size={16} color={ACCENT} style={{ margin: '0 auto 4px' }} />
+                    <p style={{ color: ACCENT, fontSize: 11, fontWeight: 600, marginBottom: 6 }}>EPUB 변환</p>
+                    <p style={{ color: themeStyle.muted, fontSize: 10, lineHeight: 1.4 }}>자동 리플로우<br />스와이프 넘김<br />글꼴/크기 자유<br />형광펜·메모</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* CTA */}
+            <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={onPurchase} style={{ width: '100%', padding: '16px', borderRadius: 14, background: `linear-gradient(135deg, ${ACCENT}, #D97706)`, color: '#000', fontWeight: 800, fontSize: 16, border: 'none', cursor: 'pointer', boxShadow: `0 0 30px ${ACCENT}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <Download size={18} />
+                EPUB 다운로드 · ₩{bookPrice.toLocaleString()}
+              </button>
+              <button onClick={() => { setShowPaywall(false); goPrev() }} style={{ width: '100%', padding: '10px', borderRadius: 10, background: 'none', border: `1px solid ${themeStyle.border}`, color: themeStyle.muted, fontSize: 13, cursor: 'pointer' }}>
+                미리보기로 돌아가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TOC 패널 */}
       {showToc && (<div className="fixed inset-0 z-[60] flex"><div className="absolute inset-0 bg-black/40" onClick={() => setShowToc(false)} /><div className="relative w-72 max-w-[80vw] h-full flex flex-col shadow-2xl" style={{ backgroundColor: themeStyle.bg }}><div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: themeStyle.border }}><h3 className="font-semibold text-sm" style={{ color: themeStyle.headingColor }}>목차</h3><button onClick={() => setShowToc(false)} className="p-1 rounded hover:opacity-70" style={{ color: themeStyle.muted }}>✕</button></div><div className="flex-1 overflow-y-auto">{tocItems.map((item, i) => (<button key={i} onClick={() => { goToChapter(item.chapterIndex); setShowToc(false) }} className={`w-full text-left py-3 px-4 border-b text-sm ${item.chapterIndex === currentChapterIdx ? 'font-semibold' : 'hover:opacity-80'}`} style={{ borderColor: themeStyle.border, color: item.chapterIndex === currentChapterIdx ? ACCENT : themeStyle.text, backgroundColor: item.chapterIndex === currentChapterIdx ? 'rgba(245,158,11,0.06)' : 'transparent' }}>{item.title}</button>))}</div></div></div>)}
@@ -287,7 +430,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
       </div></div></>)}
 
       {/* 페이지네이션 본문 */}
-      <div className={`flex-1 min-h-0 relative ${focusMode ? 'epub-focus-active' : ''}`} style={{ backgroundColor: themeStyle.bg, userSelect: 'text', WebkitUserSelect: 'text' as any, overflow: 'clip' }} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE} onMouseDown={onMD} onClick={onClick} onMouseUp={onSelEnd}>
+      <div className={`flex-1 min-h-0 relative ${focusMode ? 'epub-focus-active' : ''}`} style={{ backgroundColor: themeStyle.bg, userSelect: isPaywalled ? 'none' : 'text', WebkitUserSelect: (isPaywalled ? 'none' : 'text') as any, overflow: 'clip', filter: isPaywalled ? 'blur(4px)' : 'none', transition: 'filter 0.3s' }} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE} onMouseDown={onMD} onClick={onClick} onMouseUp={onSelEnd}>
         <div style={{ maxWidth: MAX_WIDTH, margin: '0 auto', padding: `2rem ${marginSize}px`, height: '100%' }}>
           <div ref={paginationContainerRef} className="relative" style={{ height: '100%', overflow: 'clip' }}>
             {currentChapterData ? <div ref={contentColumnRef} style={{ columnWidth: columnWidthPx > 0 ? `${columnWidthPx - 40}px` : '100vw', columnGap: '40px', columnFill: 'auto', height: '100%' }} /> : <p className="text-center py-8" style={{ color: themeStyle.muted }}>(표시할 내용 없음)</p>}
@@ -297,7 +440,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack,
       </div>
 
       {/* 하이라이트 팝업 */}
-      {showHighlightMenu && pendingSelection && (<div className="fixed z-[70] flex items-center gap-1 px-2 py-1.5 rounded-xl shadow-lg border" style={{ left: Math.min(highlightMenuPos.x - 60, (typeof window !== 'undefined' ? window.innerWidth : 400) - 140), top: Math.min(highlightMenuPos.y, (typeof window !== 'undefined' ? window.innerHeight : 800) - 50), backgroundColor: themeStyle.bg, borderColor: themeStyle.border }}>{Object.entries(HIGHLIGHT_COLORS).map(([c, bg]) => (<button key={c} onClick={() => saveHL(c)} className="w-7 h-7 rounded-full border-2 hover:scale-110 transition-transform" style={{ backgroundColor: bg, borderColor: c === 'yellow' ? '#fbbf24' : c === 'green' ? '#86efac' : c === 'blue' ? '#93c5fd' : '#f9a8d4' }} />))}<button onClick={() => { setShowHighlightMenu(false); setPendingSelection(null); window.getSelection()?.removeAllRanges(); if (selectionOverlayRef.current) selectionOverlayRef.current.innerHTML = '' }} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ color: themeStyle.muted }}><X className="w-3.5 h-3.5" /></button></div>)}
+      {showHighlightMenu && pendingSelection && !isPaywalled && (<div className="fixed z-[70] flex items-center gap-1 px-2 py-1.5 rounded-xl shadow-lg border" style={{ left: Math.min(highlightMenuPos.x - 60, (typeof window !== 'undefined' ? window.innerWidth : 400) - 140), top: Math.min(highlightMenuPos.y, (typeof window !== 'undefined' ? window.innerHeight : 800) - 50), backgroundColor: themeStyle.bg, borderColor: themeStyle.border }}>{Object.entries(HIGHLIGHT_COLORS).map(([c, bg]) => (<button key={c} onClick={() => saveHL(c)} className="w-7 h-7 rounded-full border-2 hover:scale-110 transition-transform" style={{ backgroundColor: bg, borderColor: c === 'yellow' ? '#fbbf24' : c === 'green' ? '#86efac' : c === 'blue' ? '#93c5fd' : '#f9a8d4' }} />))}<button onClick={() => { setShowHighlightMenu(false); setPendingSelection(null); window.getSelection()?.removeAllRanges(); if (selectionOverlayRef.current) selectionOverlayRef.current.innerHTML = '' }} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ color: themeStyle.muted }}><X className="w-3.5 h-3.5" /></button></div>)}
 
       {/* 메모 툴팁 */}
       {memoTooltip && (<div className="fixed z-[80] pointer-events-none" style={{ left: Math.max(8, Math.min(memoTooltip.x, (typeof window !== 'undefined' ? window.innerWidth : 400) - 260)), top: Math.max(8, memoTooltip.y - 8), transform: 'translateY(-100%)' }}><div style={{ maxWidth: 250, padding: '8px 12px', borderRadius: 10, fontSize: Math.round(fontSize * 0.75), lineHeight: 1.5, color: themeStyle.text, background: theme === 'dark' ? '#2E2620' : theme === 'sepia' ? '#e8dcc8' : '#f5f0eb', border: `1px solid ${themeStyle.border}`, boxShadow: '0 4px 16px rgba(0,0,0,0.25)', wordBreak: 'keep-all', whiteSpace: 'pre-wrap' }}><span style={{ opacity: 0.5, marginRight: 4 }}>✎</span>{memoTooltip.text}</div></div>)}
