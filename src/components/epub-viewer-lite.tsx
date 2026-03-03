@@ -1450,7 +1450,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
 
       {/* ━━━ 하단 바 ━━━ */}
       {chapters.length > 0 && (
-        <div className="border-t px-4 py-2 max-w-lg mx-auto w-full" style={{ borderColor: themeStyle.border }}>
+        <div style={{ padding: "10px 24px", width: "100%", maxWidth: 520, margin: '0 auto' }}>
           <div className="flex items-center gap-3">
             <button onClick={e => { e.stopPropagation(); goToPrevPage() }} disabled={isFirstPage} className="p-1 rounded disabled:opacity-30" style={{ color: themeStyle.muted }}><ChevronLeft className="w-4 h-4" /></button>
             <div className="flex-1 relative" onClick={e => {
