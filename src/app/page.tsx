@@ -8,11 +8,11 @@ import { Upload, FileText, Zap, Download, ChevronRight, Check, BookOpen, Smartph
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const PRICING = [
-  { pages: "~50p", price: "₩990", per: "20원/p", popular: false },
-  { pages: "~100p", price: "₩1,900", per: "19원/p", popular: false },
-  { pages: "~200p", price: "₩2,900", per: "15원/p", popular: true },
-  { pages: "~300p", price: "₩4,900", per: "16원/p", popular: false },
-  { pages: "~500p", price: "₩7,900", per: "16원/p", popular: false },
+  { pages: "~50p 구간", price: "₩990", per: "20원/p", popular: false },
+  { pages: "~100p 구간", price: "₩1,900", per: "19원/p", popular: false },
+  { pages: "~200p 구간", price: "₩2,900", per: "15원/p", popular: true },
+  { pages: "~300p 구간", price: "₩4,900", per: "16원/p", popular: false },
+  { pages: "~500p 구간", price: "₩7,900", per: "16원/p", popular: false },
 ]
 
 const SAMPLE_PAGES = [
@@ -280,10 +280,14 @@ export default function TeXTREME() {
                   <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>PDF (모바일)</span>
                 </div>
                 <div style={{ padding: 20, background: "rgba(255,255,255,0.02)", minHeight: 280 }}>
-                  <div style={{ background: "#fff", borderRadius: 4, padding: 8, transform: "scale(0.6)", transformOrigin: "top left", width: "166%", height: "166%" }}>
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <div key={i} style={{ height: 6, background: i === 0 ? "#333" : "#ddd", borderRadius: 3, marginBottom: 5, width: i === 0 ? "60%" : `${70 + Math.random() * 30}%` }} />
-                    ))}
+                  <div style={{ background: "#fff", borderRadius: 4, padding: 10, transform: "scale(0.55)", transformOrigin: "top left", width: "182%", overflow: "hidden" }}>
+                    <div style={{ fontSize: 7.5, color: "#111", fontWeight: 700, marginBottom: 4, letterSpacing: "-0.02em" }}>제1장 어른들의 세계</div>
+                    <div style={{ fontSize: 5.5, color: "#333", lineHeight: 1.5, letterSpacing: "-0.01em", wordBreak: "keep-all" }}>
+                      내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다. 나는 이 모험담에 큰 감명을 받아 색연필로 내 최초의 그림을 그렸다. 나의 그림 제1호였다. 나는 이 걸작을 어른들에게 보여주며 무섭지 않으냐고 물었다. 어른들의 대답은 이랬다. &quot;모자가 왜 무섭니?&quot; 내 그림은 모자를 그린 것이 아니었다. 보아뱀이 코끼리를 소화시키고 있는 그림이었다. 어른들이 알아볼 수 있도록 보아뱀 속을 그려주었다.
+                    </div>
+                    <div style={{ fontSize: 5.5, color: "#333", lineHeight: 1.5, marginTop: 3, wordBreak: "keep-all" }}>
+                      어른들은 늘 설명을 요구했다. 나의 그림 제2호를 보고서 어른들은 나에게 보아뱀 그림 같은 건 집어치우고 차라리 지리, 역사, 산수, 문법에 관심을 쏟으라고 충고했다. 그래서 나는 여섯 살에 화가라는 훌륭한 직업을 포기하고 말았다. 나는 비행기 조종하는 법을 배워서 세계 곳곳을 비행했다.
+                    </div>
                   </div>
                   <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, textAlign: "center", marginTop: 16 }}>
                     확대하고 좌우로 스크롤하고...<br />읽다가 포기 😤
@@ -299,10 +303,10 @@ export default function TeXTREME() {
                 <div style={{ padding: 20, background: "rgba(255,255,255,0.02)", minHeight: 280 }}>
                   <div style={{ background: "#1a1410", borderRadius: 8, padding: 16 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: "#EEE4E1", marginBottom: 12, lineHeight: 1.3 }}>
-                      1장 디자이너의 날갯짓이 불러일으킨 태풍
+                      제1장 어른들의 세계
                     </div>
                     <div style={{ fontSize: 12, color: "#C4A882", lineHeight: 1.8 }}>
-                      영국의 식민지였던 인도에는 코브라가 너무 많아서 실행된 정책이 하나 있다. 코브라를 잡아 오면 보상금을 주는 정책이다...
+                      내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다...
                     </div>
                   </div>
                   <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, textAlign: "center", marginTop: 16 }}>
