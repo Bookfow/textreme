@@ -71,6 +71,38 @@ async function dbDel(store: string, key: string): Promise<void> { try { const db
 async function dbGet<T>(store: string, key: string): Promise<T | null> { try { const db = await openDB(); return new Promise((r, j) => { const req = db.transaction(store, 'readonly').objectStore(store).get(key); req.onsuccess = () => r(req.result || null); req.onerror = () => j(req.error) }) } catch { return null } }
 function genId(): string { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8) }
 
+/** 블록 내 텍스트 노드 추출 (공백 전용 직속 노드 제외) */
+function getTextNodesOf(root: Node): { node: Text; start: number }[] {
+  const nodes: { node: Text; start: number }[] = []; let offset = 0
+  const walk = (n: Node) => {
+    if (n.nodeType === Node.TEXT_NODE) {
+      const t = (n as Text).textContent || ''
+      if (t.trim().length === 0 && n.parentNode === root) return
+      nodes.push({ node: n as Text, start: offset }); offset += t.length
+    } else { for (let i = 0; i < n.childNodes.length; i++) walk(n.childNodes[i]) }
+  }; walk(root); return nodes
+}
+
+/** 블록 내 특정 위치까지의 텍스트 offset 계산 */
+function calcOffsetInBlock(blockEl: Node, targetNode: Node, targetOffset: number): number {
+  const textNodes = getTextNodesOf(blockEl)
+  if (targetNode.nodeType === Node.TEXT_NODE) {
+    for (const tn of textNodes) {
+      if (tn.node === targetNode) return tn.start + Math.min(targetOffset, (tn.node.textContent?.length || 0))
+    }
+  }
+  const childBefore = targetOffset < targetNode.childNodes.length ? targetNode.childNodes[targetOffset] : null
+  let total = 0
+  for (const tn of textNodes) {
+    if (childBefore && tn.node.compareDocumentPosition(childBefore) & Node.DOCUMENT_POSITION_PRECEDING) break
+    if (!childBefore) { total = tn.start + (tn.node.textContent?.length || 0); continue }
+    if (childBefore.contains(tn.node) || tn.node.compareDocumentPosition(childBefore) & Node.DOCUMENT_POSITION_FOLLOWING) {
+      total = tn.start + (tn.node.textContent?.length || 0)
+    }
+  }
+  return total
+}
+
 // ━━━ 메인 컴포넌트 ━━━
 export default function DemoReader({ chapters, title = '변환된 EPUB', onBack }: DemoReaderProps) {
   const internalChapters = useMemo(() => chapters.map((ch, i) => ({ title: ch.title, html: ch.paragraphs.map(p => `<p>${p}</p>`).join(''), textContent: ch.title + ' ' + ch.paragraphs.join(' '), order: i })), [chapters])
@@ -202,13 +234,13 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
     if (chHL.length > 0 && typeof window !== 'undefined') {
       try {
         const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html'); const root = doc.body.firstElementChild as HTMLElement
-        const getTextNodes = (el: Node): { node: Text; start: number }[] => { const ns: { node: Text; start: number }[] = []; let o = 0; const walk = (n: Node) => { if (n.nodeType === 3) { ns.push({ node: n as Text, start: o }); o += (n as Text).textContent?.length || 0 } else { for (let i = 0; i < n.childNodes.length; i++) walk(n.childNodes[i]) } }; walk(el); return ns }
-        for (const hl of [...chHL].sort((a, b) => b.start_offset - a.start_offset)) {
-          const tns = getTextNodes(root)
+        const sorted = [...chHL].sort((a, b) => b.start_offset - a.start_offset)
+        for (const hl of sorted) {
+          const tns = getTextNodesOf(root)
           for (let i = tns.length - 1; i >= 0; i--) {
             const tn = tns[i]; const len = tn.node.textContent?.length || 0; if (tn.start + len <= hl.start_offset || tn.start >= hl.end_offset) continue
             const ls = Math.max(0, hl.start_offset - tn.start); const le = Math.min(len, hl.end_offset - tn.start); if (ls >= le) continue
-            try { const r = doc.createRange(); r.setStart(tn.node, ls); r.setEnd(tn.node, le); const m = doc.createElement('mark'); m.setAttribute('data-hl-id', hl.id); m.setAttribute('data-hl-color', hl.color || 'yellow'); if (hl.memo) m.setAttribute('data-memo', hl.memo); m.style.backgroundColor = HIGHLIGHT_COLORS[hl.color] || HIGHLIGHT_COLORS.yellow; r.surroundContents(m) } catch {}
+            try { const r = doc.createRange(); r.setStart(tn.node, ls); r.setEnd(tn.node, le); const m = doc.createElement('mark'); m.setAttribute('data-hl-id', hl.id); m.setAttribute('data-hl-color', hl.color || 'yellow'); if (hl.memo) m.setAttribute('data-memo', hl.memo); m.style.backgroundColor = HIGHLIGHT_COLORS[hl.color] || HIGHLIGHT_COLORS.yellow; const frag = r.extractContents(); m.appendChild(frag); r.insertNode(m) } catch {}
           }
         }
         html = root.innerHTML
@@ -297,12 +329,12 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
     if (focusMode || showSettings) return; const md = mouseDownPosRef.current; if (md?.t && Date.now() - md.t < 300) return
     const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.toString().trim()) { setShowHighlightMenu(false); return }; const text = sel.toString().trim(); if (text.length < 2) return
     const an = sel.anchorNode; if (!an) return; const bl = (an.nodeType === 3 ? an.parentElement : an as HTMLElement)?.closest('[data-block-id]'); if (!bl) return; const bid = bl.getAttribute('data-block-id'); if (!bid) return
-    const range = sel.getRangeAt(0); const pre = document.createRange(); pre.setStart(bl, 0); pre.setEnd(range.startContainer, range.startOffset); const so = pre.toString().length
+    const range = sel.getRangeAt(0); const so = calcOffsetInBlock(bl, range.startContainer, range.startOffset); const eo = calcOffsetInBlock(bl, range.endContainer, range.endOffset)
     const rect = range.getBoundingClientRect(); setHighlightMenuPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 }); setPendingSelection({ blockId: bid, start: so, end: so + text.length, text }); setShowHighlightMenu(true)
   }
 
   // 모바일 selectionchange
-  useEffect(() => { let t: ReturnType<typeof setTimeout>; const h = () => { clearTimeout(t); t = setTimeout(() => { if (focusMode || showSettings) return; const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.toString().trim()) return; const text = sel.toString().trim(); if (text.length < 2) return; const an = sel.anchorNode; if (!an) return; const bl = (an.nodeType === 3 ? an.parentElement : an as HTMLElement)?.closest('[data-block-id]'); if (!bl) return; const bid = bl.getAttribute('data-block-id'); if (!bid) return; const range = sel.getRangeAt(0); const pre = document.createRange(); pre.setStart(bl, 0); pre.setEnd(range.startContainer, range.startOffset); const so = pre.toString().length; const rect = range.getBoundingClientRect(); setHighlightMenuPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 }); setPendingSelection({ blockId: bid, start: so, end: so + text.length, text }); setShowHighlightMenu(true) }, 500) }; document.addEventListener('selectionchange', h); return () => { document.removeEventListener('selectionchange', h); clearTimeout(t) } }, [focusMode, showSettings, currentChapterIdx])
+  useEffect(() => { let t: ReturnType<typeof setTimeout>; const h = () => { clearTimeout(t); t = setTimeout(() => { if (focusMode || showSettings) return; const sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.toString().trim()) return; const text = sel.toString().trim(); if (text.length < 2) return; const an = sel.anchorNode; if (!an) return; const bl = (an.nodeType === 3 ? an.parentElement : an as HTMLElement)?.closest('[data-block-id]'); if (!bl) return; const bid = bl.getAttribute('data-block-id'); if (!bid) return; const range = sel.getRangeAt(0); const so = calcOffsetInBlock(bl, range.startContainer, range.startOffset); const eo = calcOffsetInBlock(bl, range.endContainer, range.endOffset); const rect = range.getBoundingClientRect(); setHighlightMenuPos({ x: rect.left + rect.width / 2, y: rect.bottom + 8 }); setPendingSelection({ blockId: bid, start: so, end: eo, text }); setShowHighlightMenu(true) }, 500) }; document.addEventListener('selectionchange', h); return () => { document.removeEventListener('selectionchange', h); clearTimeout(t) } }, [focusMode, showSettings, currentChapterIdx])
 
   // 하이라이트 CRUD
   const saveHL = async (color: string) => { if (!pendingSelection) return; const hl: Highlight = { id: genId(), epub_key: DEMO_KEY, block_id: pendingSelection.blockId, start_offset: pendingSelection.start, end_offset: pendingSelection.end, selected_text: pendingSelection.text, color, memo: null, page_number: virtualPageNumber, created_at: Date.now() }; await dbPut('highlights', hl); setHighlights(p => [...p, hl]); setShowHighlightMenu(false); setPendingSelection(null); window.getSelection()?.removeAllRanges() }
