@@ -161,7 +161,7 @@ export default function TeXTREME() {
         {/* NAV */}
         <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "16px 24px", background: "rgba(6,6,12,0.8)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #F59E0B, #D97706)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Zap size={18} color="#000" strokeWidth={2.5} />
               </div>
@@ -280,16 +280,19 @@ export default function TeXTREME() {
                   <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>PDF (모바일)</span>
                 </div>
                 <div style={{ padding: 20, background: "rgba(255,255,255,0.02)", minHeight: 280 }}>
-                  <div style={{ background: "#fff", borderRadius: 4, padding: 10, transform: "scale(0.55)", transformOrigin: "top left", width: "182%", overflow: "hidden" }}>
-                    <div style={{ fontSize: 7.5, color: "#111", fontWeight: 700, marginBottom: 4, letterSpacing: "-0.02em" }}>제1장 어른들의 세계</div>
-                    <div style={{ fontSize: 5.5, color: "#333", lineHeight: 1.5, letterSpacing: "-0.01em", wordBreak: "keep-all" }}>
-                      내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다. 나는 이 모험담에 큰 감명을 받아 색연필로 내 최초의 그림을 그렸다. 나의 그림 제1호였다. 나는 이 걸작을 어른들에게 보여주며 무섭지 않으냐고 물었다. 어른들의 대답은 이랬다. &quot;모자가 왜 무섭니?&quot; 내 그림은 모자를 그린 것이 아니었다. 보아뱀이 코끼리를 소화시키고 있는 그림이었다. 어른들이 알아볼 수 있도록 보아뱀 속을 그려주었다.
+                  <div style={{ background: "#fff", borderRadius: 4, padding: 10, transform: "scale(0.48)", transformOrigin: "top left", width: "208%", overflow: "hidden" }}>
+                    <div style={{ fontSize: 9, color: "#111", fontWeight: 700, marginBottom: 5 }}>제1장 어른들의 세계</div>
+                    <div style={{ fontSize: 6.5, color: "#333", lineHeight: 1.6, wordBreak: "keep-all" }}>
+                      내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다. 나는 이 모험담에 큰 감명을 받아 색연필로 내 최초의 그림을 그렸다. 나의 그림 제1호였다. 나는 이 걸작을 어른들에게 보여주며 무섭지 않으냐고 물었다. 어른들의 대답은 이랬다. &quot;모자가 왜 무섭니?&quot; 내 그림은 모자를 그린 것이 아니었다. 보아뱀이 코끼리를 소화시키고 있는 그림이었다.
                     </div>
-                    <div style={{ fontSize: 5.5, color: "#333", lineHeight: 1.5, marginTop: 3, wordBreak: "keep-all" }}>
-                      어른들은 늘 설명을 요구했다. 나의 그림 제2호를 보고서 어른들은 나에게 보아뱀 그림 같은 건 집어치우고 차라리 지리, 역사, 산수, 문법에 관심을 쏟으라고 충고했다. 그래서 나는 여섯 살에 화가라는 훌륭한 직업을 포기하고 말았다. 나는 비행기 조종하는 법을 배워서 세계 곳곳을 비행했다.
+                    <div style={{ fontSize: 6.5, color: "#333", lineHeight: 1.6, marginTop: 4, wordBreak: "keep-all" }}>
+                      어른들은 늘 설명을 요구했다. 나의 그림 제2호를 보고서 어른들은 나에게 보아뱀 그림 같은 건 집어치우고 차라리 지리, 역사, 산수, 문법에 관심을 쏟으라고 충고했다. 그래서 나는 여섯 살에 화가라는 훌륭한 직업을 포기하고 말았다. 나는 비행기 조종하는 법을 배워서 세계 곳곳을 비행했다. 지리학은 실제로 큰 도움이 되었다. 한눈에 중국과 아리조나를 구별할 수 있었으니까. 밤에 길을 잃었을 때 그런 지식은 아주 유용한 것이다.
+                    </div>
+                    <div style={{ fontSize: 6.5, color: "#333", lineHeight: 1.6, marginTop: 4, wordBreak: "keep-all" }}>
+                      나는 살아오면서 수많은 중요한 사람들과 만났다. 어른들 속에서 오랫동안 살아왔다. 나는 그들을 아주 가까이서 보았다. 그래도 내 생각은 별로 달라지지 않았다. 이해력이 좀 있어 보이는 어른을 만나면, 언제나 소중히 간직해 오던 나의 그림 제1호를 꺼내 보여주어 시험해 보았다. 진정한 이해력이 있는 사람인지를 알고 싶었기 때문이다. 그러나 돌아오는 대답은 언제나 한결같았다. &quot;그건 모자잖아.&quot;
                     </div>
                   </div>
-                  <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, textAlign: "center", marginTop: 16 }}>
+                  <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, textAlign: "center", marginTop: 12 }}>
                     확대하고 좌우로 스크롤하고...<br />읽다가 포기 😤
                   </p>
                 </div>
