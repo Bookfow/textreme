@@ -342,7 +342,7 @@ export default function TeXTREME() {
           {/* Tip */}
           <div className="fade-up-d3" style={{ padding: "16px 20px", borderRadius: 12, background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)", marginBottom: 32, textAlign: "left" }}>
             <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.6 }}>
-              <span style={{ color: "#F59E0B", fontWeight: 700 }}>Tip</span> — 다운로드된 EPUB 파일을 리디, 교보eBook, Apple Books 등 원하는 뷰어에서 열어보세요.
+              <span style={{ color: "#F59E0B", fontWeight: 700 }}>Tip</span> — 다운로드된 EPUB 파일을 원하는 EPUB 뷰어 앱에서 열어보세요.
             </p>
           </div>
 
@@ -462,7 +462,7 @@ export default function TeXTREME() {
               결제 전에, 변환 품질을 직접 확인하세요
             </h2>
             <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 16, maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-              아래는 실제 PDF에서 변환된 EPUB입니다<br />이 수준의 결과물을 내 PDF로도 받을 수 있습니다
+              아래는 실제 PDF에서 변환된 EPUB입니다<br />여러분의 PDF로도 최고의 품질의 EPUB 변환이 가능합니다
             </p>
           </div>
 
@@ -495,7 +495,7 @@ export default function TeXTREME() {
             <div>
               <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                 {[
-                  { icon: "📖", title: "모든 EPUB 뷰어에서 사용 가능", desc: "리디, 교보eBook, Apple Books 등 원하는 앱에서 바로 열기" },
+                  { icon: "📖", title: "모든 EPUB 뷰어에서 사용 가능", desc: "원하는 EPUB 뷰어 앱에서 바로 열기" },
                   { icon: "📐", title: "표준 EPUB 3.0 출력", desc: "어떤 기기·운영체제든 호환되는 표준 포맷" },
                   { icon: "🔤", title: "한글 인식 정확도 99%+", desc: "조사·어미·띄어쓰기까지 정확하게 변환" },
                   { icon: "⚡", title: "문서 구조 자동 보존", desc: "제목·본문·인용·리스트 구분까지 AI가 분석" },
@@ -520,7 +520,7 @@ export default function TeXTREME() {
                   transition: "all 0.2s",
                 }}>
                 <Maximize2 size={18} />
-                변환 결과 풀스크린으로 확인
+                변환 결과 풀스크린으로 데모 확인
               </button>
             </div>
           </div>
