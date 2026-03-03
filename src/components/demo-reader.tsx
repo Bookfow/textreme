@@ -7,7 +7,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import {
   ChevronLeft, ChevronRight, Minus, Plus, List, AlignLeft, AlignJustify,
   Settings2, Focus, Highlighter, Trash2, X, Bookmark, BookmarkCheck, Search,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, Home,
 } from 'lucide-react'
 
 export interface DemoChapter { title: string; paragraphs: string[] }
@@ -419,7 +419,8 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
 
       {/* 상단 바 — 8칸 그리드 (풀스크린 추가) */}
       <div style={{ borderColor: themeStyle.border, display: "flex", justifyContent: "center", borderBottom: `1px solid ${themeStyle.border}`, flexShrink: 0, boxShadow: `0 1px 8px ${themeStyle.border}40` }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 8, padding: "14px 20px", width: "100%", maxWidth: 560 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gap: 8, padding: "14px 20px", width: "100%", maxWidth: 560 }}>
+        <button onClick={e => { e.stopPropagation(); if (onBack) onBack() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: themeStyle.muted }}><Home className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>나가기</span></button>
         <button onClick={e => { e.stopPropagation(); setShowToc(!showToc) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showToc ? ACCENT : themeStyle.muted }}><List className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>목차</span></button>
         <button onClick={e => { e.stopPropagation(); setShowSearch(!showSearch) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showSearch ? ACCENT : themeStyle.muted }}><Search className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>검색</span></button>
         <button onClick={e => { e.stopPropagation(); setFocusMode(!focusMode) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg" style={{ color: focusMode ? ACCENT : themeStyle.muted, backgroundColor: focusMode ? `${ACCENT}15` : 'transparent' }}><Focus className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>집중</span></button>
