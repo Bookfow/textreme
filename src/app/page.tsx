@@ -456,13 +456,13 @@ export default function TeXTREME() {
           <div style={{ textAlign: "center", marginBottom: 56 }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 40, border: "1px solid rgba(245,158,11,0.15)", background: "rgba(245,158,11,0.04)", marginBottom: 20 }}>
               <Eye size={14} color="#F59E0B" />
-              <span style={{ color: "#F59E0B", fontSize: 13, fontWeight: 600 }}>먼저 체험해보세요</span>
+              <span style={{ color: "#F59E0B", fontSize: 13, fontWeight: 600 }}>변환 결과 미리보기</span>
             </div>
             <h2 style={{ color: "#fff", fontWeight: 800, fontSize: "clamp(26px, 4vw, 36px)", letterSpacing: "-0.02em", marginBottom: 12 }}>
-              결제 전에, 직접 읽어보세요
+              결제 전에, 변환 품질을 직접 확인하세요
             </h2>
             <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 16, maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-              변환된 전자책이 어떤 느낌인지<br />테마·글꼴·형광펜까지 전부 체험할 수 있습니다
+              아래는 실제 PDF에서 변환된 EPUB입니다<br />이 수준의 결과물을 내 PDF로도 받을 수 있습니다
             </p>
           </div>
 
@@ -495,10 +495,10 @@ export default function TeXTREME() {
             <div>
               <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                 {[
-                  { icon: "🎨", title: "3가지 테마", desc: "밝은/세피아/어두운 모드를 자유롭게 전환" },
-                  { icon: "✏️", title: "형광펜 & 메모", desc: "4가지 색상 형광펜과 메모 기능" },
-                  { icon: "🔤", title: "5종 글꼴", desc: "고딕·프리텐·명조·나눔명조·고정폭" },
-                  { icon: "📐", title: "맞춤 독서 환경", desc: "글자 크기·줄간격·여백·자간·정렬 조절" },
+                  { icon: "📖", title: "모든 EPUB 뷰어에서 사용 가능", desc: "리디, 교보eBook, Apple Books 등 원하는 앱에서 바로 열기" },
+                  { icon: "📐", title: "표준 EPUB 3.0 출력", desc: "어떤 기기·운영체제든 호환되는 표준 포맷" },
+                  { icon: "🔤", title: "한글 인식 정확도 99%+", desc: "조사·어미·띄어쓰기까지 정확하게 변환" },
+                  { icon: "⚡", title: "문서 구조 자동 보존", desc: "제목·본문·인용·리스트 구분까지 AI가 분석" },
                 ].map((item, i) => (
                   <div key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
                     <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>{item.icon}</span>
@@ -520,7 +520,7 @@ export default function TeXTREME() {
                   transition: "all 0.2s",
                 }}>
                 <Maximize2 size={18} />
-                풀스크린으로 체험하기
+                변환 결과 풀스크린으로 확인
               </button>
             </div>
           </div>
