@@ -1346,11 +1346,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
                 ))}
               </div>
             </div>
-            {/* 북마크 목록 바로가기 */}
-            <button onClick={() => { setShowSettings(false); setNotesTab('bookmarks'); setShowNotesPanel(true) }}
-              className="w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 border" style={{ borderColor: themeStyle.border, color: themeStyle.text }}>
-              <Bookmark className="w-4 h-4" /> 책갈피 목록 ({bookmarks.length})
-            </button>
+
           </div>
         </div>
       </>)}
