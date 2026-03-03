@@ -229,7 +229,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
   const chapterBlockId = `ch${String(currentChapterIdx).padStart(3, '0')}`
   const chapterStyledHtml = useMemo(() => {
     if (!currentChapterData) return ''
-    let html = currentChapterData.html
+    let html = `<h2 style="margin-top:0">${currentChapterData.title}</h2>${currentChapterData.html}`
     const chHL = highlights.filter(h => h.block_id === chapterBlockId)
     if (chHL.length > 0 && typeof window !== 'undefined') {
       try {
@@ -255,7 +255,7 @@ export default function DemoReader({ chapters, title = '변환된 EPUB', onBack 
 .epub-focus-active .epub-content p,.epub-focus-active .epub-content h2{opacity:0.12;transition:opacity 0.3s,transform 0.3s;cursor:pointer}
 .epub-focus-active .epub-content [data-epub-focused="true"]{opacity:1!important;transform:scale(1.005)}
 .epub-focus-active .epub-content [data-epub-adjacent="true"]{opacity:0.25!important}
-</style><div class="epub-content" data-block-id="${chapterBlockId}"><h2 style="margin-top:0">${currentChapterData.title}</h2>${html}</div>`
+</style><div class="epub-content" data-block-id="${chapterBlockId}">${html}</div>`
   }, [currentChapterData, fontSize, lineHeight, fontStyle.family, themeStyle, letterSpacing, textAlign, currentChapterIdx, highlights, chapterBlockId])
 
   useEffect(() => { const c = contentColumnRef.current; if (!c) return; c.innerHTML = chapterStyledHtml; c.style.transform = `translateX(-${pageInChapter * columnWidthPx}px)`; recalcPages() }, [chapterStyledHtml])
