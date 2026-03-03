@@ -898,7 +898,11 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
         const getTextNodes = (el: Node): { node: Text; start: number }[] => {
           const nodes: { node: Text; start: number }[] = []; let offset = 0
           const walk = (n: Node) => {
-            if (n.nodeType === Node.TEXT_NODE) { nodes.push({ node: n as Text, start: offset }); offset += (n as Text).textContent?.length || 0 }
+            if (n.nodeType === Node.TEXT_NODE) {
+              const t = (n as Text).textContent || ''
+              if (t.trim().length === 0 && n.parentElement === root) { return }
+              nodes.push({ node: n as Text, start: offset }); offset += t.length
+            }
             else { for (let i = 0; i < n.childNodes.length; i++) walk(n.childNodes[i]) }
           }; walk(el); return nodes
         }
