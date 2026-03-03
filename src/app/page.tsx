@@ -78,7 +78,7 @@ const SAMPLE_CHAPTERS = [
   },
 ]
 
-type ViewType = "landing" | "demo" | "converting" | "complete" | "viewer"
+type ViewType = "landing" | "demo" | "pricing" | "converting" | "complete" | "viewer"
 
 interface ExtractedText { page: number; text: string }
 
@@ -245,12 +245,12 @@ export default function TeXTREME() {
       return
     }
 
-    // PDF → AI 변환 플로우
+    // PDF → 가격 확인 후 변환
     if (ext === 'pdf') {
       setFile(f)
       const pages = 50 + Math.floor(Math.random() * 250)
       setFilePages(pages)
-      startConversion(pages)
+      setView("pricing")
       return
     }
   }
@@ -288,6 +288,92 @@ export default function TeXTREME() {
           epubUrl={epubUrl}
           onBack={reset}
         />
+      </div>
+    )
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Pricing View — PDF 분석 결과 + 결제
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (view === "pricing") {
+    const price = calcPrice(filePages)
+    const freePages = Math.min(10, filePages)
+    return (
+      <div style={{ fontFamily: "'Noto Sans KR', sans-serif", minHeight: "100vh", background: "#06060c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <style>{globalStyles}</style>
+        <div style={{ width: "100%", maxWidth: 480 }}>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
+            <Zap size={20} color="#F59E0B" />
+            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>TeXTREME</span>
+          </div>
+
+          {/* File info */}
+          <div className="fade-up" style={{ padding: 24, borderRadius: 16, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <FileText size={22} color="#F59E0B" />
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ color: "#fff", fontSize: 15, fontWeight: 600 }}>{fileName || "document.pdf"}</div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginTop: 2 }}>{filePages}페이지 감지됨</div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              {[
+                { label: "페이지", value: `${filePages}p` },
+                { label: "결제액", value: `₩${price.toLocaleString()}` },
+                { label: "변환 형식", value: "EPUB 3.0" },
+              ].map((item, i) => (
+                <div key={i} style={{ padding: "14px 8px", borderRadius: 10, background: "rgba(255,255,255,0.03)", textAlign: "center" }}>
+                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginBottom: 4 }}>{item.label}</div>
+                  <div style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>{item.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Price breakdown */}
+          <div className="fade-up-d1" style={{ padding: "20px 24px", borderRadius: 14, background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.15)", marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>페이지당 단가</span>
+              <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600 }}>₩{PRICE_PER_PAGE}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{filePages}페이지 × ₩{PRICE_PER_PAGE}</span>
+              <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600 }}>₩{(filePages * PRICE_PER_PAGE).toLocaleString()}</span>
+            </div>
+            <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "12px 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>100원 단위 반올림</span>
+              <span style={{ color: "#F59E0B", fontSize: 13 }}>최소 ₩500</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: "#fff", fontSize: 16, fontWeight: 700 }}>최종 결제액</span>
+              <span style={{ fontFamily: "'Outfit'", color: "#F59E0B", fontSize: 24, fontWeight: 800 }}>₩{price.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* Free preview note */}
+          <div className="fade-up-d2" style={{ padding: "14px 20px", borderRadius: 12, background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)", marginBottom: 32, textAlign: "center" }}>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.6 }}>
+              <span style={{ color: "#22c55e", fontWeight: 700 }}>무료 미리보기</span> — 처음 {freePages}페이지는 결제 전 미리 확인할 수 있습니다
+            </p>
+          </div>
+
+          {/* Buttons */}
+          <div className="fade-up-d3" style={{ display: "flex", gap: 12 }}>
+            <button onClick={reset}
+              style={{ flex: 1, padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+              취소
+            </button>
+            <button onClick={() => startConversion(filePages)}
+              style={{ flex: 2, padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 16, fontWeight: 800, cursor: "pointer", boxShadow: "0 0 30px rgba(245,158,11,0.2)" }}>
+              ₩{price.toLocaleString()} 결제하고 변환
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
