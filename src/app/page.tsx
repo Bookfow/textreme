@@ -308,14 +308,37 @@ export default function TeXTREME() {
                   <X size={16} color="#ef4444" />
                   <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>PDF (모바일)</span>
                 </div>
-                <div style={{ padding: 16, background: "rgba(255,255,255,0.02)" }}>
-                  <div style={{ background: "#fff", borderRadius: 4, padding: "10px 12px" }}>
-                    <div style={{ fontSize: 8, color: "#111", fontWeight: 700, marginBottom: 4 }}>제1장 어른들의 세계</div>
-                    <div style={{ fontSize: 5.8, color: "#444", lineHeight: 1.55, wordBreak: "keep-all" }}>
-                      내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다. 나는 이 모험담에 큰 감명을 받아 색연필로 내 최초의 그림을 그렸다. 나의 그림 제1호였다. 나는 이 걸작을 어른들에게 보여주며 무섭지 않으냐고 물었다. 어른들의 대답은 이랬다. &quot;모자가 왜 무섭니?&quot; 내 그림은 모자를 그린 것이 아니었다. 보아뱀이 코끼리를 소화시키고 있는 그림이었다. 어른들이 알아볼 수 있도록 보아뱀의 속을 그려 보여주었다. 어른들은 늘 설명을 요구했다. 나의 그림 제2호를 보고서 어른들은 나에게 보아뱀 그림 같은 건 집어치우고 차라리 지리, 역사, 산수, 문법에 관심을 쏟으라고 충고했다. 그래서 나는 여섯 살에 화가라는 훌륭한 직업을 포기하고 말았다. 나는 비행기 조종하는 법을 배워서 세계 곳곳을 비행했다. 지리학은 실제로 큰 도움이 되었다. 한눈에 중국과 아리조나를 구별할 수 있었으니까. 밤에 길을 잃었을 때 그런 지식은 아주 유용한 것이다. 나는 살아오면서 수많은 중요한 사람들과 만났다. 어른들 속에서 오랫동안 살아왔다. 나는 그들을 아주 가까이서 보았다. 그래도 내 생각은 별로 달라지지 않았다. 이해력이 좀 있어 보이는 어른을 만나면 언제나 소중히 간직해 오던 나의 그림 제1호를 꺼내 보여주어 시험해 보았다. 진정한 이해력이 있는 사람인지를 알고 싶었기 때문이다. 그러나 돌아오는 대답은 언제나 한결같았다. &quot;그건 모자잖아.&quot; 그러면 나는 그 사람에게 보아뱀 이야기도, 원시림 이야기도, 별 이야기도 하지 않았다. 그 사람이 알아들을 수 있는 수준에 맞추어 브리지, 골프, 정치, 넥타이 이야기를 했다. 그러면 그 어른은 아주 분별력 있는 사람을 만났다고 매우 흐뭇해하는 것이었다.
+                <div style={{ padding: 0, background: "#525659" }}>
+                  {/* PDF viewer toolbar */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "#3b3b3b", borderBottom: "1px solid #2a2a2a" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ width: 14, height: 14, borderRadius: 3, background: "#666", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ fontSize: 7, color: "#bbb" }}>☰</span>
+                      </div>
+                      <span style={{ fontSize: 6.5, color: "#999", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>어린왕자.pdf</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <div style={{ fontSize: 6, color: "#888", padding: "2px 4px", background: "#4a4a4a", borderRadius: 2 }}>−</div>
+                      <span style={{ fontSize: 6, color: "#aaa" }}>67%</span>
+                      <div style={{ fontSize: 6, color: "#888", padding: "2px 4px", background: "#4a4a4a", borderRadius: 2 }}>+</div>
                     </div>
                   </div>
-                  <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, textAlign: "center", marginTop: 12 }}>
+                  {/* PDF page area */}
+                  <div style={{ padding: "12px 16px", position: "relative" }}>
+                    <div style={{ background: "#fff", padding: "10px 12px", boxShadow: "0 2px 8px rgba(0,0,0,0.3)", position: "relative" }}>
+                      <div style={{ fontSize: 8, color: "#111", fontWeight: 700, marginBottom: 4 }}>제1장 어른들의 세계</div>
+                      <div style={{ fontSize: 5.8, color: "#444", lineHeight: 1.55, wordBreak: "keep-all" }}>
+                        내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다. 나는 이 모험담에 큰 감명을 받아 색연필로 내 최초의 그림을 그렸다. 나의 그림 제1호였다. 나는 이 걸작을 어른들에게 보여주며 무섭지 않으냐고 물었다. 어른들의 대답은 이랬다. &quot;모자가 왜 무섭니?&quot; 내 그림은 모자를 그린 것이 아니었다. 보아뱀이 코끼리를 소화시키고 있는 그림이었다. 어른들이 알아볼 수 있도록 보아뱀의 속을 그려 보여주었다. 어른들은 늘 설명을 요구했다. 나의 그림 제2호를 보고서 어른들은 나에게 보아뱀 그림 같은 건 집어치우고 차라리 지리, 역사, 산수, 문법에 관심을 쏟으라고 충고했다. 그래서 나는 여섯 살에 화가라는 훌륭한 직업을 포기하고 말았다. 나는 비행기 조종하는 법을 배워서 세계 곳곳을 비행했다. 지리학은 실제로 큰 도움이 되었다. 한눈에 중국과 아리조나를 구별할 수 있었으니까. 밤에 길을 잃었을 때 그런 지식은 아주 유용한 것이다. 나는 살아오면서 수많은 중요한 사람들과 만났다. 어른들 속에서 오랫동안 살아왔다. 나는 그들을 아주 가까이서 보았다. 그래도 내 생각은 별로 달라지지 않았다. 이해력이 좀 있어 보이는 어른을 만나면 언제나 소중히 간직해 오던 나의 그림 제1호를 꺼내 보여주어 시험해 보았다.
+                      </div>
+                    </div>
+                    {/* Scrollbar */}
+                    <div style={{ position: "absolute", right: 4, top: 16, bottom: 16, width: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2 }}>
+                      <div style={{ width: 3, height: 20, background: "rgba(255,255,255,0.3)", borderRadius: 2, marginTop: 8 }} />
+                    </div>
+                  </div>
+                  {/* Page indicator */}
+                  <div style={{ textAlign: "center", padding: "4px 0 8px", fontSize: 6, color: "#888" }}>1 / 142</div>
+                  <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, textAlign: "center", padding: "8px 0 14px", background: "rgba(0,0,0,0.15)" }}>
                     확대하고 좌우로 스크롤하고...<br />읽다가 포기 😤
                   </p>
                 </div>
