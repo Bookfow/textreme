@@ -791,9 +791,10 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
       }
       return
     }
-    const clickX = e.clientX; const w = window.innerWidth
-    if (clickX < w * 0.35) goToPrevPage()
-    else if (clickX > w * 0.65) goToNextPage()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const relativeX = (e.clientX - rect.left) / rect.width
+    if (relativeX < 0.30) goToPrevPage()
+    else if (relativeX > 0.70) goToNextPage()
   }
 
   // 텍스트 선택 → 하이라이트 메뉴
