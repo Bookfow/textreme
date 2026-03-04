@@ -766,10 +766,18 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
   }
 
   // 클릭 좌/우
+  const selectTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const contentAreaRef = useRef<HTMLDivElement>(null)
   const handleMouseDown = (e: React.MouseEvent) => {
     mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() }
-    // 빠른 클릭 시 텍스트 선택 깜빡임 방지
     window.getSelection()?.removeAllRanges()
+    // 빠른 클릭 시 선택 깜빡임 방지: 일시적으로 user-select 비활성
+    const el = contentAreaRef.current
+    if (el) { el.style.userSelect = 'none'; (el.style as any).webkitUserSelect = 'none' }
+    if (selectTimerRef.current) clearTimeout(selectTimerRef.current)
+    selectTimerRef.current = setTimeout(() => {
+      if (el) { el.style.userSelect = 'text'; (el.style as any).webkitUserSelect = 'text' }
+    }, 300)
   }
   const handleClick = (e: React.MouseEvent) => {
     if (showSettings || showToc || showNotesPanel || showMemoModal || showSearch) return
@@ -965,9 +973,9 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
   font-family:${fontStyle.family};font-size:${fontSize}px;line-height:${lineHeight};
   color:${themeStyle.text};word-break:keep-all;overflow-wrap:break-word;
   letter-spacing:${letterSpacing*0.5}px;text-align:${textAlign};
-  user-select:text;-webkit-user-select:text;cursor:text;
+  user-select:inherit;-webkit-user-select:inherit;cursor:text;
 }
-.epub-content * { max-width:100%;box-sizing:border-box;user-select:text !important;-webkit-user-select:text !important; }
+.epub-content * { max-width:100%;box-sizing:border-box;user-select:inherit;-webkit-user-select:inherit; }
 .epub-content h1,.epub-content h2,.epub-content h3,.epub-content h4,.epub-content h5,.epub-content h6 {
   color:${themeStyle.headingColor};font-family:${fontStyle.family};line-height:1.35;margin-top:1.5em;margin-bottom:0.75em;
 }
@@ -1403,6 +1411,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
 
       {/* ━━━ 페이지네이션 본문 (CSS column) ━━━ */}
       <div
+        ref={contentAreaRef}
         className={`flex-1 min-h-0 relative ${focusMode ? 'epub-focus-active' : ''}`}
         style={{ backgroundColor: themeStyle.bg, userSelect: 'text', WebkitUserSelect: 'text' as any, overflow: 'clip' }}
         onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
