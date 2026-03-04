@@ -1244,28 +1244,27 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
 
       {/* ━━━ 검색 패널 ━━━ */}
       {showSearch && (
-        <div className="fixed inset-0 z-[60] flex flex-col">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowSearch(false)} />
-          <div className="relative mx-auto mt-2 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden" style={{ backgroundColor: themeStyle.bg, maxHeight: '70vh' }}>
-            <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: themeStyle.border }}>
-              <Search className="w-4 h-4 flex-shrink-0" style={{ color: themeStyle.muted }} />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={() => setShowSearch(false)} />
+          <div style={{ position: 'relative', margin: '8px auto 0', width: '100%', maxWidth: 512, borderRadius: 16, overflow: 'hidden', backgroundColor: themeStyle.bg, maxHeight: '70vh', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: `1px solid ${themeStyle.border}` }}>
+              <Search className="w-4 h-4" style={{ flexShrink: 0, color: themeStyle.muted }} />
               <input ref={searchInputRef} type="text" value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); doSearch(e.target.value) }}
                 onKeyDown={e => { if (e.key === 'Escape') setShowSearch(false) }}
                 placeholder="본문 검색..."
-                className="flex-1 bg-transparent outline-none text-sm"
-                style={{ color: themeStyle.text }} />
-              <button onClick={() => setShowSearch(false)} className="p-1 rounded hover:opacity-70" style={{ color: themeStyle.muted }}><X className="w-4 h-4" /></button>
+                style={{ flex: 1, background: 'transparent', outline: 'none', fontSize: 14, color: themeStyle.text, border: 'none' }} />
+              <button onClick={() => setShowSearch(false)} style={{ padding: 4, borderRadius: 4, color: themeStyle.muted, background: 'none', border: 'none', cursor: 'pointer' }}><X className="w-4 h-4" /></button>
             </div>
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(70vh - 56px)' }}>
+            <div style={{ overflowY: 'auto', maxHeight: 'calc(70vh - 56px)' }}>
               {searchQuery && searchResults.length === 0 && (
-                <p className="px-4 py-8 text-center text-sm" style={{ color: themeStyle.muted }}>검색 결과가 없습니다</p>
+                <p style={{ padding: '32px 16px', textAlign: 'center', fontSize: 14, color: themeStyle.muted }}>검색 결과가 없습니다</p>
               )}
               {searchResults.map((r, i) => (
-                <button key={i} className="w-full text-left px-4 py-3 border-b hover:opacity-80" style={{ borderColor: themeStyle.border }}
+                <button key={i} style={{ width: '100%', textAlign: 'left', padding: '12px 16px', borderBottom: `1px solid ${themeStyle.border}`, background: 'none', border: 'none', borderBottomStyle: 'solid', cursor: 'pointer' }}
                   onClick={() => { goToChapter(r.chapterIdx); setShowSearch(false) }}>
-                  <span className="text-[10px] font-medium block mb-1" style={{ color: ACCENT }}>{r.chapterTitle}</span>
-                  <p className="text-xs leading-relaxed" style={{ color: themeStyle.text }}
+                  <span style={{ fontSize: 10, fontWeight: 500, display: 'block', marginBottom: 4, color: ACCENT }}>{r.chapterTitle}</span>
+                  <p style={{ fontSize: 12, lineHeight: 1.6, color: themeStyle.text }}
                     dangerouslySetInnerHTML={{
                       __html: r.snippet.replace(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
                         `<span style="background:${ACCENT}44;color:${themeStyle.text};border-radius:2px;padding:0 2px;">$1</span>`)
@@ -1273,7 +1272,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
                 </button>
               ))}
               {searchResults.length > 0 && (
-                <p className="px-4 py-2 text-center text-[10px]" style={{ color: themeStyle.muted }}>{searchResults.length}개 결과{searchResults.length >= 100 ? ' (최대 100개)' : ''}</p>
+                <p style={{ padding: '8px 16px', textAlign: 'center', fontSize: 10, color: themeStyle.muted }}>{searchResults.length}개 결과{searchResults.length >= 100 ? ' (최대 100개)' : ''}</p>
               )}
             </div>
           </div>
