@@ -48,7 +48,7 @@ export default function TermsPage() {
           <ul style={{ paddingLeft: 20, listStyle: 'disc' }}>
             <li style={liStyle}>PDF 파일을 EPUB 3.0 형식으로 변환하는 유료 서비스</li>
             <li style={liStyle}>EPUB, TXT, DOCX, PDF 파일을 열어볼 수 있는 무료 뷰어 서비스</li>
-            <li style={liStyle}>변환된 EPUB 파일의 다운로드</li>
+            <li style={liStyle}>변환된 EPUB 파일의 기기 자동 저장</li>
           </ul>
         </div>
 

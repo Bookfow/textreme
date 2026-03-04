@@ -1,5 +1,7 @@
 'use client'
 
+import Link from "next/link"
+
 import { useState, useRef, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 
@@ -742,12 +744,17 @@ export default function TeXTREME() {
 
       {/* FOOTER */}
       <footer style={{ padding: "32px 24px", borderTop: "1px solid rgba(255,255,255,0.05)", background: "#06060c" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Zap size={16} color="#F59E0B" />
             <span style={{ fontFamily: "'Outfit'", fontWeight: 700, fontSize: 14, color: "rgba(255,255,255,0.55)" }}>TeXTREME</span>
           </div>
-          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center" }}>
+            <Link href="/policies/terms" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "none" }}>이용약관</Link>
+            <Link href="/policies/privacy" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "none" }}>개인정보처리방침</Link>
+            <Link href="/policies/copyright" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "none" }}>저작권 및 면책</Link>
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
             © 2026 텍스트림 · 사업자등록번호 653-33-01529
           </div>
         </div>
