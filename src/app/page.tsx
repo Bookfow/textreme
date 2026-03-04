@@ -565,10 +565,10 @@ export default function TeXTREME() {
       {/* ━━━ FEATURES ━━━ */}
       <section style={{ padding: "25px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 28, letterSpacing: "-0.02em", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 3, flexWrap: "wrap" }}>
-            왜 <Zap size={24} color="#F59E0B" style={{ display: "inline", marginRight: -2 }} /> TeXTREME PDF to EPUB 변환기인가?
+          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 36, letterSpacing: "-0.02em", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+            왜  <Zap size={28} color="#F59E0B" style={{ display: "inline" }} /> TeXTREME PDF to EPUB 변환기인가?
           </h2>
-          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.55)", fontSize: 16, marginBottom: 40 }}>
+          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.65)", fontSize: 20, marginBottom: 40 }}>
             한글 PDF에 최적화된 AI 변환 엔진
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, maxWidth: 520, margin: "0 auto 56px" }}>
@@ -578,9 +578,9 @@ export default function TeXTREME() {
               { value: "99%+", label: "한글 인식률", sub: "한글 특화" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 28, color: "#F59E0B", letterSpacing: "-0.02em" }}>{s.value}</div>
-                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 500, marginTop: 4 }}>{s.label}</div>
-                <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 2 }}>{s.sub}</div>
+                <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 32, color: "#F59E0B", letterSpacing: "-0.02em" }}>{s.value}</div>
+                <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, fontWeight: 500, marginTop: 6 }}>{s.label}</div>
+                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginTop: 3 }}>{s.sub}</div>
               </div>
             ))}
           </div>
@@ -593,12 +593,12 @@ export default function TeXTREME() {
               { icon: <Globe size={22} />, title: "어디서든 변환", desc: "PC·태블릿·스마트폰, 브라우저만 있으면 OK" },
               { icon: "🔤", title: "한글 정확도 99%+", desc: "조사·어미·띄어쓰기까지 정확한 텍스트 추출" },
             ].map((f, i) => (
-              <div key={i} style={{ padding: "20px 16px", borderRadius: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }} className="card-hover">
+              <div key={i} style={{ padding: "24px 20px", borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)" }} className="card-hover">
                 <div style={{ color: "#F59E0B", marginBottom: 14, fontSize: typeof f.icon === "string" ? 22 : undefined }}>
                   {f.icon}
                 </div>
-                <h4 style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{f.title}</h4>
-                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, lineHeight: 1.6 }}>{f.desc}</p>
+                <h4 style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 8 }}>{f.title}</h4>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, lineHeight: 1.6 }}>{f.desc}</p>
               </div>
             ))}
           </div>
@@ -608,10 +608,10 @@ export default function TeXTREME() {
       {/* PRICING — Per-page */}
       <section style={{ padding: "100px 24px", background: "radial-gradient(ellipse 80% 50% at 50% 100%, rgba(245,158,11,0.04) 0%, transparent 60%), #06060c" }}>
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em", marginBottom: 12 }}>
+          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 36, letterSpacing: "-0.02em", marginBottom: 12 }}>
             심플한 가격
           </h2>
-          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.55)", fontSize: 16, marginBottom: 48 }}>
+          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.6)", fontSize: 18, marginBottom: 48 }}>
             구독 없이, 사용한 만큼만 결제하세요
           </p>
 
@@ -628,16 +628,14 @@ export default function TeXTREME() {
           {/* Price examples */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
             {PRICE_EXAMPLES.map((ex, i) => (
-              <div key={i} style={{ padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{ex.display}</span>
+              <div key={i} style={{ padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 14 }}>{ex.display}</span>
                 <span style={{ fontFamily: "'Outfit'", fontWeight: 700, fontSize: 16, color: "#fff" }}>₩{calcPrice(ex.pages).toLocaleString()}</span>
               </div>
             ))}
           </div>
 
-          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 24 }}>
-            * PDF 파일을 업로드하면 바로 변환이 시작됩니다
-          </p>
+
         </div>
       </section>
 
