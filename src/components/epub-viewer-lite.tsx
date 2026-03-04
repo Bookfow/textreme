@@ -1242,45 +1242,8 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
       )}
 
 
-      {/* ━━━ 검색 패널 ━━━ */}
-      {showSearch && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={() => setShowSearch(false)} />
-          <div style={{ position: 'relative', margin: '8px auto 0', width: '100%', maxWidth: 512, borderRadius: 16, overflow: 'hidden', backgroundColor: themeStyle.bg, maxHeight: '70vh', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: `1px solid ${themeStyle.border}` }}>
-              <Search className="w-4 h-4" style={{ flexShrink: 0, color: themeStyle.muted }} />
-              <input ref={searchInputRef} type="text" value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); doSearch(e.target.value) }}
-                onKeyDown={e => { if (e.key === 'Escape') setShowSearch(false) }}
-                placeholder="본문 검색..."
-                style={{ flex: 1, background: 'transparent', outline: 'none', fontSize: 14, color: themeStyle.text, border: 'none' }} />
-              <button onClick={() => setShowSearch(false)} style={{ padding: 4, borderRadius: 4, color: themeStyle.muted, background: 'none', border: 'none', cursor: 'pointer' }}><X className="w-4 h-4" /></button>
-            </div>
-            <div style={{ overflowY: 'auto', maxHeight: 'calc(70vh - 56px)' }}>
-              {searchQuery && searchResults.length === 0 && (
-                <p style={{ padding: '32px 16px', textAlign: 'center', fontSize: 14, color: themeStyle.muted }}>검색 결과가 없습니다</p>
-              )}
-              {searchResults.map((r, i) => (
-                <button key={i} style={{ width: '100%', textAlign: 'left', padding: '12px 16px', borderBottom: `1px solid ${themeStyle.border}`, background: 'none', border: 'none', borderBottomStyle: 'solid', cursor: 'pointer' }}
-                  onClick={() => { goToChapter(r.chapterIdx); setShowSearch(false) }}>
-                  <span style={{ fontSize: 10, fontWeight: 500, display: 'block', marginBottom: 4, color: ACCENT }}>{r.chapterTitle}</span>
-                  <p style={{ fontSize: 12, lineHeight: 1.6, color: themeStyle.text }}
-                    dangerouslySetInnerHTML={{
-                      __html: r.snippet.replace(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
-                        `<span style="background:${ACCENT}44;color:${themeStyle.text};border-radius:2px;padding:0 2px;">$1</span>`)
-                    }} />
-                </button>
-              ))}
-              {searchResults.length > 0 && (
-                <p style={{ padding: '8px 16px', textAlign: 'center', fontSize: 10, color: themeStyle.muted }}>{searchResults.length}개 결과{searchResults.length >= 100 ? ' (최대 100개)' : ''}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ━━━ 상단 바 (9버튼) ━━━ */}
-      <div style={{ borderColor: themeStyle.border, display: "flex", justifyContent: "center", borderBottom: `1px solid ${themeStyle.border}`, flexShrink: 0, boxShadow: `0 1px 8px ${themeStyle.border}40` }}>
+      <div style={{ borderColor: themeStyle.border, display: "flex", justifyContent: "center", borderBottom: showSearch ? 'none' : `1px solid ${themeStyle.border}`, flexShrink: 0, boxShadow: showSearch ? 'none' : `0 1px 8px ${themeStyle.border}40` }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gap: 8, padding: "14px 20px", width: "100%", maxWidth: 560 }}>
         <button onClick={e => { e.stopPropagation(); if (onBack) onBack() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: themeStyle.muted }}><Home className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>나가기</span></button>
         <button onClick={e => { e.stopPropagation(); setShowToc(!showToc) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showToc ? ACCENT : themeStyle.muted }}><List className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>목차</span></button>
@@ -1293,6 +1256,47 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
         <button onClick={e => { e.stopPropagation(); setShowSettings(!showSettings) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showSettings ? ACCENT : themeStyle.muted }}><Settings2 className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>설정</span></button>
       </div>
       </div>
+
+      {/* ━━━ 검색 바 (상단 바 바로 아래) ━━━ */}
+      {showSearch && (
+        <div style={{ flexShrink: 0, borderBottom: `1px solid ${themeStyle.border}`, backgroundColor: themeStyle.bg, boxShadow: `0 1px 8px ${themeStyle.border}40` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', maxWidth: 560, margin: '0 auto' }}>
+            <Search className="w-4 h-4" style={{ flexShrink: 0, color: themeStyle.muted }} />
+            <input ref={searchInputRef} type="text" value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); doSearch(e.target.value) }}
+              onKeyDown={e => { if (e.key === 'Escape') setShowSearch(false) }}
+              placeholder="본문에서 검색..."
+              style={{ flex: 1, background: 'transparent', outline: 'none', fontSize: 14, color: themeStyle.text, border: 'none', padding: '6px 0' }} />
+            {searchQuery && (
+              <span style={{ fontSize: 11, color: themeStyle.muted, flexShrink: 0 }}>
+                {searchResults.length}건
+              </span>
+            )}
+            <button onClick={() => { setShowSearch(false); setSearchQuery(''); setSearchResults([]) }} style={{ padding: 4, color: themeStyle.muted, background: 'none', border: 'none', cursor: 'pointer' }}><X className="w-4 h-4" /></button>
+          </div>
+          <div style={{ padding: '0 16px 6px', maxWidth: 560, margin: '0 auto' }}>
+            <p style={{ fontSize: 10, color: themeStyle.muted, lineHeight: 1.4 }}>
+              2글자 이상 입력 · Enter 다음 결과 · Shift+Enter 이전 결과 · Esc 닫기
+            </p>
+          </div>
+          {/* 검색 결과 드롭다운 */}
+          {searchQuery && searchResults.length > 0 && (
+            <div style={{ maxHeight: '40vh', overflowY: 'auto', borderTop: `1px solid ${themeStyle.border}` }}>
+              {searchResults.map((r, i) => (
+                <button key={i} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', borderBottom: `1px solid ${themeStyle.border}`, background: 'none', cursor: 'pointer', display: 'block' }}
+                  onClick={() => { goToChapter(r.chapterIdx); setShowSearch(false) }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, display: 'block', marginBottom: 3, color: ACCENT }}>{r.chapterTitle}</span>
+                  <p style={{ fontSize: 12, lineHeight: 1.6, color: themeStyle.text }}
+                    dangerouslySetInnerHTML={{
+                      __html: r.snippet.replace(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+                        `<span style="background:${ACCENT}44;color:${themeStyle.text};border-radius:2px;padding:0 2px;">$1</span>`)
+                    }} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ━━━ 설정 바텀시트 ━━━ */}
       {showSettings && (<>
