@@ -286,8 +286,8 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
     if (!targetCanvas || !targetRect) return false
     try {
       const imgSrc = targetCanvas.toDataURL()
-      const magW = Math.min(targetRect.width, window.innerWidth - 16)
-      const magH = targetRect.height * 0.45
+      const magW = 160
+      const magH = 160
       magnifierSizeRef.current = { w: magW, h: magH }
       magnifierCanvasRef.current = { imgSrc, rect: targetRect, displayW: targetRect.width, displayH: targetRect.height }
       magnifierActiveRef.current = true
@@ -595,7 +595,7 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
   const ACCENT = '#F59E0B'
 
   const menuButtons = [
-    { icon: <Home style={{ width: 16, height: 16 }} />, label: '나가기', active: false, locked: false, onClick: onBack },
+    { icon: <Home style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.85)' }} />, label: '나가기', active: false, locked: false, onClick: onBack },
     { icon: <Crop style={{ width: 16, height: 16 }} />, label: '여백', active: autoCropOn, locked: false, onClick: () => setAutoCropOn(p => !p) },
     { icon: <Bookmark style={{ width: 16, height: 16 }} />, label: '책갈피', active: false, locked: true, onClick: () => openLockModal('책갈피') },
     { icon: <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{pageNumber}/{numPages || '...'}</span>, label: '', active: false, locked: false, isPageDisplay: true, onClick: () => {} },
@@ -719,7 +719,8 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
       {/* ━━━ 롱프레스 돋보기 (떠다니는, 항상 작동) ━━━ */}
       <div ref={magnifierElRef} style={{
         display: 'none', position: 'fixed', zIndex: 100,
-        border: '3px solid rgba(245,158,11,0.9)', borderRadius: 8,
+        width: 160, height: 160,
+        border: '3px solid rgba(245,158,11,0.9)', borderRadius: '50%',
         boxShadow: '0 6px 32px rgba(0,0,0,0.5)', pointerEvents: 'none',
         backgroundRepeat: 'no-repeat',
       }} />
