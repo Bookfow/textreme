@@ -1264,46 +1264,43 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
       </div>
       </div>
 
-      {/* ━━━ 검색 바 (상단 바 바로 아래) ━━━ */}
+      {/* ━━━ 검색 팝업 (상단 바 아래, 문서 위에 떠있음) ━━━ */}
       {showSearch && (
-        <div style={{ flexShrink: 0, position: 'relative', zIndex: 50 }}>
-          <div style={{ borderBottom: `1px solid ${themeStyle.border}`, backgroundColor: themeStyle.bg }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', maxWidth: 560, margin: '0 auto' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60 }} onClick={() => { setShowSearch(false); setSearchQuery(''); setSearchResults([]) }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 32px)', maxWidth: 480, backgroundColor: themeStyle.bg, border: `1px solid ${themeStyle.border}`, borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px' }}>
               <Search className="w-4 h-4" style={{ flexShrink: 0, color: themeStyle.muted }} />
               <input ref={searchInputRef} type="text" value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); doSearch(e.target.value) }}
-                onKeyDown={e => { if (e.key === 'Escape') setShowSearch(false) }}
+                onKeyDown={e => { if (e.key === 'Escape') { setShowSearch(false); setSearchQuery(''); setSearchResults([]) } }}
                 placeholder="본문에서 검색..."
-                style={{ flex: 1, background: 'transparent', outline: 'none', fontSize: 14, color: themeStyle.text, border: 'none', padding: '6px 0' }} />
+                style={{ flex: 1, background: 'transparent', outline: 'none', fontSize: 14, color: themeStyle.text, border: 'none', padding: '4px 0' }} />
               {searchQuery && (
-                <span style={{ fontSize: 11, color: themeStyle.muted, flexShrink: 0 }}>
-                  {searchResults.length}건
-                </span>
+                <span style={{ fontSize: 11, color: themeStyle.muted, flexShrink: 0 }}>{searchResults.length}건</span>
               )}
               <button onClick={() => { setShowSearch(false); setSearchQuery(''); setSearchResults([]) }} style={{ padding: 4, color: themeStyle.muted, background: 'none', border: 'none', cursor: 'pointer' }}><X className="w-4 h-4" /></button>
             </div>
-            <div style={{ padding: '0 16px 6px', maxWidth: 560, margin: '0 auto' }}>
+            <div style={{ padding: '0 14px 8px' }}>
               <p style={{ fontSize: 10, color: themeStyle.muted, lineHeight: 1.4 }}>
                 2글자 이상 입력 · Enter 다음 결과 · Shift+Enter 이전 결과 · Esc 닫기
               </p>
             </div>
+            {searchQuery && searchResults.length > 0 && (
+              <div style={{ maxHeight: '45vh', overflowY: 'auto', borderTop: `1px solid ${themeStyle.border}` }}>
+                {searchResults.map((r, i) => (
+                  <button key={i} style={{ width: '100%', textAlign: 'left', padding: '10px 14px', borderBottom: `1px solid ${themeStyle.border}`, background: 'none', cursor: 'pointer', display: 'block' }}
+                    onClick={() => { goToChapter(r.chapterIdx); setShowSearch(false); setSearchQuery(''); setSearchResults([]) }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, display: 'block', marginBottom: 3, color: ACCENT }}>{r.chapterTitle}</span>
+                    <p style={{ fontSize: 12, lineHeight: 1.6, color: themeStyle.text }}
+                      dangerouslySetInnerHTML={{
+                        __html: r.snippet.replace(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+                          `<span style="background:${ACCENT}44;color:${themeStyle.text};border-radius:2px;padding:0 2px;">$1</span>`)
+                      }} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          {/* 검색 결과 — absolute 오버레이 */}
-          {searchQuery && searchResults.length > 0 && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, maxHeight: '50vh', overflowY: 'auto', backgroundColor: themeStyle.bg, borderBottom: `1px solid ${themeStyle.border}`, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-              {searchResults.map((r, i) => (
-                <button key={i} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', borderBottom: `1px solid ${themeStyle.border}`, background: 'none', cursor: 'pointer', display: 'block' }}
-                  onClick={() => { goToChapter(r.chapterIdx); setShowSearch(false); setSearchQuery(''); setSearchResults([]) }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, display: 'block', marginBottom: 3, color: ACCENT }}>{r.chapterTitle}</span>
-                  <p style={{ fontSize: 12, lineHeight: 1.6, color: themeStyle.text }}
-                    dangerouslySetInnerHTML={{
-                      __html: r.snippet.replace(new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
-                        `<span style="background:${ACCENT}44;color:${themeStyle.text};border-radius:2px;padding:0 2px;">$1</span>`)
-                    }} />
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
