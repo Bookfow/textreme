@@ -12,10 +12,10 @@ import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
 const PRICE_PER_PAGE = 10
 
 const PRICE_EXAMPLES = [
-  { pages: 50, display: "50p 소책자" },
+  { pages: 50, display: "50p 이하 소책자" },
   { pages: 142, display: "142p 자기계발서" },
-  { pages: 300, display: "300p 전공서적" },
-  { pages: 500, display: "500p 기술서적" },
+  { pages: 308, display: "308p 전공서적" },
+  { pages: 487, display: "487p 기술서적" },
 ]
 
 type ViewType = "landing" | "pricing" | "converting" | "complete" | "viewer"
@@ -268,7 +268,7 @@ export default function TeXTREME() {
             </div>
             <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "12px 0" }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>100원 단위 반올림</span>
+              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>100원 단위 내림</span>
               <span style={{ color: "#F59E0B", fontSize: 13 }}>최소 ₩500</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -566,7 +566,7 @@ export default function TeXTREME() {
       <section style={{ padding: "25px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 36, letterSpacing: "-0.02em", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
-            왜 <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}><Zap size={36} color="#F59E0B" />TeXTREME</span> PDF to EPUB 변환기인가?
+            왜 <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}><Zap size={36} color="#F59E0B" style={{ position: "relative", top: 2 }} />TeXTREME</span> PDF to EPUB 변환기인가?
           </h2>
           <p style={{ textAlign: "center", color: "rgba(255,255,255,0.65)", fontSize: 20, marginBottom: 40 }}>
             한글 PDF에 최적화된 AI 변환 엔진
@@ -587,11 +587,11 @@ export default function TeXTREME() {
           <div className="features-grid">
             {[
               { icon: <Type size={22} />, title: "한글 특화", desc: "한글 조사·어미·띄어쓰기를 정확히 인식하는 AI 엔진" },
-              { icon: <BookOpen size={22} />, title: "구조 보존", desc: "제목·본문·인용·리스트를 자동 분석하여 구조 유지" },
+              { icon: "🔤", title: "한글 정확도 99%+", desc: "조사·어미·띄어쓰기까지 정확한 텍스트 추출" },
               { icon: <Smartphone size={22} />, title: "모바일 최적화", desc: "화면 크기에 맞춰 자동 리플로우되는 EPUB 생성" },
               { icon: "📖", title: "모든 뷰어 호환", desc: "EPUB 3.0 표준 준수, 원하는 앱에서 바로 열기" },
               { icon: <Globe size={22} />, title: "어디서든 변환", desc: "PC·태블릿·스마트폰, 브라우저만 있으면 OK" },
-              { icon: "🔤", title: "한글 정확도 99%+", desc: "조사·어미·띄어쓰기까지 정확한 텍스트 추출" },
+              { icon: <BookOpen size={22} />, title: "구조 보존", desc: "제목·본문·인용·리스트를 자동 분석하여 구조 유지" },
             ].map((f, i) => (
               <div key={i} style={{ padding: "24px 20px", borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)" }} className="card-hover">
                 <div style={{ color: "#F59E0B", marginBottom: 14, fontSize: typeof f.icon === "string" ? 22 : undefined }}>
@@ -619,10 +619,10 @@ export default function TeXTREME() {
           <div style={{ textAlign: "center", padding: "48px 32px", borderRadius: 20, background: "linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02))", border: "1px solid rgba(245,158,11,0.25)", marginBottom: 32, position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -30, right: -20, fontFamily: "'Outfit'", fontWeight: 900, fontSize: 140, color: "rgba(245,158,11,0.04)", lineHeight: 1 }}>₩</div>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>페이지당</p>
-            <div style={{ fontFamily: "'Outfit'", fontWeight: 900, fontSize: 56, color: "#fff", lineHeight: 1 }}>
+            <div style={{ fontFamily: "'Outfit'", fontWeight: 900, fontSize: 72, color: "#fff", lineHeight: 1 }}>
               <span style={{ background: "linear-gradient(135deg, #F59E0B, #FBBF24)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>₩10</span>
             </div>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 12 }}>100원 단위 반올림 · 최소 ₩500</p>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 12 }}>100원 단위 내림 · 단, 최소 ₩500</p>
           </div>
 
           {/* Price examples */}
