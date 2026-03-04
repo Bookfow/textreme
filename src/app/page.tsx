@@ -83,6 +83,7 @@ export default function TeXTREME() {
   const [isPwaInstalled, setIsPwaInstalled] = useState(false)
   const [epubUrl, setEpubUrl] = useState<string | null>(null)
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null)
+  const [agreeNoRefund, setAgreeNoRefund] = useState(false)
 
   // ━━━ PWA install prompt ━━━
   useEffect(() => {
@@ -211,7 +212,7 @@ export default function TeXTREME() {
   const reset = () => {
     if (epubUrl) URL.revokeObjectURL(epubUrl)
     if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
-    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null); setPdfViewerUrl(null)
+    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null); setPdfViewerUrl(null); setAgreeNoRefund(false)
     if (progressInterval.current) clearInterval(progressInterval.current)
   }
 
@@ -318,6 +319,20 @@ export default function TeXTREME() {
             </div>
           </div>
 
+          {/* 환불 불가 동의 */}
+          <div className="fade-up-d2" style={{ marginBottom: 16 }}>
+            <label
+              onClick={() => setAgreeNoRefund(!agreeNoRefund)}
+              style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "14px 16px", borderRadius: 12, background: agreeNoRefund ? "rgba(245,158,11,0.06)" : "rgba(255,255,255,0.02)", border: agreeNoRefund ? "1px solid rgba(245,158,11,0.25)" : "1px solid rgba(255,255,255,0.08)", cursor: "pointer", transition: "all 0.2s" }}>
+              <div style={{ width: 20, height: 20, borderRadius: 4, border: agreeNoRefund ? "2px solid #F59E0B" : "2px solid rgba(255,255,255,0.25)", background: agreeNoRefund ? "#F59E0B" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, transition: "all 0.2s" }}>
+                {agreeNoRefund && <span style={{ color: "#000", fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+              </div>
+              <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.6 }}>
+                변환 완료 시 EPUB 파일이 자동 저장되며, 디지털 콘텐츠 특성상 <strong style={{ color: "rgba(255,255,255,0.85)" }}>환불이 불가</strong>함에 동의합니다. (<a href="/policies/terms" target="_blank" style={{ color: "#F59E0B", textDecoration: "underline" }}>이용약관</a>)
+              </span>
+            </label>
+          </div>
+
           {/* Buttons */}
           <div className="fade-up-d3" style={{ display: "flex", gap: 12 }}>
             <button onClick={reset}
@@ -325,7 +340,8 @@ export default function TeXTREME() {
               취소
             </button>
             <button onClick={() => startConversion(filePages)}
-              style={{ flex: 2, padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 16, fontWeight: 800, cursor: "pointer", boxShadow: "0 0 30px rgba(245,158,11,0.2)" }}>
+              disabled={!agreeNoRefund}
+              style={{ flex: 2, padding: "16px 20px", borderRadius: 12, background: agreeNoRefund ? "linear-gradient(135deg, #F59E0B, #D97706)" : "rgba(255,255,255,0.08)", border: "none", color: agreeNoRefund ? "#000" : "rgba(255,255,255,0.3)", fontSize: 16, fontWeight: 800, cursor: agreeNoRefund ? "pointer" : "not-allowed", boxShadow: agreeNoRefund ? "0 0 30px rgba(245,158,11,0.2)" : "none", transition: "all 0.3s" }}>
               ₩{price.toLocaleString()} 결제하고 변환
             </button>
           </div>
