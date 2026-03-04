@@ -1298,17 +1298,18 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
       {/* ━━━ 설정 바텀시트 ━━━ */}
       {showSettings && (<>
         <div className="fixed inset-0 z-[55]" onClick={() => setShowSettings(false)} />
-        <div className="fixed z-[56] overflow-y-auto" style={{ bottom: 12, left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 32px)', maxWidth: 420, maxHeight: '75vh', borderRadius: 20, backgroundColor: theme === 'dark' ? 'rgba(26,22,18,0.52)' : theme === 'sepia' ? 'rgba(243,235,218,0.52)' : 'rgba(250,250,248,0.52)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: `1px solid ${themeStyle.border}`, boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
-          <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1 rounded-full" style={{ backgroundColor: themeStyle.border }} /></div>
-          <div className="px-6 pb-8 space-y-7">
+        <div className="fixed z-[56] overflow-y-auto" style={{ bottom: 16, left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 48px)', maxWidth: 400, maxHeight: '72vh', borderRadius: 24, backgroundColor: theme === 'dark' ? 'rgba(26,22,18,0.55)' : theme === 'sepia' ? 'rgba(243,235,218,0.55)' : 'rgba(250,250,248,0.55)', backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)', border: `1px solid ${themeStyle.border}`, boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+          <div className="flex justify-center pt-4 pb-2"><div className="w-10 h-1 rounded-full" style={{ backgroundColor: themeStyle.border }} /></div>
+          <div style={{ padding: '0 28px 36px' }}>
+
             {/* 테마 */}
-            <div>
-              <p className="text-sm font-semibold mb-4" style={{ color: themeStyle.muted }}>배경 테마</p>
-              <div className="flex gap-4 justify-center">
+            <div style={{ marginBottom: 32 }}>
+              <p className="text-sm font-semibold" style={{ color: themeStyle.muted, marginBottom: 16 }}>배경 테마</p>
+              <div className="flex justify-center" style={{ gap: 24 }}>
                 {(Object.keys(THEMES) as ReflowTheme[]).map(t => (
-                  <button key={t} onClick={() => setTheme(t)} className="flex flex-col items-center gap-2">
-                    <div className={`w-14 h-14 rounded-xl border-2 ${theme === t ? 'ring-2 ring-amber-500 ring-offset-2' : ''}`}
-                      style={{ backgroundColor: THEMES[t].bg, borderColor: THEMES[t].border }} />
+                  <button key={t} onClick={() => setTheme(t)} className="flex flex-col items-center" style={{ gap: 8 }}>
+                    <div className={`rounded-2xl border-2 ${theme === t ? 'ring-2 ring-amber-500 ring-offset-2' : ''}`}
+                      style={{ width: 56, height: 56, backgroundColor: THEMES[t].bg, borderColor: THEMES[t].border }} />
                     <span className="text-xs" style={{ color: theme === t ? ACCENT : themeStyle.muted }}>
                       {t === 'light' ? '밝은' : t === 'sepia' ? '세피아' : '어두운'}
                     </span>
@@ -1316,56 +1317,73 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
                 ))}
               </div>
             </div>
+
             {/* 글꼴 */}
-            <div>
-              <p className="text-sm font-semibold mb-4" style={{ color: themeStyle.muted }}>글꼴</p>
-              <div className="flex gap-2">
+            <div style={{ marginBottom: 32 }}>
+              <p className="text-sm font-semibold" style={{ color: themeStyle.muted, marginBottom: 16 }}>글꼴</p>
+              <div className="flex" style={{ gap: 8 }}>
                 {(Object.keys(FONTS) as ReflowFont[]).map(f => (
                   <button key={f} onClick={() => setFont(f)}
-                    className={`flex-1 py-2.5 rounded-xl text-sm border ${font === f ? 'border-amber-500' : ''}`}
-                    style={{ backgroundColor: font === f ? `${ACCENT}15` : 'transparent', borderColor: font === f ? ACCENT : themeStyle.border, color: font === f ? ACCENT : themeStyle.text, fontFamily: FONTS[f].family }}>
+                    className={`flex-1 rounded-xl text-sm border ${font === f ? 'border-amber-500' : ''}`}
+                    style={{ padding: '12px 0', backgroundColor: font === f ? `${ACCENT}15` : 'transparent', borderColor: font === f ? ACCENT : themeStyle.border, color: font === f ? ACCENT : themeStyle.text, fontFamily: FONTS[f].family }}>
                     {FONTS[f].label}
                   </button>
                 ))}
               </div>
             </div>
+
             {/* 글자 크기 */}
-            <div>
-              <div className="flex items-center justify-between mb-3"><p className="text-sm font-semibold" style={{ color: themeStyle.muted }}>글자 크기</p><span className="text-sm font-mono" style={{ color: themeStyle.text }}>{fontSize}px</span></div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setFontSize(s => Math.max(12, s - 1))} className="w-10 h-10 rounded-xl flex items-center justify-center border" style={{ borderColor: themeStyle.border, color: themeStyle.muted }}><Minus className="w-4 h-4" /></button>
+            <div style={{ marginBottom: 28 }}>
+              <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
+                <p className="text-sm font-semibold" style={{ color: themeStyle.muted }}>글자 크기</p>
+                <span className="text-sm font-mono" style={{ color: themeStyle.text }}>{fontSize}px</span>
+              </div>
+              <div className="flex items-center" style={{ gap: 12 }}>
+                <button onClick={() => setFontSize(s => Math.max(12, s - 1))} className="flex items-center justify-center rounded-xl border" style={{ width: 40, height: 40, borderColor: themeStyle.border, color: themeStyle.muted }}><Minus className="w-4 h-4" /></button>
                 <input type="range" min={12} max={32} value={fontSize} onChange={e => setFontSize(Number(e.target.value))} className="flex-1 accent-amber-500" style={{ height: 4 }} />
-                <button onClick={() => setFontSize(s => Math.min(32, s + 1))} className="w-10 h-10 rounded-xl flex items-center justify-center border" style={{ borderColor: themeStyle.border, color: themeStyle.muted }}><Plus className="w-4 h-4" /></button>
+                <button onClick={() => setFontSize(s => Math.min(32, s + 1))} className="flex items-center justify-center rounded-xl border" style={{ width: 40, height: 40, borderColor: themeStyle.border, color: themeStyle.muted }}><Plus className="w-4 h-4" /></button>
               </div>
             </div>
+
             {/* 줄간격 */}
-            <div>
-              <div className="flex items-center justify-between mb-3"><p className="text-sm font-semibold" style={{ color: themeStyle.muted }}>줄간격</p><span className="text-sm font-mono" style={{ color: themeStyle.text }}>{lineHeight.toFixed(1)}</span></div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setLineHeight(h => Math.max(1.2, Math.round((h - 0.1) * 10) / 10))} className="w-10 h-10 rounded-xl flex items-center justify-center border" style={{ borderColor: themeStyle.border, color: themeStyle.muted }}><Minus className="w-4 h-4" /></button>
+            <div style={{ marginBottom: 28 }}>
+              <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
+                <p className="text-sm font-semibold" style={{ color: themeStyle.muted }}>줄간격</p>
+                <span className="text-sm font-mono" style={{ color: themeStyle.text }}>{lineHeight.toFixed(1)}</span>
+              </div>
+              <div className="flex items-center" style={{ gap: 12 }}>
+                <button onClick={() => setLineHeight(h => Math.max(1.2, Math.round((h - 0.1) * 10) / 10))} className="flex items-center justify-center rounded-xl border" style={{ width: 40, height: 40, borderColor: themeStyle.border, color: themeStyle.muted }}><Minus className="w-4 h-4" /></button>
                 <input type="range" min={1.2} max={2.4} step={0.1} value={lineHeight} onChange={e => setLineHeight(Number(e.target.value))} className="flex-1 accent-amber-500" style={{ height: 4 }} />
-                <button onClick={() => setLineHeight(h => Math.min(2.4, Math.round((h + 0.1) * 10) / 10))} className="w-10 h-10 rounded-xl flex items-center justify-center border" style={{ borderColor: themeStyle.border, color: themeStyle.muted }}><Plus className="w-4 h-4" /></button>
+                <button onClick={() => setLineHeight(h => Math.min(2.4, Math.round((h + 0.1) * 10) / 10))} className="flex items-center justify-center rounded-xl border" style={{ width: 40, height: 40, borderColor: themeStyle.border, color: themeStyle.muted }}><Plus className="w-4 h-4" /></button>
               </div>
             </div>
+
             {/* 여백 · 자간 */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2" style={{ gap: 24, marginBottom: 28 }}>
               <div>
-                <div className="flex items-center justify-between mb-3"><p className="text-xs font-semibold" style={{ color: themeStyle.muted }}>여백</p><span className="text-xs font-mono" style={{ color: themeStyle.text }}>{marginSize}px</span></div>
+                <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+                  <p className="text-xs font-semibold" style={{ color: themeStyle.muted }}>여백</p>
+                  <span className="text-xs font-mono" style={{ color: themeStyle.text }}>{marginSize}px</span>
+                </div>
                 <input type="range" min={8} max={80} step={4} value={marginSize} onChange={e => setMarginSize(Number(e.target.value))} className="w-full accent-amber-500" style={{ height: 4 }} />
               </div>
               <div>
-                <div className="flex items-center justify-between mb-3"><p className="text-xs font-semibold" style={{ color: themeStyle.muted }}>자간</p><span className="text-xs font-mono" style={{ color: themeStyle.text }}>{(letterSpacing * 0.5).toFixed(1)}px</span></div>
+                <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+                  <p className="text-xs font-semibold" style={{ color: themeStyle.muted }}>자간</p>
+                  <span className="text-xs font-mono" style={{ color: themeStyle.text }}>{(letterSpacing * 0.5).toFixed(1)}px</span>
+                </div>
                 <input type="range" min={-2} max={4} step={0.5} value={letterSpacing} onChange={e => setLetterSpacing(Number(e.target.value))} className="w-full accent-amber-500" style={{ height: 4 }} />
               </div>
             </div>
+
             {/* 정렬 */}
             <div>
-              <p className="text-sm font-semibold mb-4" style={{ color: themeStyle.muted }}>정렬</p>
-              <div className="flex gap-3">
+              <p className="text-sm font-semibold" style={{ color: themeStyle.muted, marginBottom: 16 }}>정렬</p>
+              <div className="flex" style={{ gap: 10 }}>
                 {(['left', 'justify'] as ReflowAlign[]).map(a => (
                   <button key={a} onClick={() => setTextAlign(a)}
-                    className={`flex-1 py-3 rounded-xl text-sm flex items-center justify-center gap-2 border ${textAlign === a ? 'border-amber-500' : ''}`}
-                    style={{ backgroundColor: textAlign === a ? `${ACCENT}15` : 'transparent', borderColor: textAlign === a ? ACCENT : themeStyle.border, color: textAlign === a ? ACCENT : themeStyle.text }}>
+                    className={`flex-1 rounded-xl text-sm flex items-center justify-center border ${textAlign === a ? 'border-amber-500' : ''}`}
+                    style={{ padding: '14px 0', gap: 8, backgroundColor: textAlign === a ? `${ACCENT}15` : 'transparent', borderColor: textAlign === a ? ACCENT : themeStyle.border, color: textAlign === a ? ACCENT : themeStyle.text }}>
                     {a === 'left' ? <><AlignLeft className="w-4 h-4" /> 왼쪽</> : <><AlignJustify className="w-4 h-4" /> 양쪽</>}
                   </button>
                 ))}
