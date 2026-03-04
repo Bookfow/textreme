@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'TeXTREME - PDF to EPUB',
+    name: 'TeXTREME - PDF to EPUB (with Free Viewer)',
     short_name: 'TeXTREME',
     description: 'AI PDF to EPUB converter and EPUB/TXT/DOCX viewer',
     start_url: '/',

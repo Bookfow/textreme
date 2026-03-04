@@ -557,7 +557,7 @@ export default function TeXTREME() {
                 ))}
               </div>
               <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, lineHeight: 1.5 }}>
-                단, PDF는 문서 구조 특성상 EPUB만의<br />활용도 높은 기능을 제대로 사용하지 못할 수 있습니다.
+                단, PDF는 문서 구조 특성상<br />EPUB만의 활용도 높은 기능을<br />제대로 사용하지 못할 수 있습니다.
               </p>
               <input ref={viewerInputRef} type="file" accept=".epub,.txt,.docx,.pdf" style={{ display: "none" }}
                 onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'viewer') }} />
