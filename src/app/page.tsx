@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Upload, FileText, Zap, Download, BookOpen, Smartphone, Globe, ArrowRight, Type, CheckCircle2 } from "lucide-react"
+import { FileText, Zap, BookOpen, Smartphone, Globe, ArrowRight, Type, CheckCircle2 } from "lucide-react"
 import EpubViewerLite from "@/components/epub-viewer-lite"
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
 
@@ -51,6 +51,10 @@ ${fontLink}
 .step-card:hover { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
 @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
 .shimmer-text { background: linear-gradient(90deg, #F59E0B 30%, #fde68a 50%, #F59E0B 70%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 3s linear infinite; }
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 640px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+.upload-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 560px; }
+@media (max-width: 480px) { .upload-boxes { gap: 12px; } }
 `
 
 function calcPrice(pages: number): number {
@@ -66,6 +70,7 @@ export default function TeXTREME() {
   const [currentPage, setCurrentPage] = useState(0)
   const [extractedTexts, setExtractedTexts] = useState<ExtractedText[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const viewerInputRef = useRef<HTMLInputElement>(null)
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isPwaInstalled, setIsPwaInstalled] = useState(false)
@@ -478,33 +483,65 @@ export default function TeXTREME() {
           AI가 PDF 페이지를 분석하여 모바일에서도<br />편하게 읽을 수 있는 EPUB으로 변환합니다
         </p>
 
-        {/* Upload Zone */}
-        <div className="fade-up-d3"
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            width: "100%", maxWidth: 500, padding: "48px 32px", borderRadius: 20,
-            border: "2px dashed rgba(255,255,255,0.12)",
-            background: "rgba(255,255,255,0.02)",
-            cursor: "pointer", textAlign: "center", transition: "all 0.3s",
-          }}>
-          <div style={{ width: 64, height: 64, borderRadius: 16, background: "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", animation: "float 4s ease-in-out infinite" }}>
-            <Upload size={28} color="#F59E0B" />
-          </div>
-          <p style={{ color: "#fff", fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
-            클릭하여 파일 열기
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <span style={{ padding: "3px 8px", borderRadius: 6, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 12, fontWeight: 600 }}>PDF</span>
-              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>→ EPUB 변환 (유료)</span>
+        {/* Two Boxes: Viewer + Converter */}
+        <div className="fade-up-d3 upload-boxes">
+          {/* Left: 무료 문서 뷰어 */}
+          <div
+            onClick={() => viewerInputRef.current?.click()}
+            style={{
+              padding: "32px 20px", borderRadius: 20,
+              border: "2px dashed rgba(34,197,94,0.2)",
+              background: "rgba(34,197,94,0.03)",
+              cursor: "pointer", textAlign: "center", transition: "all 0.3s",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              aspectRatio: "1",
+            }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <BookOpen size={24} color="#22c55e" />
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <span style={{ padding: "3px 8px", borderRadius: 6, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", color: "#22c55e", fontSize: 12, fontWeight: 600 }}>EPUB · TXT · DOCX</span>
-              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>→ 바로 읽기</span>
+            <p style={{ color: "#fff", fontSize: 15, fontWeight: 700, marginBottom: 8 }}>
+              무료 문서 뷰어
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginBottom: 12 }}>
+              {["EPUB", "TXT", "DOCX", "PDF"].map(fmt => (
+                <span key={fmt} style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", color: "#22c55e", fontSize: 11, fontWeight: 600 }}>{fmt}</span>
+              ))}
             </div>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, lineHeight: 1.5 }}>
+              단, 일반 PDF는 문서 구조 특성상<br />뷰어에서 제대로 보이지 않을 수 있습니다.
+            </p>
+            <input ref={viewerInputRef} type="file" accept=".epub,.txt,.docx,.pdf" style={{ display: "none" }}
+              onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
           </div>
-          <input ref={fileInputRef} type="file" accept=".pdf,.epub,.txt,.docx" style={{ display: "none" }}
-            onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
+
+          {/* Right: PDF → EPUB 변환 */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              padding: "32px 20px", borderRadius: 20,
+              border: "2px dashed rgba(245,158,11,0.2)",
+              background: "rgba(245,158,11,0.03)",
+              cursor: "pointer", textAlign: "center", transition: "all 0.3s",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              aspectRatio: "1",
+            }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <Zap size={24} color="#F59E0B" />
+            </div>
+            <p style={{ color: "#fff", fontSize: 15, fontWeight: 700, marginBottom: 8 }}>
+              PDF → EPUB 변환
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+              <span style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 11, fontWeight: 600 }}>PDF</span>
+              <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>→</span>
+              <span style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 11, fontWeight: 600 }}>EPUB</span>
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>
+              AI 변환 · 페이지당 ₩10
+            </p>
+            <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: "none" }}
+              onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
+          </div>
         </div>
 
         {/* Stats */}
@@ -523,71 +560,28 @@ export default function TeXTREME() {
         </div>
       </section>
 
-      {/* ━━━ FEATURES CARDS ━━━ */}
+      {/* ━━━ FEATURES ━━━ */}
       <section style={{ padding: "100px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: 480, margin: "0 auto" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, width: "100%" }}>
-                {[
-                  { icon: "📖", title: "모든 EPUB 뷰어 호환", desc: "원하는 앱에서 바로 열기" },
-                  { icon: "📐", title: "EPUB 3.0 표준", desc: "모든 기기·OS 호환" },
-                  { icon: "🔤", title: "한글 정확도 99%+", desc: "조사·어미·띄어쓰기 정확" },
-                  { icon: "⚡", title: "구조 자동 보존", desc: "제목·본문·인용 분석" },
-                ].map((item, i) => (
-                  <div key={i} style={{ padding: "14px 10px", borderRadius: 10, background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.1)", textAlign: "center" }} className="card-hover">
-                    <div style={{ fontSize: 20, marginBottom: 6 }}>{item.icon}</div>
-                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 13, marginBottom: 3 }}>{item.title}</div>
-                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, lineHeight: 1.4 }}>{item.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section style={{ padding: "100px 24px", background: "#06060c" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em", marginBottom: 12 }}>
-            3단계로 끝
+            왜 TeXTREME인가
           </h2>
-          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 16, marginBottom: 64 }}>
-            복잡한 설정 없이, 파일만 올리면 됩니다
+          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 16, marginBottom: 56 }}>
+            한글 PDF에 최적화된 AI 변환 엔진
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}>
+          <div className="features-grid">
             {[
-              { icon: <Upload size={24} />, num: "01", title: "PDF 업로드", desc: "변환할 PDF 파일을 올려주세요", color: "#3b82f6" },
-              { icon: <Zap size={24} />, num: "02", title: "AI가 분석·변환", desc: "AI가 페이지별로 텍스트 구조를 분석하고 EPUB으로 변환합니다", color: "#F59E0B" },
-              { icon: <Download size={24} />, num: "03", title: "자동 저장", desc: "변환된 전자책이 기기에 자동으로 저장됩니다", color: "#22c55e" },
-            ].map((step, i) => (
-              <div key={i} style={{ padding: 32, borderRadius: 16, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden" }} className="step-card">
-                <div style={{ position: "absolute", top: -20, right: -10, fontFamily: "'Outfit'", fontWeight: 900, fontSize: 100, color: "rgba(255,255,255,0.02)", lineHeight: 1 }}>{step.num}</div>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: `${step.color}15`, display: "flex", alignItems: "center", justifyContent: "center", color: step.color, marginBottom: 20 }}>
-                  {step.icon}
-                </div>
-                <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 18, marginBottom: 8 }}>{step.title}</h3>
-                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, lineHeight: 1.6 }}>{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section style={{ padding: "100px 24px", background: "#06060c" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em", marginBottom: 56 }}>
-            왜 TeXTREME PDF to EPUB 변환기인가
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-            {[
-              { icon: <Type size={22} />, title: "한글 특화", desc: "한글 조사·어미·띄어쓰기를 정확히 인식" },
-              { icon: <BookOpen size={22} />, title: "구조 보존", desc: "제목·본문·인용·리스트 자동 분석" },
-              { icon: <Smartphone size={22} />, title: "모바일 최적화", desc: "화면 크기에 맞춰 자동 리플로우" },
-              { icon: <Globe size={22} />, title: "어디서든 변환", desc: "PC·태블릿·스마트폰, 어디서든" },
+              { icon: <Type size={22} />, title: "한글 특화", desc: "한글 조사·어미·띄어쓰기를 정확히 인식하는 AI 엔진" },
+              { icon: <BookOpen size={22} />, title: "구조 보존", desc: "제목·본문·인용·리스트를 자동 분석하여 구조 유지" },
+              { icon: <Smartphone size={22} />, title: "모바일 최적화", desc: "화면 크기에 맞춰 자동 리플로우되는 EPUB 생성" },
+              { icon: "📖", title: "모든 뷰어 호환", desc: "EPUB 3.0 표준 준수, 원하는 앱에서 바로 열기" },
+              { icon: <Globe size={22} />, title: "어디서든 변환", desc: "PC·태블릿·스마트폰, 브라우저만 있으면 OK" },
+              { icon: "🔤", title: "한글 정확도 99%+", desc: "조사·어미·띄어쓰기까지 정확한 텍스트 추출" },
             ].map((f, i) => (
-              <div key={i} style={{ padding: "16px 14px", borderRadius: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }} className="card-hover">
-                <div style={{ color: "#F59E0B", marginBottom: 14 }}>{f.icon}</div>
+              <div key={i} style={{ padding: "20px 16px", borderRadius: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }} className="card-hover">
+                <div style={{ color: "#F59E0B", marginBottom: 14, fontSize: typeof f.icon === "string" ? 22 : undefined }}>
+                  {f.icon}
+                </div>
                 <h4 style={{ color: "#fff", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{f.title}</h4>
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>{f.desc}</p>
               </div>
