@@ -552,12 +552,12 @@ export default function TeXTREME() {
                 클릭하여 파일 열기
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginBottom: 14 }}>
-                {["EPUB", "TXT", "DOCX", "PDF"].map(fmt => (
+                {["EPUB", "DOCX", "TXT", "PDF"].map(fmt => (
                   <span key={fmt} style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", color: "#22c55e", fontSize: 11, fontWeight: 600 }}>{fmt}</span>
                 ))}
               </div>
               <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, lineHeight: 1.5 }}>
-                단, 일반 PDF는 문서 구조 특성상<br />뷰어에서 제대로 보이지 않을 수 있습니다.
+                단, PDF는 문서 구조 특성상 EPUB만의<br />활용도 높은 기능을 제대로 사용하지 못할 수 있습니다.
               </p>
               <input ref={viewerInputRef} type="file" accept=".epub,.txt,.docx,.pdf" style={{ display: "none" }}
                 onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'viewer') }} />
@@ -594,7 +594,7 @@ export default function TeXTREME() {
                 <span style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 11, fontWeight: 600 }}>EPUB</span>
               </div>
               <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
-                AI 변환 · 페이지당 ₩10
+                한글특화 · 정확도 99%+ · 모바일 최적화<br />모든 뷰어 호환 · 구조 보존
               </p>
               <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: "none" }}
                 onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
