@@ -560,32 +560,30 @@ export default function TeXTREME() {
             </div>
           </div>
         </div>
-
-        {/* Stats */}
-        <div className="fade-up-d4" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, marginTop: 60, maxWidth: 520, width: "100%" }}>
-          {[
-            { value: "₩10", label: "페이지당", sub: "사용한 만큼만" },
-            { value: "~10초", label: "페이지당 변환", sub: "AI 비전 엔진" },
-            { value: "99%+", label: "한글 인식률", sub: "한글 특화" },
-          ].map((s, i) => (
-            <div key={i} style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 28, color: "#F59E0B", letterSpacing: "-0.02em" }}>{s.value}</div>
-              <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 500, marginTop: 4 }}>{s.label}</div>
-              <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 2 }}>{s.sub}</div>
-            </div>
-          ))}
-        </div>
       </section>
 
       {/* ━━━ FEATURES ━━━ */}
       <section style={{ padding: "100px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em", marginBottom: 12 }}>
-            왜 TeXTREME인가
+          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 28, letterSpacing: "-0.02em", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+            왜 <Zap size={24} color="#F59E0B" style={{ display: "inline" }} /> TeXTREME PDF to EPUB 변환기인가
           </h2>
-          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.55)", fontSize: 16, marginBottom: 56 }}>
+          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.55)", fontSize: 16, marginBottom: 40 }}>
             한글 PDF에 최적화된 AI 변환 엔진
           </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, maxWidth: 520, margin: "0 auto 56px" }}>
+            {[
+              { value: "₩10", label: "페이지당", sub: "사용한 만큼만" },
+              { value: "~10초", label: "페이지당 변환", sub: "AI 비전 엔진" },
+              { value: "99%+", label: "한글 인식률", sub: "한글 특화" },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: "center" }}>
+                <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 28, color: "#F59E0B", letterSpacing: "-0.02em" }}>{s.value}</div>
+                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 500, marginTop: 4 }}>{s.label}</div>
+                <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 2 }}>{s.sub}</div>
+              </div>
+            ))}
+          </div>
           <div className="features-grid">
             {[
               { icon: <Type size={22} />, title: "한글 특화", desc: "한글 조사·어미·띄어쓰기를 정확히 인식하는 AI 엔진" },
