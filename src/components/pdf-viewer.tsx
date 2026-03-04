@@ -1,6 +1,8 @@
 // components/pdf-viewer.tsx
-// TeXTREME PDF 뷰어 v2
-// epub-viewer-lite 스타일 상단 메뉴 + EPUB 잠금 UI + 변환 유도 모달
+// TeXTREME PDF 뷰어 v3
+// 8버튼 메뉴 (나가기, 여백, 🔒책갈피, 페이지, 🔒테마, 🔒형광펜, 🔒집중, 🔒설정)
+// 롱프레스 돋보기 항상 작동 (버튼 없이)
+// EPUB 잠금 모달 + 변환 유도
 
 'use client'
 
@@ -8,7 +10,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Document as PDFDocument, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
-import { Home, Minus, Plus, Crop, Search, Palette, Highlighter, Focus, Settings2, Zap, Lock, X } from 'lucide-react'
+import { Home, Minus, Plus, Crop, Bookmark, Palette, Highlighter, Focus, Settings2, Zap, Lock, X } from 'lucide-react'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
@@ -39,10 +41,8 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
   const [swipeOffset, setSwipeOffset] = useState(0)
   const [showLockModal, setShowLockModal] = useState(false)
   const [lockFeatureName, setLockFeatureName] = useState('')
-  const [showZoomPopup, setShowZoomPopup] = useState(false)
-  const [magnifierMode, setMagnifierMode] = useState(false)
 
-  // 돋보기 관련
+  // 롱프레스 돋보기 (항상 작동)
   const MAGNIFIER_ZOOM = 2.5
   const magnifierElRef = useRef<HTMLDivElement>(null)
   const magnifierActiveRef = useRef(false)
@@ -52,8 +52,6 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
   const LONG_PRESS_MS = 500
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressPosRef = useRef<{ x: number; y: number } | null>(null)
-  const magnifierPanRef = useRef({ x: 0, y: 0 })
-  const magnifierDragRef = useRef<{ startX: number; startY: number; startPanX: number; startPanY: number } | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const contentAreaRef = useRef<HTMLDivElement>(null)
@@ -74,18 +72,11 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
   const scaleRef = useRef(scale)
   const pageNumberRef = useRef(pageNumber)
   const numPagesRef = useRef(numPages)
-  const magnifierModeRef = useRef(magnifierMode)
 
   useEffect(() => { scaleRef.current = scale }, [scale])
   useEffect(() => { pageNumberRef.current = pageNumber }, [pageNumber])
   useEffect(() => { numPagesRef.current = numPages }, [numPages])
-  useEffect(() => {
-    magnifierModeRef.current = magnifierMode
-    magnifierPanRef.current = { x: 0, y: 0 }
-    if (pdfContentRef.current) pdfContentRef.current.style.transform = ''
-  }, [magnifierMode])
 
-  // ━━━ 잠금 모달 ━━━
   const openLockModal = (featureName: string) => {
     setLockFeatureName(featureName)
     setShowLockModal(true)
@@ -93,23 +84,21 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
 
   // ━━━ 줌 리셋 ━━━
   useEffect(() => {
-    if (scale <= 1.05 && !magnifierModeRef.current) {
+    if (scale <= 1.05) {
       panTranslateRef.current = { x: 0, y: 0 }
       if (pdfContentRef.current) pdfContentRef.current.style.transform = ''
     }
   }, [scale])
 
   useEffect(() => {
-    if (!magnifierModeRef.current) {
-      panTranslateRef.current = { x: 0, y: 0 }
-      if (pdfContentRef.current) pdfContentRef.current.style.transform = ''
-    }
+    panTranslateRef.current = { x: 0, y: 0 }
+    if (pdfContentRef.current) pdfContentRef.current.style.transform = ''
   }, [pageNumber])
 
   // ━━━ fitWidth 계산 ━━━
   const calculateFitWidth = useCallback(() => {
     const sw = window.innerWidth
-    const sh = (contentAreaRef.current?.clientHeight) || (window.innerHeight - 52)
+    const sh = (contentAreaRef.current?.clientHeight) || (window.innerHeight - 100)
     const effectiveAspect = (autoCropOn && cropBounds)
       ? pageAspect * ((cropBounds.bottom - cropBounds.top) / (cropBounds.right - cropBounds.left))
       : pageAspect
@@ -270,7 +259,7 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
     if (!autoCropOn) setCropBounds(null)
   }, [autoCropOn, numPages, pdfDoc])
 
-  // ━━━ 돋보기 헬퍼 ━━━
+  // ━━━ 돋보기 헬퍼 (롱프레스용, 항상 작동) ━━━
   const clearLongPressTimer = () => {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current)
@@ -372,7 +361,7 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
     }
   }
 
-  // ━━━ 터치 이벤트 ━━━
+  // ━━━ 터치 이벤트 (스와이프 + 핀치줌 + 팬 + 롱프레스 돋보기) ━━━
   useEffect(() => {
     const overlay = touchOverlayRef.current
     if (!overlay) return
@@ -401,28 +390,22 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
         }
         return
       }
-      if (magnifierModeRef.current) {
-        e.preventDefault()
-        magnifierDragRef.current = {
-          startX: e.touches[0].clientX, startY: e.touches[0].clientY,
-          startPanX: magnifierPanRef.current.x, startPanY: magnifierPanRef.current.y,
-        }
-        // 롱프레스 시작
-        const tx = e.touches[0].clientX
-        const ty = e.touches[0].clientY
-        longPressPosRef.current = { x: tx, y: ty }
-        longPressTimerRef.current = setTimeout(() => {
-          if (longPressPosRef.current) startMagnifier(longPressPosRef.current.x, longPressPosRef.current.y)
-        }, LONG_PRESS_MS)
-        return
-      }
+      // 일반 터치: 스와이프 + 롱프레스 돋보기 동시 시작
+      const tx = e.touches[0].clientX
+      const ty = e.touches[0].clientY
       touchEndRef.current = null
-      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      touchStartRef.current = { x: tx, y: ty }
+      // 롱프레스 타이머 시작
+      longPressPosRef.current = { x: tx, y: ty }
+      longPressTimerRef.current = setTimeout(() => {
+        if (longPressPosRef.current) startMagnifier(longPressPosRef.current.x, longPressPosRef.current.y)
+      }, LONG_PRESS_MS)
     }
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         e.preventDefault()
+        clearLongPressTimer()
         if (!isPinchingRef.current) {
           pinchStartDistRef.current = getTouchDistance(e.touches)
           pinchStartScaleRef.current = scaleRef.current
@@ -438,11 +421,13 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
         }
         return
       }
+      // 돋보기 활성 → 위치 업데이트
       if (magnifierActiveRef.current && e.touches.length === 1) {
         e.preventDefault()
         updateMagnifier(e.touches[0].clientX, e.touches[0].clientY)
         return
       }
+      // 롱프레스 타이머: 움직이면 취소
       if (longPressPosRef.current && e.touches.length === 1) {
         const dx = e.touches[0].clientX - longPressPosRef.current.x
         const dy = e.touches[0].clientY - longPressPosRef.current.y
@@ -456,22 +441,6 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
         applyPanTransform(panTranslateRef.current.x, panTranslateRef.current.y)
         return
       }
-      if (magnifierDragRef.current && magnifierModeRef.current) {
-        e.preventDefault()
-        const dx = e.touches[0].clientX - magnifierDragRef.current.startX
-        const dy = e.touches[0].clientY - magnifierDragRef.current.startY
-        magnifierPanRef.current = {
-          x: magnifierDragRef.current.startPanX + dx,
-          y: magnifierDragRef.current.startPanY + dy,
-        }
-        if (pdfContentRef.current) {
-          pdfContentRef.current.style.transform = `translate(${magnifierPanRef.current.x}px, ${magnifierPanRef.current.y}px)`
-          pdfContentRef.current.style.transition = 'none'
-        }
-        const magInner = containerRef.current?.querySelector('[data-magnifier-inner]') as HTMLElement
-        if (magInner) magInner.style.transform = `translate(-50%, 0) translate(${magnifierPanRef.current.x * MAGNIFIER_ZOOM}px, ${magnifierPanRef.current.y * MAGNIFIER_ZOOM}px)`
-        return
-      }
       const ts = touchStartRef.current
       if (!ts) return
       setSwipeOffset((e.touches[0].clientX - ts.x) * 0.3)
@@ -480,8 +449,14 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
 
     const handleTouchEnd = () => {
       clearLongPressTimer()
-      if (magnifierActiveRef.current) { hideMagnifier(); setSwipeOffset(0); touchStartRef.current = null; touchEndRef.current = null; return }
-      if (magnifierDragRef.current && magnifierModeRef.current) { magnifierDragRef.current = null; return }
+      // 돋보기 활성이었으면 숨기고 종료
+      if (magnifierActiveRef.current) {
+        hideMagnifier()
+        setSwipeOffset(0)
+        touchStartRef.current = null
+        touchEndRef.current = null
+        return
+      }
       if (isPinchingRef.current) {
         clearPinchTransform()
         setScale(Math.min(Math.max(pinchStartScaleRef.current * pinchRatioRef.current, 0.5), 3.0))
@@ -516,7 +491,7 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
     }
   }, [goToPage])
 
-  // ━━━ PC 마우스 이벤트 ━━━
+  // ━━━ PC 마우스 이벤트 (확대 팬 + 롱프레스 돋보기) ━━━
   useEffect(() => {
     const overlay = touchOverlayRef.current
     if (!overlay) return
@@ -541,36 +516,19 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
         overlay.style.cursor = 'grabbing'
         return
       }
-      if (magnifierModeRef.current && e.button === 0) {
-        e.preventDefault()
-        magnifierDragRef.current = {
-          startX: e.clientX, startY: e.clientY,
-          startPanX: magnifierPanRef.current.x, startPanY: magnifierPanRef.current.y,
-        }
-        overlay.style.cursor = 'grabbing'
+      // 롱프레스 돋보기 타이머 (PC)
+      if (e.button === 0) {
         longPressPosRef.current = { x: e.clientX, y: e.clientY }
         longPressTimerRef.current = setTimeout(() => {
           if (longPressPosRef.current) startMagnifier(longPressPosRef.current.x, longPressPosRef.current.y)
         }, LONG_PRESS_MS)
-        return
       }
     }
 
     const handleMouseMove = (e: MouseEvent) => {
+      // 돋보기 활성 → 위치 업데이트
       if (magnifierActiveRef.current) { e.preventDefault(); updateMagnifier(e.clientX, e.clientY); return }
-      if (magnifierDragRef.current && magnifierModeRef.current) {
-        e.preventDefault()
-        const dx = e.clientX - magnifierDragRef.current.startX
-        const dy = e.clientY - magnifierDragRef.current.startY
-        magnifierPanRef.current = { x: magnifierDragRef.current.startPanX + dx, y: magnifierDragRef.current.startPanY + dy }
-        if (pdfContentRef.current) {
-          pdfContentRef.current.style.transform = `translate(${magnifierPanRef.current.x}px, ${magnifierPanRef.current.y}px)`
-          pdfContentRef.current.style.transition = 'none'
-        }
-        const magInner = containerRef.current?.querySelector('[data-magnifier-inner]') as HTMLElement
-        if (magInner) magInner.style.transform = `translate(-50%, 0) translate(${magnifierPanRef.current.x * MAGNIFIER_ZOOM}px, ${magnifierPanRef.current.y * MAGNIFIER_ZOOM}px)`
-        return
-      }
+      // 롱프레스 타이머: 움직이면 취소
       if (longPressPosRef.current) {
         const dx = e.clientX - longPressPosRef.current.x
         const dy = e.clientY - longPressPosRef.current.y
@@ -585,11 +543,6 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
     const handleMouseUp = () => {
       clearLongPressTimer()
       if (magnifierActiveRef.current) { hideMagnifier(); return }
-      if (magnifierDragRef.current && magnifierModeRef.current) {
-        magnifierDragRef.current = null
-        if (overlay) overlay.style.cursor = 'grab'
-        return
-      }
       if (!mouseDragRef.current) return
       mouseDragRef.current = false; panStartRef.current = null
       if (overlay) overlay.style.cursor = ''
@@ -610,7 +563,6 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
   // ━━━ 클릭 페이지 이동 ━━━
   const handlePageAreaClick = (e: React.MouseEvent) => {
     if (magnifierWasActiveRef.current) return
-    if (magnifierMode) return
     if (scale > 1.05) return
     const el = pdfContentRef.current
     if (!el) return
@@ -640,13 +592,12 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
     overflow: 'hidden',
   }
 
-  // ━━━ 상단 버튼 정의 ━━━
   const ACCENT = '#F59E0B'
 
   const menuButtons = [
     { icon: <Home style={{ width: 16, height: 16 }} />, label: '나가기', active: false, locked: false, onClick: onBack },
     { icon: <Crop style={{ width: 16, height: 16 }} />, label: '여백', active: autoCropOn, locked: false, onClick: () => setAutoCropOn(p => !p) },
-    { icon: <Search style={{ width: 16, height: 16 }} />, label: '돋보기', active: magnifierMode, locked: false, onClick: () => setMagnifierMode(p => !p) },
+    { icon: <Bookmark style={{ width: 16, height: 16 }} />, label: '책갈피', active: false, locked: true, onClick: () => openLockModal('책갈피') },
     { icon: <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{pageNumber}/{numPages || '...'}</span>, label: '', active: false, locked: false, isPageDisplay: true, onClick: () => {} },
     { icon: <Palette style={{ width: 16, height: 16 }} />, label: '테마', active: false, locked: true, onClick: () => openLockModal('테마 변경') },
     { icon: <Highlighter style={{ width: 16, height: 16 }} />, label: '형광펜', active: false, locked: true, onClick: () => openLockModal('형광펜 / 메모') },
@@ -686,7 +637,7 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
         </div>
       </div>
 
-      {/* ━━━ 메뉴 버튼 그리드 (epub-viewer-lite 스타일) ━━━ */}
+      {/* ━━━ 메뉴 버튼 그리드 ━━━ */}
       <div style={{
         position: 'absolute', top: 44, left: 0, right: 0, zIndex: 50,
         background: 'rgba(6,6,12,0.95)', backdropFilter: 'blur(20px)',
@@ -728,15 +679,13 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
         position: 'absolute', top: 100, left: 0, right: 0, bottom: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {/* 터치 오버레이 */}
         <div ref={touchOverlayRef} onClick={handlePageAreaClick} style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20,
           touchAction: 'none',
-          cursor: magnifierMode ? 'grab' : scale > 1.05 ? 'grab' : 'default',
+          cursor: scale > 1.05 ? 'grab' : 'default',
           WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none',
         } as React.CSSProperties} />
 
-        {/* PDF 렌더링 */}
         <div ref={pdfContentRef}>
           {pdfLoading && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
@@ -767,24 +716,7 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
         </div>
       </div>
 
-      {/* ━━━ 고정 돋보기 (magnifier 모드) ━━━ */}
-      {magnifierMode && (
-        <div style={{
-          position: 'absolute', left: '50%', top: 105, transform: 'translate(-50%, 0)',
-          width: '100%', height: '33.3%', zIndex: 55,
-          border: '3px solid rgba(245,158,11,0.9)', borderRadius: 8,
-          boxShadow: '0 6px 32px rgba(0,0,0,0.5)', backgroundColor: '#fff',
-          overflow: 'hidden', pointerEvents: 'none',
-        }}>
-          <div data-magnifier-inner="" style={{ position: 'absolute', left: '50%', top: 0, transform: 'translate(-50%, 0)' }}>
-            <PDFDocument file={pdfUrl} loading="" options={pdfOptions}>
-              <Page pageNumber={pageNumber} width={fitWidth * MAGNIFIER_ZOOM} renderTextLayer={false} renderAnnotationLayer={false} loading="" />
-            </PDFDocument>
-          </div>
-        </div>
-      )}
-
-      {/* ━━━ 롱프레스 돋보기 (떠다니는) ━━━ */}
+      {/* ━━━ 롱프레스 돋보기 (떠다니는, 항상 작동) ━━━ */}
       <div ref={magnifierElRef} style={{
         display: 'none', position: 'fixed', zIndex: 100,
         border: '3px solid rgba(245,158,11,0.9)', borderRadius: 8,
@@ -823,9 +755,8 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
           <div onClick={e => e.stopPropagation()} style={{
             width: '100%', maxWidth: 360, borderRadius: 20,
             background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)',
-            padding: '36px 28px 28px', textAlign: 'center',
+            padding: '36px 28px 28px', textAlign: 'center', position: 'relative',
           }}>
-            {/* 닫기 */}
             <button onClick={() => setShowLockModal(false)} style={{
               position: 'absolute', top: 14, right: 14,
               width: 32, height: 32, borderRadius: 8,
@@ -834,7 +765,6 @@ export default function PDFViewer({ pdfUrl, fileName, onBack, onConvert }: PDFVi
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}><X style={{ width: 16, height: 16 }} /></button>
 
-            {/* 잠금 아이콘 */}
             <div style={{
               width: 64, height: 64, borderRadius: '50%',
               background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.25)',
