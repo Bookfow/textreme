@@ -499,13 +499,9 @@ export default function TeXTREME() {
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button onClick={() => viewerInputRef.current?.click()}
-              style={{ padding: "8px 20px", borderRadius: 10, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
-              PDF 파일 열기
-            </button>
             <button onClick={() => fileInputRef.current?.click()}
               style={{ padding: "8px 20px", borderRadius: 10, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}>
-              변환하기
+              PDF → EPUB 변환하기
             </button>
           </div>
         </div>
@@ -687,13 +683,9 @@ export default function TeXTREME() {
       {/* CTA */}
       <section style={{ padding: "80px 24px 48px", background: "#06060c", textAlign: "center" }}>
         <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => viewerInputRef.current?.click()}
-            style={{ padding: "16px 40px", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)", fontWeight: 700, fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-            PDF 파일 열기
-          </button>
           <button onClick={() => fileInputRef.current?.click()}
             style={{ padding: "16px 40px", borderRadius: 14, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 800, fontSize: 18, border: "none", cursor: "pointer", boxShadow: "0 0 40px rgba(245,158,11,0.2)", display: "flex", alignItems: "center", gap: 10 }}>
-            지금 변환하기 <ArrowRight size={20} />
+            PDF → EPUB 변환하기 <ArrowRight size={20} />
           </button>
         </div>
         <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 16 }}>
