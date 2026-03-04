@@ -563,10 +563,10 @@ export default function TeXTREME() {
       </section>
 
       {/* ━━━ FEATURES ━━━ */}
-      <section style={{ padding: "100px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
+      <section style={{ padding: "50px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 28, letterSpacing: "-0.02em", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-            왜 <Zap size={24} color="#F59E0B" style={{ display: "inline" }} /> TeXTREME PDF to EPUB 변환기인가
+          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 28, letterSpacing: "-0.02em", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 3, flexWrap: "wrap" }}>
+            왜 <Zap size={24} color="#F59E0B" style={{ display: "inline", marginRight: -2 }} /> TeXTREME PDF to EPUB 변환기인가?
           </h2>
           <p style={{ textAlign: "center", color: "rgba(255,255,255,0.55)", fontSize: 16, marginBottom: 40 }}>
             한글 PDF에 최적화된 AI 변환 엔진
