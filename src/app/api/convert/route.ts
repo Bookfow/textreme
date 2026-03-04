@@ -24,6 +24,7 @@ interface PageResult {
   inputTokens: number
   outputTokens: number
   elapsedMs: number
+  debugInfo?: string
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -68,21 +69,17 @@ image_placeholder 사용 (아래 경우만 해당):
 제외 항목: 페이지 번호, 머리글, 꼬리글
 출력: JSON만 반환. 마크다운 코드블록 사용 금지.`
 
-async function extractPageWithGemini(imageBase64: string, mimeType: string, retryCount = 0): Promise<{ elements: PageElement[], inputTokens: number, outputTokens: number }> {
+async function extractPageWithGemini(imageBase64: string, mimeType: string, retryCount = 0): Promise<{ elements: PageElement[], inputTokens: number, outputTokens: number, debugInfo: string }> {
   const body = {
-    systemInstruction: {
-      parts: [{ text: SYSTEM_PROMPT }]
-    },
     contents: [{
       parts: [
-        { text: '이 PDF 페이지의 모든 텍스트를 추출해주세요.' },
+        { text: SYSTEM_PROMPT + '\n\n이 PDF 페이지의 모든 텍스트를 빠짐없이 추출해주세요.' },
         { inline_data: { mime_type: mimeType, data: imageBase64 } }
       ]
     }],
     generationConfig: {
       temperature: 0.1,
       maxOutputTokens: 8192,
-      responseMimeType: 'application/json',
     }
   }
 
@@ -103,8 +100,24 @@ async function extractPageWithGemini(imageBase64: string, mimeType: string, retr
   }
 
   const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  
+  // 디버그: Gemini 응답 구조 확인
+  const candidate = data.candidates?.[0]
+  const finishReason = candidate?.finishReason || 'UNKNOWN'
+  const text = candidate?.content?.parts?.[0]?.text || ''
   const usage = data.usageMetadata || {}
+  
+  // 안전 차단(SAFETY) 등으로 빈 응답인 경우
+  if (finishReason === 'SAFETY' || finishReason === 'RECITATION') {
+    return {
+      elements: [{ type: 'paragraph', text: `(페이지 안전 필터 차단: ${finishReason})` }],
+      inputTokens: usage.promptTokenCount || 0,
+      outputTokens: usage.candidatesTokenCount || 0,
+      debugInfo: `BLOCKED:${finishReason}`,
+    }
+  }
+  
+  const debugSnippet = text.slice(0, 200)
 
   // JSON 파싱 (여러 래핑 패턴 대응)
   let parsed: { elements: PageElement[] } | null = null
@@ -153,6 +166,7 @@ async function extractPageWithGemini(imageBase64: string, mimeType: string, retr
     elements: parsed.elements,
     inputTokens: usage.promptTokenCount || 0,
     outputTokens: usage.candidatesTokenCount || 0,
+    debugInfo: `finish:${finishReason}|len:${text.length}|els:${parsed.elements.length}|raw:${debugSnippet}`,
   }
 }
 
@@ -333,9 +347,9 @@ export async function POST(req: NextRequest) {
               const startTime = Date.now()
 
               try {
-                const { elements, inputTokens, outputTokens } = await extractPageWithGemini(pg.base64, pg.mimeType)
+                const { elements, inputTokens, outputTokens, debugInfo } = await extractPageWithGemini(pg.base64, pg.mimeType)
                 const elapsedMs = Date.now() - startTime
-                return { pageNumber: pageNum, elements, inputTokens, outputTokens, elapsedMs } as PageResult
+                return { pageNumber: pageNum, elements, inputTokens, outputTokens, elapsedMs, debugInfo } as PageResult
               } catch (err: any) {
                 return {
                   pageNumber: pageNum,
@@ -358,6 +372,7 @@ export async function POST(req: NextRequest) {
                 percent: Math.round((r.pageNumber / pageCount) * 100),
                 text: preview,
                 tokens: { input: r.inputTokens, output: r.outputTokens },
+                debug: { elementCount: r.elements.length, types: r.elements.map(e => e.type), info: (r as any).debugInfo || '' },
               })
             }
           }
