@@ -766,14 +766,20 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
   }
 
   // 클릭 좌/우
-  const handleMouseDown = (e: React.MouseEvent) => { mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() } }
+  const handleMouseDown = (e: React.MouseEvent) => {
+    mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() }
+    // 빠른 클릭 시 텍스트 선택 깜빡임 방지
+    window.getSelection()?.removeAllRanges()
+  }
   const handleClick = (e: React.MouseEvent) => {
     if (showSettings || showToc || showNotesPanel || showMemoModal || showSearch) return
     const mdp = mouseDownPosRef.current
     const isQuickClick = mdp?.t && Date.now() - mdp.t < 300
     if (mdp && Math.sqrt((e.clientX - mdp.x) ** 2 + (e.clientY - mdp.y) ** 2) > 5) { mouseDownPosRef.current = null; return }
     mouseDownPosRef.current = null
-    if (isQuickClick) { window.getSelection()?.removeAllRanges(); setShowHighlightMenu(false) }
+    // 빠른 클릭이면 무조건 selection 제거 (깜빡임 방지)
+    window.getSelection()?.removeAllRanges()
+    setShowHighlightMenu(false)
     const sel = window.getSelection()
     if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return
     if (focusMode) {
@@ -786,8 +792,8 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
       return
     }
     const clickX = e.clientX; const w = window.innerWidth
-    if (clickX < w * 0.45) goToPrevPage()
-    else if (clickX > w * 0.55) goToNextPage()
+    if (clickX < w * 0.35) goToPrevPage()
+    else if (clickX > w * 0.65) goToNextPage()
   }
 
   // 텍스트 선택 → 하이라이트 메뉴
