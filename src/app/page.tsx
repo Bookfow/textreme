@@ -704,7 +704,7 @@ export default function TeXTREME() {
             }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
               <span style={{ fontSize: 12, color: isPwaInstalled ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.4)", fontWeight: 500 }}>
-                {isPwaInstalled ? "설치 완료" : "웹앱으로 설치"}
+                {isPwaInstalled ? "설치 완료" : <span style={{ paddingLeft: 18 }}>웹앱으로 설치</span>}
               </span>
               <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
                 {isPwaInstalled ? "TeXTREME ✓" : <><Zap size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 2 }} color="#F59E0B" />TeXTREME PDF to EPUB</>}
