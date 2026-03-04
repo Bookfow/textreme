@@ -1,5 +1,7 @@
 'use client'
 
+import * as PortOne from "@portone/browser-sdk/v2"
+
 import Link from "next/link"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -71,6 +73,61 @@ function calcPrice(pages: number): number {
 }
 
 export default function TeXTREME() {
+
+  // ━━━ 포트원 결제 처리 ━━━
+  const handlePayment = async () => {
+    const price = calcPrice(filePages)
+    const paymentId = `textreme-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+
+    try {
+      // 1단계: 포트원 결제창 열기
+      const response = await PortOne.requestPayment({
+        storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID!,
+        channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY!,
+        paymentId: paymentId,
+        orderName: `TeXTREME PDF→EPUB 변환 (${filePages}p)`,
+        totalAmount: price,
+        currency: "CURRENCY_KRW",
+        payMethod: "CARD",
+        productType: "PRODUCT_TYPE_DIGITAL",
+      })
+
+      // 사용자가 결제창을 닫았거나 에러 발생
+      if (response?.code != null) {
+        if (response.code === "FAILURE_TYPE_PG" || response.message?.includes("cancel")) {
+          return // 사용자가 취소한 경우 조용히 종료
+        }
+        alert("결제 중 오류가 발생했습니다: " + response.message)
+        return
+      }
+
+      // 2단계: 서버에서 결제 검증
+      const verifyRes = await fetch("/api/payment/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentId: paymentId,
+          expectedAmount: price,
+        }),
+      })
+
+      const verifyData = await verifyRes.json()
+
+      if (!verifyData.success) {
+        alert("결제 검증에 실패했습니다: " + verifyData.error)
+        return
+      }
+
+      // 3단계: 검증 통과! 변환 시작
+      startConversion(filePages)
+
+    } catch (error) {
+      console.error("결제 처리 에러:", error)
+      alert("결제 처리 중 오류가 발생했습니다.")
+    }
+  }
+
+
   const [view, setView] = useState<ViewType>("landing")
   const [file, setFile] = useState<File | null>(null)
   const [fileName, setFileName] = useState("")
@@ -341,7 +398,7 @@ export default function TeXTREME() {
               style={{ flex: 1, padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
               취소
             </button>
-            <button onClick={() => startConversion(filePages)}
+            <button onClick={handlePayment}
               disabled={!agreeNoRefund}
               style={{ flex: 2, padding: "16px 20px", borderRadius: 12, background: agreeNoRefund ? "linear-gradient(135deg, #F59E0B, #D97706)" : "rgba(255,255,255,0.08)", border: "none", color: agreeNoRefund ? "#000" : "rgba(255,255,255,0.3)", fontSize: 16, fontWeight: 800, cursor: agreeNoRefund ? "pointer" : "not-allowed", boxShadow: agreeNoRefund ? "0 0 30px rgba(245,158,11,0.2)" : "none", transition: "all 0.3s" }}>
               ₩{price.toLocaleString()} 결제하고 변환
