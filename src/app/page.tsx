@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { FileText, Zap, BookOpen, Smartphone, Globe, ArrowRight, Type, CheckCircle2 } from "lucide-react"
+import { FileText, Zap, Upload, BookOpen, Smartphone, Globe, ArrowRight, Type, CheckCircle2 } from "lucide-react"
 import EpubViewerLite from "@/components/epub-viewer-lite"
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
 
@@ -55,6 +55,9 @@ ${fontLink}
 @media (max-width: 640px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
 .upload-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 560px; }
 @media (max-width: 480px) { .upload-boxes { gap: 12px; } }
+@keyframes boxGlow { 0%,100% { box-shadow: 0 0 20px rgba(245,158,11,0.08), 0 0 40px rgba(245,158,11,0.04); } 50% { box-shadow: 0 0 30px rgba(245,158,11,0.15), 0 0 60px rgba(245,158,11,0.08); } }
+.converter-box-glow { animation: boxGlow 3s ease-in-out infinite; }
+.converter-box-glow:hover { animation: none; box-shadow: 0 0 40px rgba(245,158,11,0.2), 0 0 80px rgba(245,158,11,0.1) !important; border-color: rgba(245,158,11,0.5) !important; }
 `
 
 function calcPrice(pages: number): number {
@@ -485,68 +488,76 @@ export default function TeXTREME() {
 
         {/* Two Boxes: Viewer + Converter */}
         <div className="fade-up-d3 upload-boxes">
-          {/* Left: 무료 문서 뷰어 */}
-          <div
-            onClick={() => viewerInputRef.current?.click()}
-            style={{
-              padding: "32px 20px", borderRadius: 20,
-              border: "2px dashed rgba(34,197,94,0.2)",
-              background: "rgba(34,197,94,0.03)",
-              cursor: "pointer", textAlign: "center", transition: "all 0.3s",
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              aspectRatio: "1",
-            }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-              <BookOpen size={24} color="#22c55e" />
+          {/* Left: FREE 문서 뷰어 */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <BookOpen size={20} color="#22c55e" />
+              <span style={{ color: "#22c55e", fontSize: 16, fontWeight: 800 }}>FREE 문서 뷰어</span>
             </div>
-            <p style={{ color: "#fff", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
-              무료 문서 뷰어
-            </p>
-            <p style={{ color: "rgba(34,197,94,0.7)", fontSize: 12, marginBottom: 10 }}>
-              클릭하여 파일 열기
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginBottom: 12 }}>
-              {["EPUB", "TXT", "DOCX", "PDF"].map(fmt => (
-                <span key={fmt} style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", color: "#22c55e", fontSize: 11, fontWeight: 600 }}>{fmt}</span>
-              ))}
+            <div
+              onClick={() => viewerInputRef.current?.click()}
+              style={{
+                width: "100%", padding: "28px 16px", borderRadius: 20,
+                border: "2px dashed rgba(34,197,94,0.2)",
+                background: "rgba(34,197,94,0.03)",
+                cursor: "pointer", textAlign: "center", transition: "all 0.3s",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                aspectRatio: "1",
+              }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(34,197,94,0.08)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+                <Upload size={22} color="#22c55e" />
+              </div>
+              <p style={{ color: "#22c55e", fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                클릭하여 파일 열기
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginBottom: 14 }}>
+                {["EPUB", "TXT", "DOCX", "PDF"].map(fmt => (
+                  <span key={fmt} style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", color: "#22c55e", fontSize: 11, fontWeight: 600 }}>{fmt}</span>
+                ))}
+              </div>
+              <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, lineHeight: 1.5 }}>
+                단, 일반 PDF는 문서 구조 특성상<br />뷰어에서 제대로 보이지 않을 수 있습니다.
+              </p>
+              <input ref={viewerInputRef} type="file" accept=".epub,.txt,.docx,.pdf" style={{ display: "none" }}
+                onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
             </div>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, lineHeight: 1.5 }}>
-              단, 일반 PDF는 문서 구조 특성상<br />뷰어에서 제대로 보이지 않을 수 있습니다.
-            </p>
-            <input ref={viewerInputRef} type="file" accept=".epub,.txt,.docx,.pdf" style={{ display: "none" }}
-              onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
           </div>
 
-          {/* Right: PDF → EPUB 변환 */}
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              padding: "32px 20px", borderRadius: 20,
-              border: "2px dashed rgba(245,158,11,0.2)",
-              background: "rgba(245,158,11,0.03)",
-              cursor: "pointer", textAlign: "center", transition: "all 0.3s",
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              aspectRatio: "1",
-            }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-              <Zap size={24} color="#F59E0B" />
+          {/* Right: PDF → EPUB 변환 (강조) */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <Zap size={20} color="#F59E0B" />
+              <span style={{ color: "#F59E0B", fontSize: 16, fontWeight: 800 }}>PDF → EPUB 변환</span>
             </div>
-            <p style={{ color: "#fff", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
-              PDF → EPUB 변환
-            </p>
-            <p style={{ color: "rgba(245,158,11,0.7)", fontSize: 12, marginBottom: 10 }}>
-              클릭하여 PDF 열기
-            </p>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-              <span style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 11, fontWeight: 600 }}>PDF</span>
-              <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>→</span>
-              <span style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 11, fontWeight: 600 }}>EPUB</span>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="converter-box-glow"
+              style={{
+                width: "100%", padding: "28px 16px", borderRadius: 20,
+                border: "2px solid rgba(245,158,11,0.35)",
+                background: "rgba(245,158,11,0.04)",
+                cursor: "pointer", textAlign: "center", transition: "all 0.3s",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                aspectRatio: "1",
+                boxShadow: "0 0 30px rgba(245,158,11,0.1), 0 0 60px rgba(245,158,11,0.05)",
+              }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(245,158,11,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+                <Upload size={22} color="#F59E0B" />
+              </div>
+              <p style={{ color: "#F59E0B", fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                클릭하여 PDF 열기
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+                <span style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 11, fontWeight: 600 }}>PDF</span>
+                <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13 }}>→</span>
+                <span style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 11, fontWeight: 600 }}>EPUB</span>
+              </div>
+              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
+                AI 변환 · 페이지당 ₩10
+              </p>
+              <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: "none" }}
+                onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
             </div>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
-              AI 변환 · 페이지당 ₩10
-            </p>
-            <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: "none" }}
-              onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
           </div>
         </div>
 
