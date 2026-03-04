@@ -1,8 +1,12 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from "react"
+import dynamic from "next/dynamic"
+
+const PDFViewer = dynamic(() => import("@/components/pdf-viewer"), { ssr: false })
 import { FileText, Zap, Upload, BookOpen, Smartphone, Globe, ArrowRight, Type, CheckCircle2 } from "lucide-react"
 import EpubViewerLite from "@/components/epub-viewer-lite"
+
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -18,7 +22,7 @@ const PRICE_EXAMPLES = [
   { pages: 487, display: "487p 기술서적" },
 ]
 
-type ViewType = "landing" | "pricing" | "converting" | "complete" | "viewer"
+type ViewType = "landing" | "pricing" | "converting" | "complete" | "viewer" | "pdf-viewer"
 
 interface ExtractedText { page: number; text: string }
 
@@ -78,6 +82,7 @@ export default function TeXTREME() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isPwaInstalled, setIsPwaInstalled] = useState(false)
   const [epubUrl, setEpubUrl] = useState<string | null>(null)
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null)
 
   // ━━━ PWA install prompt ━━━
   useEffect(() => {
@@ -144,7 +149,7 @@ export default function TeXTREME() {
     return () => { if (progressInterval.current) clearInterval(progressInterval.current) }
   }, [])
 
-  const handleFile = async (f: File) => {
+  const handleFile = async (f: File, mode: 'viewer' | 'convert' = 'convert') => {
     if (!f) return
     const ext = f.name.split('.').pop()?.toLowerCase() || ''
     setFileName(f.name)
@@ -184,8 +189,17 @@ export default function TeXTREME() {
       return
     }
 
-    // PDF → 가격 확인 후 변환
+    // PDF 처리
     if (ext === 'pdf') {
+      if (mode === 'viewer') {
+        // 왼쪽 박스: PDF 뷰어로 열기
+        const url = URL.createObjectURL(f)
+        setPdfViewerUrl(url)
+        setFile(f)
+        setView("pdf-viewer")
+        return
+      }
+      // 오른쪽 박스: 가격 확인 후 변환
       setFile(f)
       const pages = 50 + Math.floor(Math.random() * 250)
       setFilePages(pages)
@@ -196,7 +210,8 @@ export default function TeXTREME() {
 
   const reset = () => {
     if (epubUrl) URL.revokeObjectURL(epubUrl)
-    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null)
+    if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
+    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null); setPdfViewerUrl(null)
     if (progressInterval.current) clearInterval(progressInterval.current)
   }
 
@@ -210,6 +225,32 @@ export default function TeXTREME() {
         <EpubViewerLite
           epubUrl={epubUrl}
           onBack={reset}
+        />
+      </div>
+    )
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // PDF Viewer — PDF 뷰어 모드
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (view === "pdf-viewer" && pdfViewerUrl) {
+    return (
+      <div style={{ width: "100vw", height: "100dvh", fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
+        <style>{`* { margin: 0; padding: 0; box-sizing: border-box; }`}</style>
+        <PDFViewer
+          pdfUrl={pdfViewerUrl}
+          fileName={fileName}
+          onBack={reset}
+          onConvert={() => {
+            // PDF 뷰어에서 변환으로 전환
+            if (file) {
+              const pages = 50 + Math.floor(Math.random() * 250)
+              setFilePages(pages)
+              if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
+              setPdfViewerUrl(null)
+              setView("pricing")
+            }
+          }}
         />
       </div>
     )
@@ -519,7 +560,7 @@ export default function TeXTREME() {
                 단, 일반 PDF는 문서 구조 특성상<br />뷰어에서 제대로 보이지 않을 수 있습니다.
               </p>
               <input ref={viewerInputRef} type="file" accept=".epub,.txt,.docx,.pdf" style={{ display: "none" }}
-                onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
+                onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'viewer') }} />
             </div>
           </div>
 
