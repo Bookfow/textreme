@@ -684,8 +684,8 @@ export default function TeXTREME() {
       <section style={{ padding: "80px 24px 48px", background: "#06060c", textAlign: "center" }}>
         <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={() => fileInputRef.current?.click()}
-            style={{ padding: "16px 40px", borderRadius: 14, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 800, fontSize: 18, border: "none", cursor: "pointer", boxShadow: "0 0 40px rgba(245,158,11,0.2)", display: "flex", alignItems: "center", gap: 10 }}>
-            PDF → EPUB 변환하기 <ArrowRight size={20} />
+            style={{ padding: "16px 28px", borderRadius: 14, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 800, fontSize: 18, border: "none", cursor: "pointer", boxShadow: "0 0 40px rgba(245,158,11,0.2)", display: "flex", alignItems: "center", gap: 10 }}>
+            PDF → EPUB 변환하기
           </button>
         </div>
         <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 16 }}>
