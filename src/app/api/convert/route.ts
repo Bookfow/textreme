@@ -34,60 +34,54 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
 const GEMINI_MODEL = 'gemini-2.5-flash'
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`
 
-// ★ 프롬프트 v2 — 본문 추출 최우선, 이미지 판단 기준 엄격 제한
-const SYSTEM_PROMPT = `당신은 한국어 PDF 페이지에서 텍스트를 빠짐없이 추출하는 전문가입니다.
+// ★ 프롬프트 v3 — 본문 추출 최우선 + 이미지 판단 균형
+const SYSTEM_PROMPT = `당신은 한국어 PDF 페이지 이미지를 분석하여 텍스트를 구조화된 JSON으로 추출하는 전문가입니다.
 
-이 PDF 페이지 이미지를 분석하여 다음 JSON 형식으로 콘텐츠를 추출하세요:
+출력 JSON 형식:
+{"elements": [
+  {"type": "heading", "level": 1, "text": "..."},
+  {"type": "paragraph", "text": "..."},
+  {"type": "quote", "text": "..."},
+  {"type": "list_item", "text": "..."},
+  {"type": "image_placeholder", "description": "..."},
+  {"type": "caption", "text": "..."}
+]}
 
-{
-  "elements": [
-    {"type": "heading", "level": 1, "text": "제목 텍스트"},
-    {"type": "paragraph", "text": "본문 텍스트"},
-    {"type": "quote", "text": "인용문"},
-    {"type": "list_item", "text": "목록 항목"},
-    {"type": "image_placeholder", "description": "이미지 설명"},
-    {"type": "caption", "text": "이미지 캡션"}
-  ]
-}
+★ 핵심 원칙: 페이지에 보이는 읽을 수 있는 모든 텍스트를 빠짐없이 추출하는 것이 최우선입니다.
 
-★ 최우선 규칙: 텍스트 추출이 가장 중요합니다.
-- 페이지에 보이는 **모든 읽을 수 있는 텍스트**를 빠짐없이 추출하세요.
-- 배경색이 있거나, 박스/테두리 안에 있거나, 색상이 다른 텍스트도 **모두 본문으로 추출**하세요.
-- 슬라이드형 PDF, 디자인된 문서, 카드형 레이아웃의 텍스트도 모두 추출하세요.
-- 의심스러우면 **텍스트로 추출**하세요. 누락보다 과다 추출이 낫습니다.
-
-image_placeholder로 처리하는 경우 (이것만 해당):
-- 실제 사진 (인물 사진, 풍경 사진, 제품 사진 등)
-- 다른 앱/웹사이트의 스크린샷이 통째로 삽입된 경우 (캡처 이미지)
-- 차트, 그래프, 플로우차트 등 시각적 도표
-- 아이콘이나 로고가 크게 들어간 경우
-- 이 경우에도, 도표/스크린샷 바깥에 있는 본문 텍스트는 반드시 추출하세요.
-
-본문으로 추출해야 하는 경우 (image_placeholder로 처리 금지):
-- 배경색이 있는 박스 안의 텍스트 → paragraph로 추출
-- 말풍선, 대화형 UI 안의 텍스트 → quote 또는 paragraph로 추출
-- 테두리가 있는 카드 안의 텍스트 → paragraph로 추출
-- 표(table) 안의 텍스트 → paragraph 또는 list_item으로 추출
+텍스트 추출 규칙:
+- 배경색이 있는 박스, 색상 카드, 말풍선 안의 텍스트 → paragraph 또는 quote로 추출
+- 표(table) 안의 텍스트 → paragraph로 추출 (행 단위로)
 - 글머리 기호, 번호 목록 → list_item으로 추출
-- 강조 박스, 팁 박스 안의 텍스트 → paragraph로 추출
+- 강조 박스, 팁 박스, 인용 영역 → quote로 추출
+- 슬라이드형 PDF의 모든 텍스트 → 빠짐없이 추출
+- 제목은 크기/굵기로 heading level(1~3) 부여
 
-기타 규칙:
-1. 제목은 크기와 굵기로 판단하여 heading level(1~3)을 부여하세요.
-2. 원문의 줄바꿈과 문단 구분을 존중하세요.
-3. 페이지 상단/하단의 머리글, 꼬리글, 페이지 번호는 제외하세요.
-4. JSON만 반환하세요. 마크다운 코드블록으로 감싸지 마세요.`
+image_placeholder 사용 (아래 경우만 해당):
+- 실제 사진 (인물, 풍경, 제품 등)
+- 다른 앱/웹사이트의 스크린샷이 통째로 캡처된 이미지
+- 차트, 그래프, 플로우차트 등 데이터 시각화 도표
+- 아이콘, 로고, 일러스트레이션
+→ 단, 스크린샷/도표 바깥의 본문 텍스트는 반드시 추출하세요.
+→ 스크린샷 안의 텍스트는 추출하지 마세요.
 
-async function extractPageWithGemini(imageBase64: string, mimeType: string): Promise<{ elements: PageElement[], inputTokens: number, outputTokens: number }> {
+제외 항목: 페이지 번호, 머리글, 꼬리글
+출력: JSON만 반환. 마크다운 코드블록 사용 금지.`
+
+async function extractPageWithGemini(imageBase64: string, mimeType: string, retryCount = 0): Promise<{ elements: PageElement[], inputTokens: number, outputTokens: number }> {
   const body = {
+    systemInstruction: {
+      parts: [{ text: SYSTEM_PROMPT }]
+    },
     contents: [{
       parts: [
-        { text: SYSTEM_PROMPT },
+        { text: '이 PDF 페이지의 모든 텍스트를 추출해주세요.' },
         { inline_data: { mime_type: mimeType, data: imageBase64 } }
       ]
     }],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 8192,
       responseMimeType: 'application/json',
     }
   }
@@ -100,28 +94,63 @@ async function extractPageWithGemini(imageBase64: string, mimeType: string): Pro
 
   if (!res.ok) {
     const err = await res.text()
+    // Rate limit → 재시도
+    if (res.status === 429 && retryCount < 3) {
+      await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)))
+      return extractPageWithGemini(imageBase64, mimeType, retryCount + 1)
+    }
     throw new Error(`Gemini API error ${res.status}: ${err}`)
   }
 
   const data = await res.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
   const usage = data.usageMetadata || {}
 
-  // JSON 파싱 (코드블록 래핑 대응)
-  let cleaned = text.trim()
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
+  // JSON 파싱 (여러 래핑 패턴 대응)
+  let parsed: { elements: PageElement[] } | null = null
+
+  if (text.trim()) {
+    let cleaned = text.trim()
+    // ```json ... ``` 래핑 제거
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?\s*```$/i, '')
+
+    try {
+      const obj = JSON.parse(cleaned)
+      // { elements: [...] } 또는 [...] 형태 모두 처리
+      if (Array.isArray(obj)) {
+        parsed = { elements: obj }
+      } else if (obj.elements && Array.isArray(obj.elements)) {
+        parsed = obj
+      } else {
+        parsed = { elements: [obj] }
+      }
+    } catch {
+      // JSON 파싱 실패 → 텍스트에서 JSON 배열/객체 추출 시도
+      const jsonMatch = cleaned.match(/\{[\s\S]*"elements"\s*:\s*\[[\s\S]*\]\s*\}/)
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0])
+        } catch {}
+      }
+    }
   }
 
-  let parsed: { elements: PageElement[] }
-  try {
-    parsed = JSON.parse(cleaned)
-  } catch {
-    parsed = { elements: [{ type: 'paragraph', text: cleaned }] }
+  // 최종 fallback: 빈 텍스트가 아니면 paragraph로
+  if (!parsed || !parsed.elements || parsed.elements.length === 0) {
+    if (text.trim() && !text.trim().startsWith('{')) {
+      parsed = { elements: [{ type: 'paragraph', text: text.trim() }] }
+    } else {
+      parsed = { elements: [] }
+    }
   }
+
+  // elements 유효성 검증 — text가 비어있는 항목 제거
+  parsed.elements = parsed.elements.filter(el =>
+    el.type === 'image_placeholder' ? !!el.description : !!el.text?.trim()
+  )
 
   return {
-    elements: parsed.elements || [],
+    elements: parsed.elements,
     inputTokens: usage.promptTokenCount || 0,
     outputTokens: usage.candidatesTokenCount || 0,
   }
