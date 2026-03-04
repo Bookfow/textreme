@@ -12,6 +12,7 @@ import { FileText, Zap, Upload, BookOpen, Smartphone, Globe, ArrowRight, Type, C
 import EpubViewerLite from "@/components/epub-viewer-lite"
 
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
+import * as pdfjsLib from 'pdfjs-dist'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TeXTREME — Landing + Convert + Complete
@@ -165,45 +166,127 @@ export default function TeXTREME() {
     setDeferredPrompt(null)
   }
 
-  // ━━━ Conversion simulation ━━━
-  const startConversion = useCallback((pages: number) => {
+  // ━━━ Real conversion via Gemini API ━━━
+  const startConversion = useCallback(async (pages: number) => {
+    if (!file) return
     setView("converting")
     setProgress(0)
     setCurrentPage(0)
     setExtractedTexts([])
 
-    let p = 0
-    let page = 0
-    const totalSteps = 60
-    const pageInterval = Math.max(1, Math.floor(totalSteps / Math.min(pages, 30)))
+    try {
+      // 1단계: PDF를 페이지별 이미지로 변환 (클라이언트에서)
+      setExtractedTexts([{ page: 0, text: 'PDF 페이지를 이미지로 변환 중...' }])
 
-    progressInterval.current = setInterval(() => {
-      p += 1 + Math.random() * 2
-      page += 1
-      if (p >= 100) {
-        p = 100
-        if (progressInterval.current) clearInterval(progressInterval.current)
-        setTimeout(() => setView("complete"), 600)
-      }
-      setProgress(Math.min(100, Math.round(p)))
-      setCurrentPage(Math.min(Math.round((p / 100) * pages), pages))
+      const arrayBuffer = await file.arrayBuffer()
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      const totalPages = pdfDoc.numPages
 
-      if (page % pageInterval === 0) {
-        const sampleTexts = [
-          "AI가 PDF 페이지의 텍스트 구조를 분석하고 있습니다...",
-          "제목, 본문, 인용구를 자동으로 분류하는 중입니다...",
-          "한글 조사와 어미를 정확하게 인식하고 있습니다...",
-          "페이지 레이아웃을 리플로우 형식으로 변환 중입니다...",
-          "이미지와 텍스트 영역을 구분하고 있습니다...",
-          "EPUB 3.0 표준에 맞게 구조화하고 있습니다...",
-        ]
-        setExtractedTexts(prev => {
-          const next: ExtractedText[] = [...prev, { page: Math.round((p / 100) * pages), text: sampleTexts[Math.floor(Math.random() * sampleTexts.length)] }]
-          return next.slice(-6)
-        })
+      const pageImages: { base64: string; mimeType: string }[] = []
+
+      for (let i = 1; i <= totalPages; i++) {
+        const page = await pdfDoc.getPage(i)
+        const viewport = page.getViewport({ scale: 1.5 })
+        const canvas = document.createElement('canvas')
+        canvas.width = viewport.width
+        canvas.height = viewport.height
+        const ctx = canvas.getContext('2d')!
+        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise
+
+        // JPEG로 변환 (크기 절약)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+        const base64 = dataUrl.split(',')[1]
+        pageImages.push({ base64, mimeType: 'image/jpeg' })
+
+        setProgress(Math.round((i / totalPages) * 15)) // 0~15%: 이미지 변환
+        canvas.remove()
       }
-    }, 80)
-  }, [])
+
+      // 2단계: SSE로 Gemini API 호출
+      setExtractedTexts([{ page: 0, text: 'AI가 페이지를 분석하고 있습니다...' }])
+
+      const title = file.name.replace(/\.pdf$/i, '')
+      const response = await fetch('/api/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pages: pageImages, title }),
+      })
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({ error: '서버 오류' }))
+        throw new Error(errData.error || `서버 오류 ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('스트림을 읽을 수 없습니다')
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const data = JSON.parse(line.slice(6))
+
+            if (data.type === 'progress') {
+              const pct = 15 + Math.round((data.percent / 100) * 75) // 15~90%: AI 추출
+              setProgress(pct)
+              setCurrentPage(data.page)
+              if (data.text) {
+                setExtractedTexts(prev => {
+                  const next = [...prev, { page: data.page, text: data.text }]
+                  return next.slice(-6)
+                })
+              }
+            } else if (data.type === 'status') {
+              setExtractedTexts(prev => [...prev.slice(-5), { page: 0, text: data.message }])
+            } else if (data.type === 'complete') {
+              setProgress(100)
+
+              // EPUB base64 → Blob → 다운로드 + 뷰어 열기
+              if (data.epubBase64) {
+                const binaryStr = atob(data.epubBase64)
+                const bytes = new Uint8Array(binaryStr.length)
+                for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+                const blob = new Blob([bytes], { type: 'application/epub+zip' })
+
+                // 자동 다운로드
+                const downloadUrl = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = downloadUrl
+                a.download = title + '.epub'
+                a.click()
+                URL.revokeObjectURL(downloadUrl)
+
+                // 뷰어용 URL 설정
+                const viewerUrl = URL.createObjectURL(blob)
+                setEpubUrl(viewerUrl)
+              }
+
+              setTimeout(() => setView("complete"), 600)
+            } else if (data.type === 'error') {
+              throw new Error(data.message)
+            }
+          } catch (parseErr: any) {
+            if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('변환 실패:', err)
+      alert('변환 중 오류가 발생했습니다: ' + err.message)
+      setView("landing")
+    }
+  }, [file])
 
   useEffect(() => {
     return () => { if (progressInterval.current) clearInterval(progressInterval.current) }
@@ -259,10 +342,16 @@ export default function TeXTREME() {
         setView("pdf-viewer")
         return
       }
-      // 오른쪽 박스: 가격 확인 후 변환
+      // 오른쪽 박스: 실제 페이지 수 확인 후 변환
       setFile(f)
-      const pages = 50 + Math.floor(Math.random() * 250)
-      setFilePages(pages)
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+        const arrayBuffer = await f.arrayBuffer()
+        const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+        setFilePages(pdfDoc.numPages)
+      } catch {
+        setFilePages(0)
+      }
       setView("pricing")
       return
     }
@@ -304,11 +393,19 @@ export default function TeXTREME() {
           onConvert={() => {
             // PDF 뷰어에서 변환으로 전환
             if (file) {
-              const pages = 50 + Math.floor(Math.random() * 250)
-              setFilePages(pages)
-              if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
-              setPdfViewerUrl(null)
-              setView("pricing")
+              (async () => {
+                try {
+                  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+                  const ab = await file.arrayBuffer()
+                  const doc = await pdfjsLib.getDocument({ data: ab }).promise
+                  setFilePages(doc.numPages)
+                } catch {
+                  setFilePages(0)
+                }
+                if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
+                setPdfViewerUrl(null)
+                setView("pricing")
+              })()
             }
           }}
         />
@@ -544,10 +641,17 @@ export default function TeXTREME() {
               style={{ flex: 1, padding: "14px 20px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
               다른 PDF 변환
             </button>
-            <button onClick={reset}
-              style={{ flex: 1, padding: "14px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-              홈으로
-            </button>
+            {epubUrl ? (
+              <button onClick={() => setView("viewer")}
+                style={{ flex: 1, padding: "14px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                EPUB 바로 읽기
+              </button>
+            ) : (
+              <button onClick={reset}
+                style={{ flex: 1, padding: "14px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                홈으로
+              </button>
+            )}
           </div>
         </div>
       </div>
