@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Upload, FileText, Zap, Download, Check, BookOpen, Smartphone, Globe, ArrowRight, X, Type, Eye, CheckCircle2 } from "lucide-react"
-import DemoReader from "@/components/demo-reader"
+import { Upload, FileText, Zap, Download, BookOpen, Smartphone, Globe, ArrowRight, Type, CheckCircle2 } from "lucide-react"
 import EpubViewerLite from "@/components/epub-viewer-lite"
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TeXTREME — Landing + Demo + Convert + Complete
+// TeXTREME — Landing + Convert + Complete
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const PRICE_PER_PAGE = 10
@@ -19,66 +18,7 @@ const PRICE_EXAMPLES = [
   { pages: 500, display: "500p 기술서적" },
 ]
 
-const SAMPLE_CHAPTERS = [
-  {
-    title: "1장 디자이너의 날갯짓이 불러일으킨 태풍",
-    paragraphs: [
-      "영국의 식민지였던 인도에는 코브라가 너무 많아서 실행된 정책이 하나 있다. 코브라를 잡아 오면 보상금을 주는 정책이다. 이 정책을 실행한 초반에는 코브라가 줄어드는 듯했지만, 나중에는 돈을 벌기 위해 일부러 코브라를 번식시키는 사람들이 생겨났다.",
-      "이 사실을 알게 된 영국 정부는 보상 정책을 중단했다. 그러자 코브라 사육자들은 가치가 없어진 코브라를 몽땅 풀어버렸다. 결과적으로 정책을 시행하기 전보다 더 많은 야생 코브라가 사람들의 생명을 위협하는 상황이 벌어졌다.",
-      "20세기 초, 프랑스의 식민지였던 베트남 하노이에서도 비슷한 일이 있었다. 여기서는 '쥐 없애기' 정책을 시행했는데, 코브라 정책과 마찬가지로 쥐를 잡아서 죽이고 그 꼬리를 가져오면 보상금을 주는 제도였다.",
-      "하지만 보상금 사냥꾼들은 쥐를 죽인 뒤 몸통은 버리고 꼬리만 잘라 제출했다. 더 나아가 일부는 꼬리만 자르고 쥐를 다시 풀어주어 번식하게 만들었다. 심지어 쥐를 직접 사육하는 농장까지 등장했다. 이것이 바로 '코브라 효과'라 불리는 현상이다.",
-    ]
-  },
-  {
-    title: "2장 들어올 때는 마음대로였겠지만 나갈 때는 아니다",
-    paragraphs: [
-      "오후 6시 반, 문자 알림음이 울린다. 'OO카드 8*4* 승인 23,100원 일시불'. 무언가 이상하다. 카드 주인인 나는 지금 집에서 저녁 메뉴를 고민하고 있는데, 결제 알림이라니?",
-      "급하게 가방을 뒤적거려보니 다행히 카드를 잃어버리진 않았다. 설마 해킹당한 건가? 결제된 곳은 '엔에이치엔 케이씨피(NHN KCP)'. 네이버에 검색해 보니 지식인에 비슷한 상황의 사람들이 많이 보였다.",
-      "알고 보니 이것은 무료 체험 후 자동 결제되는 구독 서비스였다. 3일 무료 체험에 가입했던 것이 잊혀진 채 유료로 전환된 것이다. 이런 패턴을 '다크 패턴'이라 부른다.",
-      "다크 패턴은 사용자를 속여 의도하지 않은 행동을 하게 만드는 인터페이스 디자인이다. 구독 취소 버튼을 찾기 어렵게 숨기거나, 해지 과정을 복잡하게 만드는 것이 대표적이다.",
-    ]
-  },
-  {
-    title: "3장 좋은 디자인의 조건",
-    paragraphs: [
-      "디터 람스는 1960년대부터 브라운(Braun)의 수석 디자이너로 일하며 '좋은 디자인의 10가지 원칙'을 정립했다. 그 첫 번째 원칙은 '좋은 디자인은 혁신적이다'라는 것이다.",
-      "두 번째 원칙은 '좋은 디자인은 제품을 유용하게 만든다'이다. 아무리 아름다워도 쓸모없는 제품은 좋은 디자인이 아니다. 디자인은 기능에 봉사해야 한다.",
-      "세 번째 원칙은 '좋은 디자인은 미적이다'. 제품의 심미성은 사용성에 직접적인 영향을 미친다. 사람들은 아름다운 것을 더 잘 사용하고, 더 오래 사용한다.",
-      "네 번째와 다섯 번째 원칙은 '좋은 디자인은 제품을 이해하기 쉽게 만든다'와 '좋은 디자인은 눈에 띄지 않는다'이다. 최고의 디자인은 사용자가 디자인의 존재를 의식하지 못할 때 달성된다.",
-      "이 원칙들은 반세기가 지난 지금도 유효하다. 애플의 조나단 아이브는 람스의 영향을 깊이 받았으며, 아이폰의 디자인 철학에도 이 원칙들이 녹아 있다.",
-    ]
-  },
-  {
-    title: "4장 사용자 경험의 재발견",
-    paragraphs: [
-      "1998년, 구글은 검색 페이지에서 모든 장식을 제거했다. 당시 야후와 알타비스타가 포털 사이트로 진화하며 화면을 온갖 링크와 광고로 채우고 있을 때, 구글은 텅 빈 하얀 화면에 검색창 하나만 놓았다.",
-      "이것은 단순한 미니멀리즘이 아니었다. 사용자가 검색 엔진에 오는 단 하나의 이유, 즉 '무언가를 찾기 위해'라는 본질에 집중한 결정이었다. 불필요한 것을 전부 걷어낸 것이다.",
-      "같은 원리가 모바일 독서 경험에도 적용된다. 종이책의 경험을 디지털로 옮길 때, 가장 중요한 것은 텍스트 그 자체다. 글꼴, 여백, 줄간격 — 이 세 가지가 완벽하면 나머지는 부수적이다.",
-      "PDF는 인쇄를 위한 포맷이다. A4 용지에 최적화된 레이아웃을 5인치 화면에서 읽는 것은, 축소된 포스터를 돋보기로 읽는 것과 다르지 않다. 리플로우 가능한 EPUB이 모바일 독서의 답인 이유가 여기에 있다.",
-    ]
-  },
-  {
-    title: "5장 작은 변화가 만드는 큰 차이",
-    paragraphs: [
-      "영국 정부의 행동경제학팀(BIT, Behavioural Insights Team)은 세금 체납자에게 보내는 독촉장의 문구를 약간 바꿨다. '당신 동네의 대부분 사람들은 이미 세금을 냈습니다'라는 한 줄을 추가한 것이다.",
-      "이 작은 문구 변경으로 세금 납부율이 15% 상승했다. 사회적 증거(Social Proof)라는 심리적 원리가 작동한 것이다. 사람들은 다른 사람들이 하는 행동을 따라하려는 본능이 있다.",
-      "비슷한 원리로, 호텔의 수건 재사용 안내문에 '이 방의 이전 투숙객 75%가 수건을 재사용했습니다'라고 적으면 재사용률이 크게 오른다. 환경 보호를 호소하는 것보다 훨씬 효과적이다.",
-      "넛지(Nudge)는 이런 작은 디자인 변화가 사람들의 행동을 변화시킨다는 이론이다. 선택의 자유는 유지하면서도, 환경을 디자인하여 더 나은 결정을 유도할 수 있다.",
-      "카페테리아에서 과일을 눈높이에 놓고, 디저트를 뒤쪽으로 옮기는 것만으로 건강한 식사 선택이 25% 늘어났다는 연구 결과는 넛지의 대표적 사례다.",
-    ]
-  },
-  {
-    title: "6장 미래를 설계하는 사람들",
-    paragraphs: [
-      "2007년 1월, 스티브 잡스는 맥월드에서 아이폰을 공개하며 말했다. '오늘, 애플은 전화를 재발명합니다.' 그리고 실제로 그렇게 되었다. 아이폰 이전과 이후의 휴대전화는 완전히 다른 물건이다.",
-      "하지만 아이폰의 혁신은 하드웨어에 있지 않았다. 멀티터치 인터페이스, 즉 손가락으로 직접 콘텐츠를 조작한다는 패러다임 전환이 핵심이었다. 버튼이 사라지고, 화면이 곧 인터페이스가 되었다.",
-      "이와 같이, 전자책 독서 경험도 패러다임 전환이 필요하다. PDF를 그대로 모바일에 옮기는 것은 피처폰의 인터페이스를 터치스크린에 올리는 것과 같다. 콘텐츠가 기기에 맞춰 흘러야 한다.",
-      "텍스트가 화면 크기에 따라 자연스럽게 리플로우되고, 독자가 글꼴과 크기를 자유롭게 조절하며, 형광펜과 메모가 종이책처럼 자연스러운 — 그런 디지털 독서 경험이 우리가 만들고자 하는 것이다.",
-    ]
-  },
-]
-
-type ViewType = "landing" | "demo" | "pricing" | "converting" | "complete" | "viewer"
+type ViewType = "landing" | "pricing" | "converting" | "complete" | "viewer"
 
 interface ExtractedText { page: number; text: string }
 
@@ -111,13 +51,6 @@ ${fontLink}
 .step-card:hover { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
 @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
 .shimmer-text { background: linear-gradient(90deg, #F59E0B 30%, #fde68a 50%, #F59E0B 70%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 3s linear infinite; }
-.compare-glow { transition: all 0.3s ease; }
-.compare-glow:hover { box-shadow: 0 8px 32px rgba(34,197,94,0.12); transform: translateY(-2px); }
-@keyframes attention { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245,158,11,0.3); } 50% { transform: scale(1.03); box-shadow: 0 0 20px 4px rgba(245,158,11,0.15); } }
-.demo-attention-btn { animation: attention 2.5s ease-in-out infinite; transition: all 0.2s; }
-.demo-attention-btn:hover { animation: none; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(245,158,11,0.25); border-color: rgba(245,158,11,0.6) !important; }
-.compare-grid { display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 280px; margin: 0 auto; }
-@media (min-width: 640px) { .compare-grid { grid-template-columns: 1fr 1fr; max-width: 100%; } }
 `
 
 function calcPrice(pages: number): number {
@@ -136,7 +69,6 @@ export default function TeXTREME() {
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isPwaInstalled, setIsPwaInstalled] = useState(false)
-  const demoSectionRef = useRef<HTMLDivElement>(null)
   const [epubUrl, setEpubUrl] = useState<string | null>(null)
 
   // ━━━ PWA install prompt ━━━
@@ -184,11 +116,16 @@ export default function TeXTREME() {
       setCurrentPage(Math.min(Math.round((p / 100) * pages), pages))
 
       if (page % pageInterval === 0) {
-        const sampleIdx = Math.floor(Math.random() * SAMPLE_CHAPTERS.length)
-        const sample = SAMPLE_CHAPTERS[sampleIdx]
-        const paraIdx = Math.floor(Math.random() * sample.paragraphs.length)
+        const sampleTexts = [
+          "AI가 PDF 페이지의 텍스트 구조를 분석하고 있습니다...",
+          "제목, 본문, 인용구를 자동으로 분류하는 중입니다...",
+          "한글 조사와 어미를 정확하게 인식하고 있습니다...",
+          "페이지 레이아웃을 리플로우 형식으로 변환 중입니다...",
+          "이미지와 텍스트 영역을 구분하고 있습니다...",
+          "EPUB 3.0 표준에 맞게 구조화하고 있습니다...",
+        ]
         setExtractedTexts(prev => {
-          const next: ExtractedText[] = [...prev, { page: Math.round((p / 100) * pages), text: sample.paragraphs[paraIdx].slice(0, 80) + "..." }]
+          const next: ExtractedText[] = [...prev, { page: Math.round((p / 100) * pages), text: sampleTexts[Math.floor(Math.random() * sampleTexts.length)] }]
           return next.slice(-6)
         })
       }
@@ -253,22 +190,6 @@ export default function TeXTREME() {
     if (epubUrl) URL.revokeObjectURL(epubUrl)
     setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null)
     if (progressInterval.current) clearInterval(progressInterval.current)
-  }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // Demo View — Fullscreen DemoReader
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
-  if (view === "demo") {
-    return (
-      <div style={{ height: "100vh", fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
-        <style>{globalStyles}</style>
-        <DemoReader
-          chapters={SAMPLE_CHAPTERS}
-          title="디자인의 심리학 — 샘플"
-          onBack={() => setView("landing")}
-        />
-      </div>
-    )
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -529,10 +450,6 @@ export default function TeXTREME() {
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button className="btn-glow" onClick={() => setView("demo")}
-              style={{ padding: "8px 16px", borderRadius: 10, background: "none", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              <Eye size={14} /> 체험하기
-            </button>
             <button onClick={() => fileInputRef.current?.click()}
               style={{ padding: "8px 20px", borderRadius: 10, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}>
               변환하기
@@ -606,18 +523,9 @@ export default function TeXTREME() {
         </div>
       </section>
 
-      {/* ━━━ DEMO SECTION — Embedded Mini + Fullscreen CTA ━━━ */}
-      <section ref={demoSectionRef} style={{ padding: "100px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
+      {/* ━━━ FEATURES CARDS ━━━ */}
+      <section style={{ padding: "100px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <h2 style={{ color: "#fff", fontWeight: 800, fontSize: "clamp(26px, 4vw, 36px)", letterSpacing: "-0.02em", marginBottom: 12 }}>
-              결제 전에, 변환 품질을 직접 확인하세요
-            </h2>
-            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 16, maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
-              아래는 실제 PDF에서 변환된 EPUB입니다<br />여러분의 PDF로도 최고의 품질의 EPUB 변환이 가능합니다
-            </p>
-          </div>
-
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: 480, margin: "0 auto" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, width: "100%" }}>
                 {[
@@ -633,18 +541,6 @@ export default function TeXTREME() {
                   </div>
                 ))}
               </div>
-
-              <button className="demo-attention-btn" onClick={() => setView("demo")}
-                style={{
-                  marginTop: 28, width: "100%", maxWidth: 360, padding: "13px 20px", borderRadius: 12,
-                  background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.08))",
-                  border: "1.5px solid rgba(245,158,11,0.4)", color: "#F59E0B",
-                  fontWeight: 700, fontSize: 15, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                }}>
-                <Eye size={18} />
-                변환 결과 데모 확인
-              </button>
             </div>
         </div>
       </section>
@@ -673,77 +569,6 @@ export default function TeXTREME() {
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, lineHeight: 1.6 }}>{step.desc}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* BEFORE / AFTER */}
-      <section style={{ padding: "100px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 100%)" }}>
-        <div style={{ maxWidth: 500, margin: "0 auto" }}>
-          <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 32, letterSpacing: "-0.02em", marginBottom: 12 }}>
-            이런 차이가 납니다
-          </h2>
-          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 16, marginBottom: 56 }}>
-            모바일에서 PDF를 읽어본 적 있다면, 이 고통을 아실 겁니다
-          </p>
-          <div className="compare-grid">
-            {/* Before */}
-            <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
-              <div style={{ padding: "12px 16px", background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.15)", display: "flex", alignItems: "center", gap: 8 }}>
-                <X size={16} color="#ef4444" />
-                <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>PDF</span>
-              </div>
-              <div style={{ padding: 0, background: "#525659" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "#3b3b3b", borderBottom: "1px solid #2a2a2a" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ width: 14, height: 14, borderRadius: 3, background: "#666", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontSize: 7, color: "#bbb" }}>☰</span>
-                    </div>
-                    <span style={{ fontSize: 6.5, color: "#999", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>어린왕자.pdf</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <div style={{ fontSize: 6, color: "#888", padding: "2px 4px", background: "#4a4a4a", borderRadius: 2 }}>−</div>
-                    <span style={{ fontSize: 6, color: "#aaa" }}>67%</span>
-                    <div style={{ fontSize: 6, color: "#888", padding: "2px 4px", background: "#4a4a4a", borderRadius: 2 }}>+</div>
-                  </div>
-                </div>
-                <div style={{ padding: "12px 16px", position: "relative" }}>
-                  <div style={{ background: "#fff", padding: "10px 12px", boxShadow: "0 2px 8px rgba(0,0,0,0.3)", position: "relative" }}>
-                    <div style={{ fontSize: 8, color: "#111", fontWeight: 700, marginBottom: 4 }}>제1장 어른들의 세계</div>
-                    <div style={{ fontSize: 5.8, color: "#444", lineHeight: 1.55, wordBreak: "keep-all" }}>
-                      내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다. 나는 이 모험담에 큰 감명을 받아 색연필로 내 최초의 그림을 그렸다. 나의 그림 제1호였다. 나는 이 걸작을 어른들에게 보여주며 무섭지 않으냐고 물었다. 어른들의 대답은 이랬다. &quot;모자가 왜 무섭니?&quot; 내 그림은 모자를 그린 것이 아니었다. 보아뱀이 코끼리를 소화시키고 있는 그림이었다. 어른들이 알아볼 수 있도록 보아뱀의 속을 그려 보여주었다. 어른들은 늘 설명을 요구했다. 나의 그림 제2호를 보고서 어른들은 나에게 보아뱀 그림 같은 건 집어치우고 차라리 지리, 역사, 산수, 문법에 관심을 쏟으라고 충고했다. 그래서 나는 여섯 살에 화가라는 훌륭한 직업을 포기하고 말았다.
-                    </div>
-                  </div>
-                  <div style={{ position: "absolute", right: 4, top: 16, bottom: 16, width: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2 }}>
-                    <div style={{ width: 3, height: 20, background: "rgba(255,255,255,0.3)", borderRadius: 2, marginTop: 8 }} />
-                  </div>
-                </div>
-                <div style={{ textAlign: "center", padding: "4px 0 8px", fontSize: 6, color: "#888" }}>1 / 142</div>
-                <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, textAlign: "center", padding: "8px 0 14px", background: "rgba(0,0,0,0.15)" }}>
-                  확대하고 좌우로 스크롤하고...<br />읽다가 포기 😤
-                </p>
-              </div>
-            </div>
-            {/* After */}
-            <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid rgba(34,197,94,0.2)" }} className="glow-amber compare-glow">
-              <div style={{ padding: "12px 16px", background: "rgba(34,197,94,0.08)", borderBottom: "1px solid rgba(34,197,94,0.15)", display: "flex", alignItems: "center", gap: 8 }}>
-                <Check size={16} color="#22c55e" />
-                <span style={{ color: "#22c55e", fontSize: 13, fontWeight: 600 }}>EPUB</span>
-              </div>
-              <div style={{ padding: 20, background: "rgba(255,255,255,0.02)", minHeight: 280 }}>
-                <div style={{ background: "#1a1410", borderRadius: 8, padding: 16 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "#EEE4E1", marginBottom: 12, lineHeight: 1.3 }}>
-                    제1장 어른들의 세계
-                  </div>
-                  <div style={{ fontSize: 12, color: "#C4A882", lineHeight: 1.8 }}>
-                    내가 여섯 살 때의 일이다. 한번은 원시림에 관한 책에서 놀라운 그림을 본 적이 있다. 그 그림은 보아뱀이 맹수를 삼키고 있는 모습이었다...
-                  </div>
-                </div>
-                <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, textAlign: "center", marginTop: 16 }}>
-                  글자 크기 자유 조절 · 편하게 읽기 ✨
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -802,7 +627,7 @@ export default function TeXTREME() {
           </div>
 
           <p style={{ textAlign: "center", color: "rgba(255,255,255,0.25)", fontSize: 12, marginTop: 24 }}>
-            * 데모로 먼저 체험하고, 만족하면 변환하세요
+            * PDF 파일을 업로드하면 바로 변환이 시작됩니다
           </p>
         </div>
       </section>
@@ -810,17 +635,13 @@ export default function TeXTREME() {
       {/* CTA */}
       <section style={{ padding: "80px 24px 48px", background: "#06060c", textAlign: "center" }}>
         <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-          <button className="btn-glow" onClick={() => setView("demo")}
-            style={{ padding: "16px 32px", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontWeight: 700, fontSize: 17, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-            <Eye size={20} /> 데모 체험하기
-          </button>
           <button onClick={() => fileInputRef.current?.click()}
             style={{ padding: "16px 40px", borderRadius: 14, background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#000", fontWeight: 800, fontSize: 18, border: "none", cursor: "pointer", boxShadow: "0 0 40px rgba(245,158,11,0.2)", display: "flex", alignItems: "center", gap: 10 }}>
             지금 변환하기 <ArrowRight size={20} />
           </button>
         </div>
         <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, marginTop: 16 }}>
-          회원가입 필요 없음 · 데모로 먼저 체험 가능
+          회원가입 필요 없음 · 사용한 만큼만 결제
         </p>
 
         {/* App Download Buttons */}
