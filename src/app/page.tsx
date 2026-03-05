@@ -155,30 +155,33 @@ async function checkPdfCompatibility(
 
         if (imgData?.data) {
           const pixels = imgData.data
-          const bytesPerPixel = imgData.kind === 1 ? 3 : 4  // RGB_24BPP=1, RGBA_32BPP=2
+          const bytesPerPixel = imgData.kind === 1 ? 3 : 4
           const totalPixels = Math.floor(pixels.length / bytesPerPixel)
-          const sampleStep = Math.max(1, Math.floor(totalPixels / 500)) // 최대 500개 샘플링
+          const sampleStep = Math.max(1, Math.floor(totalPixels / 500))
           let whiteCount = 0
-          let darkCount = 0
           let sampled = 0
+          let brightnessSum = 0
+          let brightnessSqSum = 0
 
           for (let j = 0; j < totalPixels; j += sampleStep) {
             const offset = j * bytesPerPixel
             const r = pixels[offset], g = pixels[offset + 1], b = pixels[offset + 2]
+            const brightness = (r + g + b) / 3
+            brightnessSum += brightness
+            brightnessSqSum += brightness * brightness
             if (r > 200 && g > 200 && b > 200) whiteCount++
-            if (r < 80 && g < 80 && b < 80) darkCount++
             sampled++
           }
 
           const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
-          const darkRatio = sampled > 0 ? darkCount / sampled : 0
-          console.log(`[compat] page ${pageNum}: data w=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, darkRatio=${(darkRatio*100).toFixed(1)}%`)
+          const avgBrightness = sampled > 0 ? brightnessSum / sampled : 0
+          const stddev = sampled > 0 ? Math.sqrt(brightnessSqSum / sampled - avgBrightness * avgBrightness) : 0
+          console.log(`[compat] page ${pageNum}: data w=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
-          if (whiteRatio > 0.70 && darkRatio < 0.02) {
+          if (whiteRatio > 0.70 && stddev < 30) {
             maskImagePages++
           }
         } else if (imgData?.bitmap) {
-          // bitmap 형태인 경우 — canvas에 그려서 픽셀 분석
           const bmp = imgData.bitmap
           const c2 = document.createElement('canvas')
           c2.width = bmp.width
@@ -186,27 +189,31 @@ async function checkPdfCompatibility(
           const ctx2 = c2.getContext('2d')!
           ctx2.drawImage(bmp, 0, 0)
           const id = ctx2.getImageData(0, 0, c2.width, c2.height)
-          const pixels = id.data // RGBA
+          const pixels = id.data
           const totalPixels = c2.width * c2.height
           const sampleStep = Math.max(1, Math.floor(totalPixels / 500))
           let whiteCount = 0
-          let darkCount = 0
           let sampled = 0
+          let brightnessSum = 0
+          let brightnessSqSum = 0
 
           for (let j = 0; j < totalPixels; j += sampleStep) {
             const offset = j * 4
             const r = pixels[offset], g = pixels[offset + 1], b = pixels[offset + 2]
+            const brightness = (r + g + b) / 3
+            brightnessSum += brightness
+            brightnessSqSum += brightness * brightness
             if (r > 200 && g > 200 && b > 200) whiteCount++
-            if (r < 80 && g < 80 && b < 80) darkCount++
             sampled++
           }
 
           const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
-          const darkRatio = sampled > 0 ? darkCount / sampled : 0
+          const avgBrightness = sampled > 0 ? brightnessSum / sampled : 0
+          const stddev = sampled > 0 ? Math.sqrt(brightnessSqSum / sampled - avgBrightness * avgBrightness) : 0
           c2.remove()
-          console.log(`[compat] page ${pageNum}: bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, darkRatio=${(darkRatio*100).toFixed(1)}%`)
+          console.log(`[compat] page ${pageNum}: bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
-          if (whiteRatio > 0.70 && darkRatio < 0.02) {
+          if (whiteRatio > 0.70 && stddev < 30) {
             maskImagePages++
           }
         } else {
