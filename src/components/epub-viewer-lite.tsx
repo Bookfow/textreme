@@ -766,18 +766,9 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
   }
 
   // 클릭 좌/우
-  const selectTimerRef = useRef<NodeJS.Timeout | null>(null)
   const contentAreaRef = useRef<HTMLDivElement>(null)
   const handleMouseDown = (e: React.MouseEvent) => {
     mouseDownPosRef.current = { x: e.clientX, y: e.clientY, t: Date.now() }
-    window.getSelection()?.removeAllRanges()
-    // 빠른 클릭 시 선택 깜빡임 방지: 일시적으로 user-select 비활성
-    const el = contentAreaRef.current
-    if (el) { el.style.userSelect = 'none'; (el.style as any).webkitUserSelect = 'none' }
-    if (selectTimerRef.current) clearTimeout(selectTimerRef.current)
-    selectTimerRef.current = setTimeout(() => {
-      if (el) { el.style.userSelect = 'text'; (el.style as any).webkitUserSelect = 'text' }
-    }, 300)
   }
   const handleClick = (e: React.MouseEvent) => {
     if (showSettings || showToc || showNotesPanel || showMemoModal || showSearch) return
@@ -785,9 +776,8 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
     const isQuickClick = mdp?.t && Date.now() - mdp.t < 300
     if (mdp && Math.sqrt((e.clientX - mdp.x) ** 2 + (e.clientY - mdp.y) ** 2) > 5) { mouseDownPosRef.current = null; return }
     mouseDownPosRef.current = null
-    // 빠른 클릭이면 무조건 selection 제거 (깜빡임 방지)
-    window.getSelection()?.removeAllRanges()
-    setShowHighlightMenu(false)
+    // 빠른 클릭이면 selection 제거
+    if (isQuickClick) { window.getSelection()?.removeAllRanges(); setShowHighlightMenu(false) }
     const sel = window.getSelection()
     if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return
     if (focusMode) {
