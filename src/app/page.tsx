@@ -93,7 +93,7 @@ async function checkPdfCompatibility(
 
   // 2) 샘플 페이지 선정 (최대 5개, 고르게 분포)
   const total = pdfDoc.numPages
-  const sampleCount = Math.min(5, total)
+  const sampleCount = Math.min(10, total)
   const sampleIndices: number[] = []
   for (let i = 0; i < sampleCount; i++) {
     sampleIndices.push(Math.floor((i / sampleCount) * total) + 1)
