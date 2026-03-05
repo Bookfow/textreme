@@ -203,7 +203,7 @@ export default function TeXTREME() {
       setExtractedTexts([{ page: 0, text: 'PDF 분할 중...' }])
 
       const { PDFDocument } = await import('pdf-lib')
-      const arrayBuffer = await file.arrayBuffer()
+      const arrayBuffer = await file!.arrayBuffer()
       const srcDoc = await PDFDocument.load(arrayBuffer)
       const totalPages = srcDoc.getPageCount()
 
@@ -221,6 +221,7 @@ export default function TeXTREME() {
       }
 
       setProgress(5)
+      throw new Error('테스트용 강제 에러 — 배포 전 삭제할 것')
       setExtractedTexts([{ page: 0, text: 'AI가 페이지를 분석하고 있습니다...' }])
 
       // ★ 2단계: 크기 기반 동적 배치로 서버에 전송 (Vercel 4.5MB body 제한 대응)
@@ -281,12 +282,12 @@ export default function TeXTREME() {
 
       let pageImages: Map<number, string[]> = new Map()
       if (imagePagesNeeded.length > 0 && file) {
-        pageImages = await extractPageImages(file, imagePagesNeeded)
+        pageImages = await extractPageImages(file!, imagePagesNeeded)
       }
 
       // ★ 4단계: EPUB 빌드
       setProgress(90)
-      const title = file.name.replace(/\.pdf$/i, '')
+      const title = file!.name.replace(/\.pdf$/i, '')
       const epubBlob = await buildEpubOnClient(allPageResults, title, pageImages)
 
       // 자동 다운로드
