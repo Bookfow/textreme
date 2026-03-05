@@ -99,7 +99,7 @@ export default function BatchTestPage() {
 
       // ★ 2단계: 3배치 동시 전송 (Vercel 4.5MB body 제한 + 속도 최적화)
       const MAX_BATCH_BYTES = 3 * 1024 * 1024 // 3MB (JSON 오버헤드 고려)
-      const CONCURRENT = 3 // 동시 전송 배치 수
+      const CONCURRENT = 5 // 동시 전송 배치 수
       const allPageResults: PageDataForEpub[] = []
 
       // 먼저 모든 배치를 준비
