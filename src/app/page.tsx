@@ -477,8 +477,32 @@ export default function TeXTREME() {
             </div>
           </div>
 
+          {/* 변환 전 안내 */}
+          <div className="fade-up-d2" style={{ padding: "16px 20px", borderRadius: 12, background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)", marginBottom: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14 }}>📶</span>
+                <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.5 }}>
+                  <strong style={{ color: "rgba(255,255,255,0.9)" }}>WiFi 환경을 권장</strong>합니다. 대용량 PDF는 모바일 데이터 사용량이 클 수 있어요.
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14 }}>⏱️</span>
+                <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.5 }}>
+                  예상 소요 시간: <strong style={{ color: "#F59E0B" }}>{filePages * 2 < 60 ? `약 ${filePages * 2}초` : `약 ${Math.ceil(filePages * 2 / 60)}분`}</strong> — AI가 페이지별로 정밀 분석하여 최고 품질을 보장합니다.
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14 }}>📱</span>
+                <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.5 }}>
+                  변환 중에는 <strong style={{ color: "rgba(255,255,255,0.9)" }}>화면을 닫지 마세요</strong>. 브라우저에서 직접 처리됩니다.
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* 환불 불가 동의 */}
-          <div className="fade-up-d2" style={{ marginBottom: 16 }}>
+          <div className="fade-up-d3" style={{ marginBottom: 16 }}>
             <label
               onClick={() => setAgreeNoRefund(!agreeNoRefund)}
               style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "14px 16px", borderRadius: 12, background: agreeNoRefund ? "rgba(245,158,11,0.06)" : "rgba(255,255,255,0.02)", border: agreeNoRefund ? "1px solid rgba(245,158,11,0.25)" : "1px solid rgba(255,255,255,0.08)", cursor: "pointer", transition: "all 0.2s" }}>
@@ -492,7 +516,7 @@ export default function TeXTREME() {
           </div>
 
           {/* Buttons */}
-          <div className="fade-up-d3" style={{ display: "flex", gap: 12 }}>
+          <div className="fade-up-d4" style={{ display: "flex", gap: 12 }}>
             <button onClick={reset}
               style={{ flex: 1, padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
               취소
@@ -796,7 +820,7 @@ export default function TeXTREME() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, maxWidth: 520, margin: "0 auto 56px" }}>
             {[
               { value: "₩10", label: "페이지당", sub: "사용한 만큼만" },
-              { value: "~10초", label: "페이지당 변환", sub: "AI 비전 엔진" },
+              { value: "~2초", label: "페이지당 변환", sub: "AI 비전 엔진" },
               { value: "99%+", label: "한글 인식률", sub: "한글 특화" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center" }}>
