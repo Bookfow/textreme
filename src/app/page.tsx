@@ -483,19 +483,19 @@ export default function TeXTREME() {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 14 }}>📶</span>
                 <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.5 }}>
-                  <strong style={{ color: "rgba(255,255,255,0.9)" }}>WiFi 환경을 권장</strong>합니다. 대용량 PDF는 모바일 데이터 사용량이 클 수 있어요.
+                  <strong style={{ color: "rgba(255,255,255,0.9)" }}>WiFi 환경 권장.</strong> 대용량 PDF는 모바일 데이터 사용량이 클 수 있어요.
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 14 }}>⏱️</span>
                 <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.5 }}>
-                  예상 소요 시간: <strong style={{ color: "#F59E0B" }}>{filePages * 2 < 60 ? `약 ${filePages * 2}초` : `약 ${Math.ceil(filePages * 2 / 60)}분`}</strong> — AI가 페이지별로 정밀 분석하여 최고 품질을 보장합니다.
+                  예상 소요 시간: <strong style={{ color: "#F59E0B" }}>최대 {filePages * 2 < 60 ? `약 ${filePages * 2}초` : `약 ${Math.ceil(filePages * 2 / 60)}분`}</strong> — AI가 페이지별로 정밀 분석하여 최고 품질 보장
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 14 }}>📱</span>
+                <span style={{ fontSize: 14 }}>⚠️</span>
                 <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.5 }}>
-                  변환 중에는 <strong style={{ color: "rgba(255,255,255,0.9)" }}>화면을 닫지 마세요</strong>. 브라우저에서 직접 처리됩니다.
+                  <strong style={{ color: "rgba(255,255,255,0.9)" }}>주의:</strong> 변환 중에는 화면을 닫지 마세요. 브라우저에서 직접 처리됩니다.
                 </span>
               </div>
             </div>
@@ -511,6 +511,7 @@ export default function TeXTREME() {
               </div>
               <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.6 }}>
                 변환 완료 시 EPUB 파일이 자동 저장되며, 디지털 콘텐츠 특성상 <strong style={{ color: "rgba(255,255,255,0.85)" }}>환불이 불가</strong>함에 동의합니다. (<a href="/policies/terms" target="_blank" style={{ color: "#F59E0B", textDecoration: "underline" }}>이용약관</a>)
+                <br /><span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>* PDF 또는 변환 처리 문제 시 환불 가능</span>
               </span>
             </label>
           </div>
@@ -524,7 +525,7 @@ export default function TeXTREME() {
             <button onClick={handlePayment}
               disabled={!agreeNoRefund}
               style={{ flex: 2, padding: "16px 20px", borderRadius: 12, background: agreeNoRefund ? "linear-gradient(135deg, #F59E0B, #D97706)" : "rgba(255,255,255,0.08)", border: "none", color: agreeNoRefund ? "#000" : "rgba(255,255,255,0.3)", fontSize: 16, fontWeight: 800, cursor: agreeNoRefund ? "pointer" : "not-allowed", boxShadow: agreeNoRefund ? "0 0 30px rgba(245,158,11,0.2)" : "none", transition: "all 0.3s" }}>
-              ₩{price.toLocaleString()} 결제하고 변환
+              ₩{price.toLocaleString()} 결제 및 변환
             </button>
           </div>
         </div>
