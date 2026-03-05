@@ -12,7 +12,7 @@ import { FileText, Zap, Upload, BookOpen, Smartphone, Globe, ArrowRight, Type, C
 import EpubViewerLite from "@/components/epub-viewer-lite"
 
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
-import { buildEpubOnClient, renderPageImages } from "@/lib/epub-builder"
+import { buildEpubOnClient, extractPageImages } from "@/lib/epub-builder"
 
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -242,9 +242,9 @@ export default function TeXTREME() {
 
               // 이미지 렌더링 (필요한 페이지만)
               setProgress(85)
-              let pageImages = new Map<number, string>()
+              let pageImages: Map<number, string[]> = new Map()
               if (imagePagesNeeded.length > 0 && file) {
-                pageImages = await renderPageImages(file, imagePagesNeeded)
+                pageImages = await extractPageImages(file, imagePagesNeeded)
               }
 
               // EPUB 빌드

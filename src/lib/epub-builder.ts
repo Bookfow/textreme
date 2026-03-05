@@ -1,6 +1,8 @@
 // src/lib/epub-builder.ts
 // 클라이언트에서 EPUB을 빌드하는 유틸리티
 // page.tsx와 test/page.tsx에서 공통으로 사용
+//
+// ★ 방법 B: PDF에서 개별 이미지 객체를 직접 추출 (전체 페이지 이미지 X)
 
 export interface PageDataForEpub {
   pageNumber: number
@@ -20,10 +22,170 @@ function escapeXml(str: string): string {
     .replace(/"/g, '&quot;')
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PDF에서 개별 이미지 객체 추출
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// 한 페이지에서 이미지 객체들을 추출하여 dataURL 배열로 반환
+async function extractImagesFromPage(
+  pdfDoc: any, // PDFDocumentProxy
+  pdfjsLib: any,
+  pageNum: number,
+): Promise<string[]> {
+  const page = await pdfDoc.getPage(pageNum)
+  const viewport = page.getViewport({ scale: 1.5 })
+
+  // render를 호출해야 이미지 객체가 로드됨
+  const canvas = document.createElement('canvas')
+  canvas.width = viewport.width
+  canvas.height = viewport.height
+  const ctx = canvas.getContext('2d')!
+  await page.render({ canvasContext: ctx, viewport, canvas } as any).promise
+
+  // operator list에서 이미지 찾기
+  const ops = await page.getOperatorList()
+  const OPS = pdfjsLib.OPS
+  const images: string[] = []
+  const processedNames = new Set<string>()
+
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    const fn = ops.fnArray[i]
+    if (fn !== OPS.paintImageXObject && fn !== OPS.paintJpegXObject) continue
+
+    const imgName = ops.argsArray[i][0]
+    if (processedNames.has(imgName)) continue
+    processedNames.add(imgName)
+
+    try {
+      const imgObj = page.objs.get(imgName)
+      if (!imgObj) continue
+
+      // JPEG 이미지 (HTMLImageElement 또는 ImageBitmap)
+      if (typeof HTMLImageElement !== 'undefined' && imgObj instanceof HTMLImageElement) {
+        const w = imgObj.naturalWidth
+        const h = imgObj.naturalHeight
+        if (w < 50 || h < 50) continue // 작은 아이콘 제외
+        const imgCanvas = document.createElement('canvas')
+        imgCanvas.width = w
+        imgCanvas.height = h
+        const imgCtx = imgCanvas.getContext('2d')!
+        imgCtx.drawImage(imgObj, 0, 0)
+        images.push(imgCanvas.toDataURL('image/jpeg', 0.85))
+        imgCanvas.remove()
+        continue
+      }
+
+      if (typeof ImageBitmap !== 'undefined' && imgObj instanceof ImageBitmap) {
+        if (imgObj.width < 50 || imgObj.height < 50) continue
+        const imgCanvas = document.createElement('canvas')
+        imgCanvas.width = imgObj.width
+        imgCanvas.height = imgObj.height
+        const imgCtx = imgCanvas.getContext('2d')!
+        imgCtx.drawImage(imgObj, 0, 0)
+        images.push(imgCanvas.toDataURL('image/jpeg', 0.85))
+        imgCanvas.remove()
+        continue
+      }
+
+      // Raw 이미지 데이터 {width, height, data, kind}
+      if (imgObj.width && imgObj.height && imgObj.data) {
+        if (imgObj.width < 50 || imgObj.height < 50) continue
+
+        const imgCanvas = document.createElement('canvas')
+        imgCanvas.width = imgObj.width
+        imgCanvas.height = imgObj.height
+        const imgCtx = imgCanvas.getContext('2d')!
+
+        let rgba: Uint8ClampedArray
+        const pixelCount = imgObj.width * imgObj.height
+
+        if (imgObj.kind === 3) {
+          // RGBA_32BPP
+          rgba = new Uint8ClampedArray(imgObj.data.buffer || imgObj.data)
+        } else if (imgObj.kind === 2) {
+          // RGB_24BPP → RGBA 변환
+          const rgb = imgObj.data
+          rgba = new Uint8ClampedArray(pixelCount * 4)
+          for (let j = 0, k = 0; j < pixelCount * 3; j += 3, k += 4) {
+            rgba[k] = rgb[j]
+            rgba[k + 1] = rgb[j + 1]
+            rgba[k + 2] = rgb[j + 2]
+            rgba[k + 3] = 255
+          }
+        } else if (imgObj.kind === 1) {
+          // GRAYSCALE_1BPP → RGBA 변환
+          const gray = imgObj.data
+          rgba = new Uint8ClampedArray(pixelCount * 4)
+          for (let j = 0; j < pixelCount; j++) {
+            const idx = j * 4
+            rgba[idx] = gray[j]
+            rgba[idx + 1] = gray[j]
+            rgba[idx + 2] = gray[j]
+            rgba[idx + 3] = 255
+          }
+        } else {
+          // 알 수 없는 kind → RGBA로 가정
+          rgba = new Uint8ClampedArray(imgObj.data.buffer || imgObj.data)
+        }
+
+        const imageData = new ImageData(new Uint8ClampedArray(rgba.buffer as ArrayBuffer), imgObj.width, imgObj.height)
+        imgCtx.putImageData(imageData, 0, 0)
+        images.push(imgCanvas.toDataURL('image/jpeg', 0.85))
+        imgCanvas.remove()
+      }
+    } catch {
+      // 개별 이미지 추출 실패 → 건너뛰기
+    }
+  }
+
+  canvas.remove()
+  return images
+}
+
+// 여러 페이지에서 이미지 추출
+export async function extractPageImages(
+  file: File,
+  pageNumbers: number[],
+  onProgress?: (msg: string) => void,
+): Promise<Map<number, string[]>> {
+  const result = new Map<number, string[]>()
+  if (pageNumbers.length === 0) return result
+
+  const pdfjsLib = await import('pdfjs-dist')
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+
+  const arrayBuffer = await file.arrayBuffer()
+  const pdfDoc = await pdfjsLib.getDocument({
+    data: arrayBuffer,
+    cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/',
+    cMapPacked: true,
+  }).promise
+
+  for (const pageNum of pageNumbers) {
+    try {
+      const images = await extractImagesFromPage(pdfDoc, pdfjsLib, pageNum)
+      if (images.length > 0) {
+        result.set(pageNum, images)
+        onProgress?.(`p${pageNum}: ${images.length}개 이미지 추출`)
+      } else {
+        onProgress?.(`p${pageNum}: 추출 가능한 이미지 없음`)
+      }
+    } catch {
+      onProgress?.(`p${pageNum}: 이미지 추출 실패`)
+    }
+  }
+
+  return result
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 클라이언트 EPUB 빌더
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 export async function buildEpubOnClient(
   pageResults: PageDataForEpub[],
   title: string,
-  pageImages: Map<number, string> // pageNumber → data:image/jpeg;base64,... (data URL)
+  pageImages: Map<number, string[]> // pageNumber → dataURL 배열
 ): Promise<Blob> {
   const JSZip = (await import('jszip')).default
   const zip = new JSZip()
@@ -43,17 +205,19 @@ export async function buildEpubOnClient(
 
   // 이미지 파일 추가 + manifest 항목 수집
   const imageManifestItems: string[] = []
-  pageImages.forEach((dataUrl, pageNum) => {
-    const base64 = dataUrl.split(',')[1]
-    if (base64) {
-      const binaryStr = atob(base64)
-      const bytes = new Uint8Array(binaryStr.length)
-      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
-      zip.file(`OEBPS/images/page${pageNum}.jpg`, bytes)
-      imageManifestItems.push(
-        `    <item id="img${pageNum}" href="images/page${pageNum}.jpg" media-type="image/jpeg"/>`
-      )
-    }
+  pageImages.forEach((imageUrls, pageNum) => {
+    imageUrls.forEach((dataUrl, idx) => {
+      const base64 = dataUrl.split(',')[1]
+      if (base64) {
+        const binaryStr = atob(base64)
+        const bytes = new Uint8Array(binaryStr.length)
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+        zip.file(`OEBPS/images/p${pageNum}_${idx}.jpg`, bytes)
+        imageManifestItems.push(
+          `    <item id="img_p${pageNum}_${idx}" href="images/p${pageNum}_${idx}.jpg" media-type="image/jpeg"/>`
+        )
+      }
+    })
   })
 
   // content.opf
@@ -93,7 +257,7 @@ export async function buildEpubOnClient(
   const tocEntries = pageResults
     .map((p, i) => {
       const heading = p.elements.find(e => e.type === 'heading')
-      return heading ? { label: heading.text || `페이지 ${p.pageNumber}`, idx: i } : null
+      return heading ? { label: heading.text || `\uD398\uC774\uC9C0 ${p.pageNumber}`, idx: i } : null
     })
     .filter(Boolean) as { label: string; idx: number }[]
 
@@ -102,17 +266,17 @@ export async function buildEpubOnClient(
       `      <li><a href="page${e.idx}.xhtml">${escapeXml(e.label)}</a></li>`
     ).join('\n')
     : pageResults.filter((_, i) => i % 10 === 0).map((p, i) =>
-      `      <li><a href="page${i * 10}.xhtml">페이지 ${p.pageNumber}</a></li>`
+      `      <li><a href="page${i * 10}.xhtml">\uD398\uC774\uC9C0 ${p.pageNumber}</a></li>`
     ).join('\n')
 
   zip.file('OEBPS/nav.xhtml',
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<!DOCTYPE html>\n' +
     '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="ko">\n' +
-    '<head><title>목차</title></head>\n' +
+    '<head><title>\uBAA9\uCC28</title></head>\n' +
     '<body>\n' +
     '  <nav epub:type="toc">\n' +
-    '    <h1>목차</h1>\n' +
+    '    <h1>\uBAA9\uCC28</h1>\n' +
     '    <ol>\n' +
     tocItems + '\n' +
     '    </ol>\n' +
@@ -137,7 +301,8 @@ export async function buildEpubOnClient(
   // 페이지별 XHTML
   for (let i = 0; i < pageResults.length; i++) {
     const page = pageResults[i]
-    const hasImage = pageImages.has(page.pageNumber)
+    const images = pageImages.get(page.pageNumber) || []
+    let imgIdx = 0 // image_placeholder 순서 카운터
 
     const bodyHtml = page.elements.map(el => {
       switch (el.type) {
@@ -151,11 +316,15 @@ export async function buildEpubOnClient(
           return `<blockquote><p>${escapeXml(el.text || '')}</p></blockquote>`
         case 'list_item':
           return `<p>\u2022 ${escapeXml(el.text || '')}</p>`
-        case 'image_placeholder':
-          if (hasImage) {
-            return `<div class="page-image"><img src="images/page${page.pageNumber}.jpg" alt="${escapeXml(el.description || '이미지')}"/></div>`
+        case 'image_placeholder': {
+          // ★ 추출된 이미지가 있으면 순서대로 매칭
+          if (imgIdx < images.length) {
+            const currentIdx = imgIdx
+            imgIdx++
+            return `<div class="page-image"><img src="images/p${page.pageNumber}_${currentIdx}.jpg" alt="${escapeXml(el.description || '\uC774\uBBF8\uC9C0')}"/></div>`
           }
-          return `<div class="image-placeholder">[\uC774\uBBF8\uC9C0: ${escapeXml(el.description || '이미지')}]</div>`
+          return `<div class="image-placeholder">[\uC774\uBBF8\uC9C0: ${escapeXml(el.description || '\uC774\uBBF8\uC9C0')}]</div>`
+        }
         case 'caption':
           return `<p><em>${escapeXml(el.text || '')}</em></p>`
         default:
@@ -179,44 +348,4 @@ export async function buildEpubOnClient(
   }
 
   return await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' })
-}
-
-// 필요한 페이지만 이미지로 렌더링
-export async function renderPageImages(
-  file: File,
-  pageNumbers: number[],
-  onProgress?: (msg: string) => void,
-): Promise<Map<number, string>> {
-  const result = new Map<number, string>()
-  if (pageNumbers.length === 0) return result
-
-  const pdfjsLib = await import('pdfjs-dist')
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
-
-  const arrayBuffer = await file.arrayBuffer()
-  const pdfDoc = await pdfjsLib.getDocument({
-    data: arrayBuffer,
-    cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/',
-    cMapPacked: true,
-  }).promise
-
-  for (const pageNum of pageNumbers) {
-    try {
-      const page = await pdfDoc.getPage(pageNum)
-      const viewport = page.getViewport({ scale: 1.5 })
-      const canvas = document.createElement('canvas')
-      canvas.width = viewport.width
-      canvas.height = viewport.height
-      const ctx = canvas.getContext('2d')!
-      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-      result.set(pageNum, dataUrl)
-      canvas.remove()
-      onProgress?.(`이미지 렌더링: p${pageNum}`)
-    } catch {
-      onProgress?.(`이미지 렌더링 실패: p${pageNum}`)
-    }
-  }
-
-  return result
 }

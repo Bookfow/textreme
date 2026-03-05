@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { buildEpubOnClient, renderPageImages, PageDataForEpub } from '@/lib/epub-builder'
+import { buildEpubOnClient, extractPageImages, PageDataForEpub } from '@/lib/epub-builder'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 타입 정의
@@ -163,12 +163,12 @@ export default function BatchTestPage() {
 
       // ★ 이미지 렌더링 (필요한 페이지만)
       setCurrentProgress(80)
-      let pageImages = new Map<number, string>()
+      let pageImages: Map<number, string[]> = new Map()
       if (imagePagesNeeded.length > 0) {
         addLog(`  🖼️ 이미지 렌더링: ${imagePagesNeeded.length}개 페이지`)
         setCurrentStatus(`${file.name} — 이미지 렌더링 중...`)
-        pageImages = await renderPageImages(file, imagePagesNeeded, addLog)
-        addLog(`  🖼️ 이미지 렌더링 완료: ${pageImages.size}개`)
+        pageImages = await extractPageImages(file, imagePagesNeeded, addLog)
+        addLog(`  🖼️ 이미지 렌더링 완료: ${Array.from(pageImages.values()).reduce((s, a) => s + a.length, 0)}개`)
       }
 
       // ★ 클라이언트에서 EPUB 빌드
