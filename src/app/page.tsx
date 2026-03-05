@@ -99,19 +99,13 @@ async function checkPdfCompatibility(
     sampleIndices.push(Math.floor((i / sampleCount) * total) + 1)
   }
 
-  // pdf.js OPS 상수 세트
-  const vectorSet = new Set([
-    OPS.moveTo, OPS.lineTo, OPS.curveTo, OPS.curveTo2, OPS.curveTo3,
-    OPS.rectangle, OPS.closePath,
-    OPS.fill, OPS.eoFill, OPS.fillStroke, OPS.eoFillStroke,
-    OPS.stroke, OPS.closeStroke, OPS.closeFillStroke
-  ])
   const imageSet = new Set([
     OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageXObjectRepeat
   ])
 
-  let lowTextPages = 0      // 텍스트가 거의 없는 페이지 수
-  let vectorHeavyPages = 0  // 벡터 오퍼레이터가 과도한 페이지 수
+  let lowTextPages = 0
+  let maskImagePages = 0
+  let pagesWithImages = 0
 
   for (const pageNum of sampleIndices) {
     try {
@@ -124,18 +118,58 @@ async function checkPdfCompatibility(
         lowTextPages++
       }
 
-      // 오퍼레이터 리스트로 벡터 그래픽 밀도 체크
+      // 오퍼레이터 리스트에서 이미지 이름 수집
       const ops = await page.getOperatorList()
-      let vectorOps = 0
-      let imageOps = 0
-      for (const fn of ops.fnArray) {
-        if (vectorSet.has(fn)) vectorOps++
-        if (imageSet.has(fn)) imageOps++
+      const imgNames: string[] = []
+      for (let i = 0; i < ops.fnArray.length; i++) {
+        if (imageSet.has(ops.fnArray[i]) && ops.argsArray[i]?.[0]) {
+          imgNames.push(ops.argsArray[i][0])
+        }
       }
 
-      console.log(`[compat] page ${pageNum}: text=${text.length}chars, vectorOps=${vectorOps}, imageOps=${imageOps}`)
-      if (imageOps > 0 && vectorOps > 200) {
-        vectorHeavyPages++
+      if (imgNames.length === 0) {
+        console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=0`)
+        continue
+      }
+
+      pagesWithImages++
+
+      // 첫 번째 이미지를 실제로 가져와서 픽셀 분석
+      try {
+        const imgData: any = await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('timeout')), 3000)
+          page.objs.get(imgNames[0], (data: any) => {
+            clearTimeout(timer)
+            resolve(data)
+          })
+        })
+
+        if (imgData?.data) {
+          const pixels = imgData.data
+          const bytesPerPixel = imgData.kind === 1 ? 3 : 4  // RGB_24BPP=1, RGBA_32BPP=2
+          const totalPixels = Math.floor(pixels.length / bytesPerPixel)
+          const sampleStep = Math.max(1, Math.floor(totalPixels / 500)) // 최대 500개 샘플링
+          let whiteCount = 0
+          let sampled = 0
+
+          for (let j = 0; j < totalPixels; j += sampleStep) {
+            const offset = j * bytesPerPixel
+            const r = pixels[offset], g = pixels[offset + 1], b = pixels[offset + 2]
+            if (r > 240 && g > 240 && b > 240) whiteCount++
+            sampled++
+          }
+
+          const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
+          console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, imgSize=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio * 100).toFixed(1)}%`)
+
+          if (whiteRatio > 0.85) {
+            maskImagePages++
+          }
+        } else {
+          console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, imgData=없음`)
+        }
+      } catch {
+        console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, 이미지 추출 실패`)
       }
     } catch {
       // 개별 페이지 분석 실패는 무시
@@ -143,7 +177,8 @@ async function checkPdfCompatibility(
   }
 
   // 3) 판정
-  console.log(`[compat] 결과: lowTextPages=${lowTextPages}/${sampleCount}, vectorHeavyPages=${vectorHeavyPages}/${sampleCount}`)
+  console.log(`[compat] 결과: lowTextPages=${lowTextPages}/${sampleCount}, maskImagePages=${maskImagePages}/${pagesWithImages}(이미지있는페이지)`)
+
   // 샘플의 60% 이상이 텍스트 없음 → 스캔본 경고
   if (lowTextPages >= Math.ceil(sampleCount * 0.6)) {
     return {
@@ -152,11 +187,11 @@ async function checkPdfCompatibility(
     }
   }
 
-  // 샘플의 60% 이상이 벡터 그래픽 과다 → 벡터 경고
-  if (vectorHeavyPages >= Math.ceil(sampleCount * 0.6)) {
+  // 이미지가 있는 페이지 중 60% 이상이 마스크/단색 → 경고
+  if (pagesWithImages >= 2 && maskImagePages >= Math.ceil(pagesWithImages * 0.6)) {
     return {
       status: "warn",
-      reason: "이 PDF는 인포그래픽/벡터 이미지가 많아 일부 이미지가 정상적으로 추출되지 않을 수 있습니다."
+      reason: "이 PDF의 이미지가 정상적으로 추출되지 않을 수 있습니다. 텍스트만 필요하다면 계속 진행하셔도 괜찮습니다."
     }
   }
 
