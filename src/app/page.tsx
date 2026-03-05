@@ -226,8 +226,8 @@ async function checkPdfCompatibility(
     }
   }
 
-  // 마스크/단색 이미지가 1개라도 발견되면 → 경고
-  if (maskImagePages >= 1) {
+  // 마스크/단색 이미지가 2개 이상 발견되면 → 경고
+  if (maskImagePages >= 2) {
     return {
       status: "warn",
       reason: "이 PDF의 이미지가 정상적으로 추출되지 않을 수 있습니다. 텍스트만 필요하다면 계속 진행하셔도 괜찮습니다."
