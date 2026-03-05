@@ -179,6 +179,7 @@ export default function TeXTREME() {
       setExtractedTexts([{ page: 0, text: 'PDF 페이지를 이미지로 변환 중...' }])
 
       const arrayBuffer = await file.arrayBuffer()
+      const pdfjsLib = await import('pdfjs-dist')
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
       const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
       const totalPages = pdfDoc.numPages
@@ -345,6 +346,7 @@ export default function TeXTREME() {
       // 오른쪽 박스: 실제 페이지 수 확인 후 변환
       setFile(f)
       try {
+        const pdfjsLib = await import('pdfjs-dist')
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
         const arrayBuffer = await f.arrayBuffer()
         const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
@@ -395,6 +397,7 @@ export default function TeXTREME() {
             if (file) {
               (async () => {
                 try {
+                  const pdfjsLib = await import('pdfjs-dist')
                   pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
                   const ab = await file.arrayBuffer()
                   const doc = await pdfjsLib.getDocument({ data: ab, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
