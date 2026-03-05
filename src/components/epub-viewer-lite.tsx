@@ -1310,7 +1310,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
           <div style={{ padding: '0 20px 20px' }}>
 
             {/* 테마 + 정렬 (한 줄) */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <div style={{ display: 'flex', gap: 10 }}>
                 {(Object.keys(THEMES) as ReflowTheme[]).map(t => (
                   <button key={t} onClick={() => setTheme(t)} style={{ width: 40, height: 40, borderRadius: 10, border: `2px solid ${theme === t ? ACCENT : THEMES[t].border}`, backgroundColor: THEMES[t].bg, cursor: 'pointer', outline: 'none' }} />
@@ -1327,7 +1327,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
             </div>
 
             {/* 글꼴 */}
-            <div style={{ marginBottom: 14 }}>
+            <div style={{ marginBottom: 18 }}>
               <div style={{ display: 'flex', gap: 6 }}>
                 {(Object.keys(FONTS) as ReflowFont[]).map(f => (
                   <button key={f} onClick={() => setFont(f)}
@@ -1339,7 +1339,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
             </div>
 
             {/* 글자 크기 */}
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 11, color: themeStyle.muted, minWidth: 44 }}>크기</span>
                 <button onClick={() => setFontSize(s => Math.max(12, s - 1))} style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${themeStyle.border}`, color: themeStyle.muted, background: 'none', cursor: 'pointer', flexShrink: 0 }}><Minus className="w-3.5 h-3.5" /></button>
@@ -1350,7 +1350,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
             </div>
 
             {/* 줄간격 */}
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 11, color: themeStyle.muted, minWidth: 44 }}>줄간격</span>
                 <button onClick={() => setLineHeight(h => Math.max(1.2, Math.round((h - 0.1) * 10) / 10))} style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${themeStyle.border}`, color: themeStyle.muted, background: 'none', cursor: 'pointer', flexShrink: 0 }}><Minus className="w-3.5 h-3.5" /></button>
@@ -1361,7 +1361,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
             </div>
 
             {/* 여백 */}
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 11, color: themeStyle.muted, minWidth: 44 }}>여백</span>
                 <input type="range" min={8} max={80} step={4} value={marginSize} onChange={e => setMarginSize(Number(e.target.value))} className="flex-1 accent-amber-500" style={{ height: 4 }} />
