@@ -367,7 +367,7 @@ export async function POST(req: NextRequest) {
 
           // ★ 2단계: 각 1페이지 PDF를 Gemini에 전달 (3페이지씩 병렬)
           const results: PageResult[] = []
-          const BATCH_SIZE = 3
+          const BATCH_SIZE = 10
 
           for (let batch = 0; batch < actualPageCount; batch += BATCH_SIZE) {
             const batchEnd = Math.min(batch + BATCH_SIZE, actualPageCount)
