@@ -124,6 +124,7 @@ async function checkPdfCompatibility(
       }
 
       // 이미지가 있으면서 벡터 오퍼레이터가 200개 이상 → 벡터 그래픽 의심
+      console.log(`[compat] page ${pageNum}: text=${text.length}chars, vectorOps=${vectorOps}, imageOps=${imageOps}`)
       if (imageOps > 0 && vectorOps > 200) {
         vectorHeavyPages++
       }
@@ -133,6 +134,7 @@ async function checkPdfCompatibility(
   }
 
   // 3) 판정
+  console.log(`[compat] 결과: lowTextPages=${lowTextPages}/${sampleCount}, vectorHeavyPages=${vectorHeavyPages}/${sampleCount}`)
   // 샘플의 60% 이상이 텍스트 없음 → 스캔본 경고
   if (lowTextPages >= Math.ceil(sampleCount * 0.6)) {
     return {
