@@ -28,7 +28,7 @@ const PRICE_EXAMPLES = [
   { pages: 487, display: "487p 기술서적" },
 ]
 
-type ViewType = "landing" | "pricing" | "converting" | "complete" | "viewer" | "pdf-viewer"
+type ViewType = "landing" | "pricing" | "converting" | "convert-error" | "complete" | "viewer" | "pdf-viewer"
 
 const CONVERTING_MESSAGES = [
   "AI가 페이지를 분석하고 있습니다",
@@ -130,6 +130,7 @@ export default function TeXTREME() {
       }
 
       // 3단계: 검증 통과! 변환 시작
+      setLastPaymentId(paymentId)
       startConversion(filePages)
 
     } catch (error) {
@@ -155,6 +156,8 @@ export default function TeXTREME() {
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null)
   const [agreeNoRefund, setAgreeNoRefund] = useState(false)
   const [convertingMsgIdx, setConvertingMsgIdx] = useState(0)
+  const [lastPaymentId, setLastPaymentId] = useState("")
+  const [errorMessage, setErrorMessage] = useState("")
 
   // ━━━ PWA install prompt ━━━
   useEffect(() => {
@@ -303,8 +306,8 @@ export default function TeXTREME() {
 
     } catch (err: any) {
       console.error('변환 실패:', err)
-      alert('변환 중 오류가 발생했습니다: ' + err.message)
-      setView("landing")
+      setErrorMessage(err.message || '알 수 없는 오류가 발생했습니다')
+      setView("convert-error")
     }
   }, [file])
 
@@ -381,7 +384,7 @@ export default function TeXTREME() {
   const reset = () => {
     if (epubUrl) URL.revokeObjectURL(epubUrl)
     if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
-    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null); setPdfViewerUrl(null); setAgreeNoRefund(false)
+    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null); setPdfViewerUrl(null); setAgreeNoRefund(false); setLastPaymentId(""); setErrorMessage("")
     if (progressInterval.current) clearInterval(progressInterval.current)
   }
 
@@ -623,6 +626,90 @@ export default function TeXTREME() {
           <button onClick={reset} style={{ marginTop: 24, padding: "8px 20px", borderRadius: 8, background: "none", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.55)", fontSize: 13, cursor: "pointer" }}>
             취소
           </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Convert Error View — 변환 실패
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (view === "convert-error") {
+    const price = calcPrice(filePages)
+    return (
+      <div style={{ fontFamily: "'Noto Sans KR', sans-serif", minHeight: "100vh", background: "#06060c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <style>{globalStyles}</style>
+        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
+          {/* Error icon */}
+          <div className="fade-up" style={{ width: 96, height: 96, borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "2px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 32px" }}>
+            <span style={{ fontSize: 44 }}>⚠️</span>
+          </div>
+
+          <h2 className="fade-up-d1" style={{ fontWeight: 800, fontSize: 24, color: "#fff", marginBottom: 12, letterSpacing: "-0.02em" }}>
+            변환 중 문제가 발생했습니다
+          </h2>
+          <p className="fade-up-d2" style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.6, marginBottom: 32 }}>
+            {errorMessage}
+          </p>
+
+          {/* 결제 정보 */}
+          <div className="fade-up-d2" style={{ padding: 20, borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: 24, textAlign: "left" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+              <FileText size={18} color="#F59E0B" />
+              <div>
+                <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{fileName || "document.pdf"}</div>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>{filePages}페이지 · ₩{price.toLocaleString()}</div>
+              </div>
+            </div>
+            <div style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(255,255,255,0.02)", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+              결제 ID: {lastPaymentId || "—"}
+            </div>
+          </div>
+
+          {/* 안내 */}
+          <div className="fade-up-d3" style={{ padding: "14px 18px", borderRadius: 12, background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)", marginBottom: 24, textAlign: "left" }}>
+            <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, lineHeight: 1.6 }}>
+              <strong style={{ color: "rgba(255,255,255,0.85)" }}>재시도</strong>는 추가 비용 없이 같은 결제로 다시 변환합니다.
+              네트워크 문제라면 WiFi 연결 확인 후 재시도해 주세요.
+            </p>
+          </div>
+
+          {/* 버튼 */}
+          <div className="fade-up-d4" style={{ display: "flex", gap: 12 }}>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/payment/refund", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ paymentId: lastPaymentId, reason: "변환 실패" }),
+                  })
+                  const data = await res.json()
+                  if (data.success) {
+                    alert("환불이 완료되었습니다.")
+                    reset()
+                  } else {
+                    alert("환불 처리 실패: " + (data.error || "고객센터에 문의해 주세요."))
+                  }
+                } catch {
+                  alert("환불 요청 중 오류가 발생했습니다. 고객센터에 문의해 주세요.")
+                }
+              }}
+              style={{ flex: 1, padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+              환불 요청
+            </button>
+            <button
+              onClick={() => {
+                setProgress(0)
+                setCurrentPage(0)
+                setExtractedTexts([])
+                setErrorMessage("")
+                startConversion(filePages)
+              }}
+              style={{ flex: 2, padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 16, fontWeight: 800, cursor: "pointer", boxShadow: "0 0 30px rgba(245,158,11,0.2)" }}>
+              재시도
+            </button>
+          </div>
         </div>
       </div>
     )
