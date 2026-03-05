@@ -29,15 +29,15 @@ export default function TestPage() {
       // ★ PDF를 base64로 변환 (이미지 변환 없음 — 서버에서 pdf-lib로 분할)
       const arrayBuffer = await f.arrayBuffer()
 
-      // 페이지 수 확인용으로만 pdfjs 사용
+      // PDF → base64 (arrayBuffer가 detach되기 전에 먼저 변환)
+      const uint8Array = new Uint8Array(arrayBuffer)
+
+      // 페이지 수 확인용으로만 pdfjs 사용 (arrayBuffer를 복사해서 전달)
       const pdfjsLib = await import('pdfjs-dist')
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
-      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
+      const pdfDoc = await pdfjsLib.getDocument({ data: uint8Array.slice().buffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
       const totalPages = pdfDoc.numPages
       addLog(`총 ${totalPages}페이지 감지`)
-
-      // PDF → base64
-      const uint8Array = new Uint8Array(arrayBuffer)
       let binary = ''
       for (let i = 0; i < uint8Array.length; i++) {
         binary += String.fromCharCode(uint8Array[i])
