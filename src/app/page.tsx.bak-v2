@@ -12,7 +12,6 @@ import { FileText, Zap, Upload, BookOpen, Smartphone, Globe, ArrowRight, Type, C
 import EpubViewerLite from "@/components/epub-viewer-lite"
 
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
-import { buildEpubOnClient, renderPageImages } from "@/lib/epub-builder"
 
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -236,34 +235,28 @@ export default function TeXTREME() {
             } else if (data.type === 'status') {
               setExtractedTexts(prev => [...prev.slice(-5), { page: 0, text: data.message }])
             } else if (data.type === 'complete') {
-              // ★ 방법2: 서버에서 JSON 수신 → 클라이언트에서 EPUB 빌드
-              const pageResults = data.pageResults || []
-              const imagePagesNeeded: number[] = data.imagePagesNeeded || []
+              setProgress(100)
 
-              // 이미지 렌더링 (필요한 페이지만)
-              setProgress(85)
-              let pageImages = new Map<number, string>()
-              if (imagePagesNeeded.length > 0 && file) {
-                pageImages = await renderPageImages(file, imagePagesNeeded)
+              // EPUB base64 → Blob → 다운로드 + 뷰어 열기
+              if (data.epubBase64) {
+                const binaryStr = atob(data.epubBase64)
+                const bytes = new Uint8Array(binaryStr.length)
+                for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+                const blob = new Blob([bytes], { type: 'application/epub+zip' })
+
+                // 자동 다운로드
+                const downloadUrl = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = downloadUrl
+                a.download = title + '.epub'
+                a.click()
+                URL.revokeObjectURL(downloadUrl)
+
+                // 뷰어용 URL 설정
+                const viewerUrl = URL.createObjectURL(blob)
+                setEpubUrl(viewerUrl)
               }
 
-              // EPUB 빌드
-              setProgress(95)
-              const epubBlob = await buildEpubOnClient(pageResults, title, pageImages)
-
-              // 자동 다운로드
-              const downloadUrl = URL.createObjectURL(epubBlob)
-              const a = document.createElement('a')
-              a.href = downloadUrl
-              a.download = title + '.epub'
-              a.click()
-              URL.revokeObjectURL(downloadUrl)
-
-              // 뷰어용 URL 설정
-              const viewerUrl = URL.createObjectURL(epubBlob)
-              setEpubUrl(viewerUrl)
-
-              setProgress(100)
               setTimeout(() => setView("complete"), 600)
             } else if (data.type === 'error') {
               throw new Error(data.message)

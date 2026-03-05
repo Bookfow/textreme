@@ -1,12 +1,11 @@
 // src/app/api/convert/route.ts
 // TeXTREME — PDF → EPUB 변환 API (SSE 스트림)
 //
-// 흐름: 프론트엔드에서 PDF base64 전송
-//       → 서버에서 pdf-lib로 1페이지씩 분할
-//       → 각 1페이지 PDF를 Gemini API에 직접 전달
-//       → EPUB 패키징
+// 방법 2 아키텍처:
+//   서버: PDF 분할 → Gemini 추출 → 페이지별 JSON 결과 반환
+//   클라이언트: JSON 수신 → 이미지 렌더링 → EPUB 빌드 + 다운로드
 //
-// ★ 이미지 변환 없이 PDF 품질 유지 + 토큰 비용 절감 (전체 PDF 반복 전송 방지)
+// ★ 서버는 EPUB을 만들지 않음 → 전송량 감소 + 이미지 처리는 클라이언트 담당
 
 import { NextRequest } from 'next/server'
 import { PDFDocument } from 'pdf-lib'
@@ -60,7 +59,6 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
 const GEMINI_MODEL = 'gemini-2.5-flash'
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`
 
-// ★ 프롬프트 v3 — 본문 추출 최우선 + 이미지 판단 균형
 const SYSTEM_PROMPT = `당신은 한국어 PDF 페이지를 분석하여 텍스트를 구조화된 JSON으로 추출하는 전문가입니다.
 
 출력 JSON 형식:
@@ -116,7 +114,6 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
 
   if (!res.ok) {
     const err = await res.text()
-    // Rate limit → 재시도
     if (res.status === 429 && retryCount < 3) {
       await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)))
       return extractPageWithGemini(singlePagePdfBase64, retryCount + 1)
@@ -126,13 +123,11 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
 
   const data = await res.json()
   
-  // 디버그: Gemini 응답 구조 확인
   const candidate = data.candidates?.[0]
   const finishReason = candidate?.finishReason || 'UNKNOWN'
   const text = candidate?.content?.parts?.[0]?.text || ''
   const usage = data.usageMetadata || {}
   
-  // 안전 차단(SAFETY) 등으로 빈 응답인 경우
   if (finishReason === 'SAFETY' || finishReason === 'RECITATION') {
     return {
       elements: [{ type: 'paragraph', text: `(페이지 안전 필터 차단: ${finishReason})` }],
@@ -144,17 +139,14 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
   
   const debugSnippet = text.slice(0, 200)
 
-  // JSON 파싱 (여러 래핑 패턴 대응)
   let parsed: { elements: PageElement[] } | null = null
 
   if (text.trim()) {
     let cleaned = text.trim()
-    // ```json ... ``` 래핑 제거
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?\s*```$/i, '')
 
     try {
       const obj = JSON.parse(cleaned)
-      // { elements: [...] } 또는 [...] 형태 모두 처리
       if (Array.isArray(obj)) {
         parsed = { elements: obj }
       } else if (obj.elements && Array.isArray(obj.elements)) {
@@ -163,7 +155,6 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
         parsed = { elements: [obj] }
       }
     } catch {
-      // JSON 파싱 실패 → 텍스트에서 JSON 배열/객체 추출 시도
       const jsonMatch = cleaned.match(/\{[\s\S]*"elements"\s*:\s*\[[\s\S]*\]\s*\}/)
       if (jsonMatch) {
         try {
@@ -173,7 +164,6 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
     }
   }
 
-  // 최종 fallback: 빈 텍스트가 아니면 paragraph로
   if (!parsed || !parsed.elements || parsed.elements.length === 0) {
     if (text.trim() && !text.trim().startsWith('{')) {
       parsed = { elements: [{ type: 'paragraph', text: text.trim() }] }
@@ -182,7 +172,6 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
     }
   }
 
-  // elements 유효성 검증 — text가 비어있는 항목 제거
   parsed.elements = parsed.elements.filter(el =>
     el.type === 'image_placeholder' ? !!el.description : !!el.text?.trim()
   )
@@ -196,140 +185,10 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// EPUB 빌더
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-async function buildEpub(results: PageResult[], title: string): Promise<Uint8Array> {
-  const JSZip = (await import('jszip')).default
-  const zip = new JSZip()
-
-  // mimetype (비압축)
-  zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' })
-
-  // container.xml
-  zip.file('META-INF/container.xml', `<?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>`)
-
-  // content.opf
-  const manifestItems = results.map((_, i) =>
-    `    <item id="page${i}" href="page${i}.xhtml" media-type="application/xhtml+xml"/>`
-  ).join('\n')
-  const spineItems = results.map((_, i) =>
-    `    <itemref idref="page${i}"/>`
-  ).join('\n')
-
-  zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:identifier id="uid">textreme-${Date.now()}</dc:identifier>
-    <dc:title>${escapeXml(title)}</dc:title>
-    <dc:language>ko</dc:language>
-    <dc:creator>TeXTREME Converter</dc:creator>
-    <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z/, 'Z')}</meta>
-  </metadata>
-  <manifest>
-    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
-${manifestItems}
-    <item id="style" href="style.css" media-type="text/css"/>
-  </manifest>
-  <spine>
-${spineItems}
-  </spine>
-</package>`)
-
-  // nav.xhtml (TOC) — heading 있는 페이지만 목차 항목
-  const tocEntries = results
-    .map((p, i) => {
-      const heading = p.elements.find(e => e.type === 'heading')
-      return heading ? { label: heading.text || `페이지 ${p.pageNumber}`, idx: i } : null
-    })
-    .filter(Boolean) as { label: string; idx: number }[]
-
-  // heading이 없으면 매 10페이지마다
-  const tocItems = tocEntries.length > 0
-    ? tocEntries.map(e => `      <li><a href="page${e.idx}.xhtml">${escapeXml(e.label)}</a></li>`).join('\n')
-    : results.filter((_, i) => i % 10 === 0).map((p, i) =>
-      `      <li><a href="page${i * 10}.xhtml">페이지 ${p.pageNumber}</a></li>`
-    ).join('\n')
-
-  zip.file('OEBPS/nav.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="ko">
-<head><title>목차</title></head>
-<body>
-  <nav epub:type="toc">
-    <h1>목차</h1>
-    <ol>
-${tocItems}
-    </ol>
-  </nav>
-</body>
-</html>`)
-
-  // style.css
-  zip.file('OEBPS/style.css', `
-body { font-family: "Noto Sans KR", system-ui, sans-serif; line-height: 1.8; color: #2D2016; margin: 0; padding: 1em; word-break: keep-all; }
-h1 { font-size: 1.6em; font-weight: bold; line-height: 1.35; margin: 1.5em 0 0.75em; }
-h2 { font-size: 1.35em; font-weight: bold; line-height: 1.35; margin: 1.5em 0 0.75em; }
-h3 { font-size: 1.15em; font-weight: 600; line-height: 1.35; margin: 1.2em 0 0.6em; }
-p { margin-bottom: 0.8em; text-indent: 1em; }
-blockquote { border-left: 3px solid #ddd; padding-left: 1em; margin: 1em 0; color: #666; font-style: italic; }
-.image-placeholder { text-align: center; padding: 2em; margin: 1em 0; background: #f5f5f5; border-radius: 8px; color: #999; font-style: italic; }
-`)
-
-  // 페이지별 XHTML
-  for (let i = 0; i < results.length; i++) {
-    const page = results[i]
-    const bodyHtml = page.elements.map(el => {
-      switch (el.type) {
-        case 'heading': {
-          const tag = `h${Math.min(el.level || 1, 3)}`
-          return `<${tag}>${escapeXml(el.text || '')}</${tag}>`
-        }
-        case 'paragraph':
-          return `<p>${escapeXml(el.text || '')}</p>`
-        case 'quote':
-          return `<blockquote><p>${escapeXml(el.text || '')}</p></blockquote>`
-        case 'list_item':
-          return `<p>• ${escapeXml(el.text || '')}</p>`
-        case 'image_placeholder':
-          return `<div class="image-placeholder">[이미지: ${escapeXml(el.description || '이미지')}]</div>`
-        case 'caption':
-          return `<p><em>${escapeXml(el.text || '')}</em></p>`
-        default:
-          return `<p>${escapeXml(el.text || '')}</p>`
-      }
-    }).join('\n    ')
-
-    zip.file(`OEBPS/page${i}.xhtml`, `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="ko">
-<head>
-  <title>페이지 ${page.pageNumber}</title>
-  <link rel="stylesheet" href="style.css"/>
-</head>
-<body>
-    ${bodyHtml}
-</body>
-</html>`)
-  }
-
-  return await zip.generateAsync({ type: 'uint8array', mimeType: 'application/epub+zip' })
-}
-
-function escapeXml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // API Route Handler
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// POST: PDF base64를 받아서 SSE로 변환 진행
+// POST: PDF base64를 받아서 SSE로 추출 결과 JSON 반환 (EPUB은 클라이언트에서 빌드)
 export async function POST(req: NextRequest) {
   try {
     if (!GEMINI_API_KEY) {
@@ -365,7 +224,7 @@ export async function POST(req: NextRequest) {
           const singlePages = await splitPdfToSinglePages(pdfBytes)
           const actualPageCount = singlePages.length
 
-          // ★ 2단계: 각 1페이지 PDF를 Gemini에 전달 (3페이지씩 병렬)
+          // ★ 2단계: 각 1페이지 PDF를 Gemini에 전달 (10페이지씩 병렬)
           const results: PageResult[] = []
           const BATCH_SIZE = 10
 
@@ -379,7 +238,6 @@ export async function POST(req: NextRequest) {
                 (async () => {
                   const startTime = Date.now()
                   try {
-                    // 1페이지 PDF를 base64로 변환
                     const pageBase64 = Buffer.from(singlePages[idx]).toString('base64')
                     const { elements, inputTokens, outputTokens, debugInfo } = await extractPageWithGemini(pageBase64)
                     const elapsedMs = Date.now() - startTime
@@ -413,23 +271,26 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // ★ 3단계: EPUB 패키징
-          send({ type: 'status', message: 'EPUB 패키징 중...' })
-          const epubData = await buildEpub(results, title || 'Converted')
-
-          // base64로 전송 (클라이언트에서 다운로드)
-          const epubBase64 = Buffer.from(epubData).toString('base64')
-
-          // 비용 계산 (Gemini 2.5 Flash: $0.15/1M input, $0.60/1M output → 원화 환산)
+          // ★ 3단계: 결과 JSON 반환 (EPUB 빌드는 클라이언트에서!)
           const totalInputTokens = results.reduce((s, r) => s + r.inputTokens, 0)
           const totalOutputTokens = results.reduce((s, r) => s + r.outputTokens, 0)
           const costUSD = totalInputTokens / 1_000_000 * 0.15 + totalOutputTokens / 1_000_000 * 0.60
           const costKRW = Math.round(costUSD * 1450)
 
+          // 이미지가 필요한 페이지 목록 (image_placeholder가 있는 페이지)
+          const imagePagesNeeded = results
+            .filter(r => r.elements.some(e => e.type === 'image_placeholder'))
+            .map(r => r.pageNumber)
+
           send({
             type: 'complete',
             totalPages: actualPageCount,
-            epubBase64,
+            // ★ EPUB 대신 페이지별 추출 결과 JSON 전송
+            pageResults: results.map(r => ({
+              pageNumber: r.pageNumber,
+              elements: r.elements,
+            })),
+            imagePagesNeeded,
             costKRW,
             totalInputTokens,
             totalOutputTokens,

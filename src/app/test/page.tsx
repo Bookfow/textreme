@@ -1,58 +1,106 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import { buildEpubOnClient, renderPageImages, PageDataForEpub } from '@/lib/epub-builder'
 
-export default function TestPage() {
-  const [status, setStatus] = useState('')
-  const [progress, setProgress] = useState(0)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 타입 정의
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+interface PageElement {
+  type: 'heading' | 'paragraph' | 'quote' | 'list_item' | 'image_placeholder' | 'caption'
+  text?: string
+  level?: number
+  description?: string
+}
+
+
+
+interface TestResult {
+  fileName: string
+  fileSize: number
+  pageCount: number
+  totalElements: number
+  emptyPages: number
+  imagePages: number
+  totalInputTokens: number
+  totalOutputTokens: number
+  costKRW: number
+  elapsedSec: number
+  secPerPage: number
+  status: 'pending' | 'converting' | 'done' | 'error'
+  error?: string
+  epubBlob?: Blob
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 배치 테스트 페이지 컴포넌트
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export default function BatchTestPage() {
+  const [results, setResults] = useState<TestResult[]>([])
+  const [currentIdx, setCurrentIdx] = useState(-1)
+  const [currentProgress, setCurrentProgress] = useState(0)
+  const [currentStatus, setCurrentStatus] = useState('')
   const [logs, setLogs] = useState<string[]>([])
-  const [converting, setConverting] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [isRunning, setIsRunning] = useState(false)
+  const [isDone, setIsDone] = useState(false)
+  const folderInputRef = useRef<HTMLInputElement>(null)
+  const abortRef = useRef(false)
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`])
   }
 
-  const handleFile = useCallback(async (f: File) => {
-    if (!f || !f.name.toLowerCase().endsWith('.pdf')) {
-      alert('PDF 파일만 가능합니다')
-      return
+  // ━━━ 단일 PDF 변환 ━━━
+  const convertOne = useCallback(async (file: File): Promise<TestResult> => {
+    const startTime = Date.now()
+    const result: TestResult = {
+      fileName: file.name,
+      fileSize: file.size,
+      pageCount: 0,
+      totalElements: 0,
+      emptyPages: 0,
+      imagePages: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      costKRW: 0,
+      elapsedSec: 0,
+      secPerPage: 0,
+      status: 'converting',
     }
 
-    setConverting(true)
-    setProgress(0)
-    setLogs([])
-    setStatus('PDF 준비 중...')
-    addLog(`파일: ${f.name} (${(f.size / 1024 / 1024).toFixed(1)}MB)`)
-
     try {
-      // ★ PDF를 base64로 변환 (이미지 변환 없음 — 서버에서 pdf-lib로 분할)
-      const arrayBuffer = await f.arrayBuffer()
-
-      // PDF → base64 (arrayBuffer가 detach되기 전에 먼저 변환)
+      // PDF → base64
+      const arrayBuffer = await file.arrayBuffer()
       const uint8Array = new Uint8Array(arrayBuffer)
 
-      // 페이지 수 확인용으로만 pdfjs 사용 (arrayBuffer를 복사해서 전달)
+      // 페이지 수 확인 (복사본으로 pdfjs 호출)
       const pdfjsLib = await import('pdfjs-dist')
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
-      const pdfDoc = await pdfjsLib.getDocument({ data: uint8Array.slice().buffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
-      const totalPages = pdfDoc.numPages
-      addLog(`총 ${totalPages}페이지 감지`)
+      const pdfDoc = await pdfjsLib.getDocument({
+        data: uint8Array.slice().buffer,
+        cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/',
+        cMapPacked: true,
+      }).promise
+      result.pageCount = pdfDoc.numPages
+      addLog(`📄 ${file.name} — ${result.pageCount}p, ${(file.size / 1024 / 1024).toFixed(1)}MB`)
+
+      // base64 변환
       let binary = ''
       for (let i = 0; i < uint8Array.length; i++) {
         binary += String.fromCharCode(uint8Array[i])
       }
       const pdfBase64 = btoa(binary)
 
-      setProgress(5)
-      addLog('Gemini API 호출 시작...')
-      setStatus('AI 텍스트 추출 중...')
+      setCurrentProgress(3)
 
-      const title = f.name.replace(/\.pdf$/i, '')
+      // API 호출
+      const title = file.name.replace(/\.pdf$/i, '')
       const response = await fetch('/api/convert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pdfBase64, pageCount: totalPages, title }),
+        body: JSON.stringify({ pdfBase64, pageCount: result.pageCount, title }),
       })
 
       if (!response.ok) {
@@ -65,6 +113,9 @@ export default function TestPage() {
 
       const decoder = new TextDecoder()
       let buffer = ''
+      let pageElementCounts: number[] = []
+      let pageResults: PageDataForEpub[] = []
+      let imagePagesNeeded: number[] = []
 
       while (true) {
         const { done, value } = await reader.read()
@@ -80,33 +131,27 @@ export default function TestPage() {
             const data = JSON.parse(line.slice(6))
 
             if (data.type === 'progress') {
-              const pct = 5 + Math.round((data.percent / 100) * 90)
-              setProgress(pct)
-              setStatus(`추출 중 ${data.page}/${totalPages}`)
-              const preview = data.text?.slice(0, 60) || '(빈 텍스트)'
-              addLog(`p${data.page}: els=${data.debug?.elementCount || '?'} | ${preview}`)
-              if (data.debug?.info) addLog(`  debug: ${data.debug.info.slice(0, 200)}`)
-            } else if (data.type === 'status') {
-              setStatus(data.message)
-              addLog(data.message)
-            } else if (data.type === 'complete') {
-              setProgress(100)
-              setStatus('변환 완료!')
-              addLog(`완료! 비용: ₩${data.costKRW} (in:${data.totalInputTokens} out:${data.totalOutputTokens})`)
+              const pct = 3 + Math.round((data.percent / 100) * 77) // 3~80%: AI 추출
+              setCurrentProgress(pct)
+              setCurrentStatus(`${file.name} — p${data.page}/${result.pageCount}`)
 
-              if (data.epubBase64) {
-                const binaryStr = atob(data.epubBase64)
-                const bytes = new Uint8Array(binaryStr.length)
-                for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
-                const blob = new Blob([bytes], { type: 'application/epub+zip' })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = title + '.epub'
-                a.click()
-                URL.revokeObjectURL(url)
-                addLog('EPUB 다운로드 완료')
-              }
+              const elCount = data.debug?.elementCount || 0
+              pageElementCounts.push(elCount)
+              if (elCount === 0) result.emptyPages++
+
+              const preview = data.text?.slice(0, 50) || '(빈 텍스트)'
+              addLog(`  p${data.page}: ${elCount} els | ${preview}`)
+            } else if (data.type === 'status') {
+              addLog(`  ${data.message}`)
+            } else if (data.type === 'complete') {
+              result.totalInputTokens = data.totalInputTokens || 0
+              result.totalOutputTokens = data.totalOutputTokens || 0
+              result.costKRW = data.costKRW || 0
+              result.totalElements = pageElementCounts.reduce((a, b) => a + b, 0)
+
+              pageResults = data.pageResults || []
+              imagePagesNeeded = data.imagePagesNeeded || []
+              result.imagePages = imagePagesNeeded.length
             } else if (data.type === 'error') {
               throw new Error(data.message)
             }
@@ -115,49 +160,308 @@ export default function TestPage() {
           }
         }
       }
+
+      // ★ 이미지 렌더링 (필요한 페이지만)
+      setCurrentProgress(80)
+      let pageImages = new Map<number, string>()
+      if (imagePagesNeeded.length > 0) {
+        addLog(`  🖼️ 이미지 렌더링: ${imagePagesNeeded.length}개 페이지`)
+        setCurrentStatus(`${file.name} — 이미지 렌더링 중...`)
+        pageImages = await renderPageImages(file, imagePagesNeeded, addLog)
+        addLog(`  🖼️ 이미지 렌더링 완료: ${pageImages.size}개`)
+      }
+
+      // ★ 클라이언트에서 EPUB 빌드
+      setCurrentProgress(90)
+      setCurrentStatus(`${file.name} — EPUB 빌드 중...`)
+      addLog(`  📦 EPUB 빌드 중...`)
+      const title2 = file.name.replace(/\.pdf$/i, '')
+      result.epubBlob = await buildEpubOnClient(pageResults, title2, pageImages)
+      addLog(`  📦 EPUB 빌드 완료 (${(result.epubBlob.size / 1024).toFixed(0)}KB)`)
+
+      setCurrentProgress(100)
+      const elapsed = (Date.now() - startTime) / 1000
+      result.elapsedSec = Math.round(elapsed * 10) / 10
+      result.secPerPage = result.pageCount > 0 ? Math.round((elapsed / result.pageCount) * 10) / 10 : 0
+      result.status = 'done'
+      addLog(`✅ ${file.name} 완료 — ${result.elapsedSec}초, ₩${result.costKRW}, 이미지 ${result.imagePages}p, 빈 ${result.emptyPages}p`)
+
     } catch (err: any) {
-      setStatus(`오류: ${err.message}`)
-      addLog(`ERROR: ${err.message}`)
-    } finally {
-      setConverting(false)
+      result.status = 'error'
+      result.error = err.message
+      result.elapsedSec = Math.round((Date.now() - startTime) / 1000 * 10) / 10
+      addLog(`❌ ${file.name} 실패 — ${err.message}`)
     }
+
+    return result
   }, [])
 
-  return (
-    <div style={{ fontFamily: 'monospace', background: '#1a1a2e', color: '#eee', minHeight: '100vh', padding: 24 }}>
-      <h1 style={{ fontSize: 20, marginBottom: 8 }}>⚡ TeXTREME 변환 테스트</h1>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>결제 없이 바로 변환. 디버그 로그 포함.</p>
+  // ━━━ 배치 실행 ━━━
+  const runBatch = useCallback(async (files: File[]) => {
+    setIsRunning(true)
+    setIsDone(false)
+    abortRef.current = false
+    setLogs([])
+    setResults([])
 
+    const pdfFiles = files
+      .filter(f => f.name.toLowerCase().endsWith('.pdf'))
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    if (pdfFiles.length === 0) {
+      addLog('⚠️ 폴더에 PDF 파일이 없습니다.')
+      setIsRunning(false)
+      return
+    }
+
+    addLog(`━━━ 배치 테스트 시작: ${pdfFiles.length}개 PDF ━━━`)
+
+    const initialResults: TestResult[] = pdfFiles.map(f => ({
+      fileName: f.name,
+      fileSize: f.size,
+      pageCount: 0, totalElements: 0, emptyPages: 0, imagePages: 0,
+      totalInputTokens: 0, totalOutputTokens: 0, costKRW: 0,
+      elapsedSec: 0, secPerPage: 0, status: 'pending' as const,
+    }))
+    setResults(initialResults)
+
+    const finalResults: TestResult[] = [...initialResults]
+
+    for (let i = 0; i < pdfFiles.length; i++) {
+      if (abortRef.current) {
+        addLog('⛔ 사용자에 의해 중단됨')
+        break
+      }
+
+      setCurrentIdx(i)
+      setCurrentProgress(0)
+      setCurrentStatus(`${pdfFiles[i].name} 준비 중...`)
+
+      finalResults[i] = { ...finalResults[i], status: 'converting' }
+      setResults([...finalResults])
+
+      const r = await convertOne(pdfFiles[i])
+      finalResults[i] = r
+      setResults([...finalResults])
+
+      // EPUB 자동 다운로드
+      if (r.epubBlob) {
+        const url = URL.createObjectURL(r.epubBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = r.fileName.replace('.pdf', '.epub')
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+
+      // 다음 파일 전 1초 대기
+      if (i < pdfFiles.length - 1 && !abortRef.current) {
+        await new Promise(r => setTimeout(r, 1000))
+      }
+    }
+
+    setCurrentIdx(-1)
+    setCurrentProgress(0)
+    setCurrentStatus('')
+    setIsRunning(false)
+    setIsDone(true)
+
+    // 요약
+    const done = finalResults.filter(r => r.status === 'done')
+    const failed = finalResults.filter(r => r.status === 'error')
+    const totalPages = done.reduce((s, r) => s + r.pageCount, 0)
+    const totalTime = done.reduce((s, r) => s + r.elapsedSec, 0)
+    const totalCost = done.reduce((s, r) => s + r.costKRW, 0)
+    const totalEmpty = done.reduce((s, r) => s + r.emptyPages, 0)
+    const totalImages = done.reduce((s, r) => s + r.imagePages, 0)
+
+    addLog(`\n━━━ 배치 테스트 완료 ━━━`)
+    addLog(`성공: ${done.length}개 / 실패: ${failed.length}개`)
+    addLog(`총 페이지: ${totalPages}p / 총 시간: ${Math.round(totalTime)}초`)
+    addLog(`총 비용: ₩${totalCost} / 이미지 페이지: ${totalImages}p / 빈 페이지: ${totalEmpty}p (${totalPages > 0 ? (totalEmpty / totalPages * 100).toFixed(1) : 0}%)`)
+    addLog(`평균 페이지당: ${totalPages > 0 ? (totalTime / totalPages).toFixed(1) : 0}초`)
+  }, [convertOne])
+
+  // ━━━ CSV 다운로드 ━━━
+  const downloadCSV = () => {
+    const header = '파일명,용량(MB),페이지수,총요소,빈페이지,빈페이지비율(%),이미지페이지,Input토큰,Output토큰,비용(원),소요시간(초),페이지당(초),상태,에러\n'
+    const rows = results.map(r =>
+      `"${r.fileName}",${(r.fileSize / 1024 / 1024).toFixed(1)},${r.pageCount},${r.totalElements},${r.emptyPages},${r.pageCount > 0 ? (r.emptyPages / r.pageCount * 100).toFixed(1) : 0},${r.imagePages},${r.totalInputTokens},${r.totalOutputTokens},${r.costKRW},${r.elapsedSec},${r.secPerPage},${r.status},"${r.error || ''}"`
+    ).join('\n')
+
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + header + rows], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `textreme-batch-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // ━━━ EPUB 일괄 다운로드 ━━━
+  const downloadAllEpubs = () => {
+    results.forEach(r => {
+      if (r.epubBlob) {
+        const url = URL.createObjectURL(r.epubBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = r.fileName.replace('.pdf', '.epub')
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    })
+  }
+
+  // ━━━ UI ━━━
+  const doneResults = results.filter(r => r.status === 'done')
+  const totalPages = doneResults.reduce((s, r) => s + r.pageCount, 0)
+  const totalCost = doneResults.reduce((s, r) => s + r.costKRW, 0)
+  const totalTime = doneResults.reduce((s, r) => s + r.elapsedSec, 0)
+
+  return (
+    <div style={{ fontFamily: "'Noto Sans KR', monospace", background: '#0d0d1a', color: '#eee', minHeight: '100vh', padding: 24 }}>
+      <h1 style={{ fontSize: 22, marginBottom: 4, color: '#F59E0B' }}>⚡ TeXTREME 배치 테스트</h1>
+      <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>폴더 선택 → 순차 변환 → EPUB 자동 다운로드 → CSV 리포트</p>
+
+      {/* 폴더 선택 */}
       <div
-        onClick={() => !converting && fileRef.current?.click()}
+        onClick={() => !isRunning && folderInputRef.current?.click()}
         style={{
-          padding: '32px 24px', borderRadius: 12, textAlign: 'center', cursor: converting ? 'not-allowed' : 'pointer',
-          border: '2px dashed rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.05)', marginBottom: 20,
+          padding: '32px 24px', borderRadius: 12, textAlign: 'center',
+          cursor: isRunning ? 'not-allowed' : 'pointer',
+          border: '2px dashed rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.05)',
+          marginBottom: 20, fontSize: 15,
         }}
       >
-        {converting ? status : 'PDF 파일을 클릭하여 선택'}
-        <input ref={fileRef} type="file" accept=".pdf" style={{ display: 'none' }}
-          onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = '' }} />
+        {isRunning ? (currentStatus || '변환 중...') : '📁 클릭하여 PDF 폴더 선택'}
+        <input
+          ref={folderInputRef}
+          type="file"
+          {...{ webkitdirectory: '', directory: '' } as any}
+          multiple
+          style={{ display: 'none' }}
+          onChange={e => {
+            if (e.target.files && e.target.files.length > 0) {
+              runBatch(Array.from(e.target.files))
+            }
+            e.target.value = ''
+          }}
+        />
       </div>
 
-      {progress > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-            <span>{status}</span><span>{progress}%</span>
+      {/* 현재 진행 프로그레스 바 */}
+      {isRunning && currentProgress > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, color: '#aaa' }}>
+            <span>{currentStatus}</span>
+            <span>{currentProgress}%</span>
           </div>
-          <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ height: '100%', borderRadius: 3, background: '#F59E0B', width: `${progress}%`, transition: 'width 0.3s' }} />
+          <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.08)' }}>
+            <div style={{ height: '100%', borderRadius: 3, background: '#F59E0B', width: `${currentProgress}%`, transition: 'width 0.3s' }} />
           </div>
         </div>
       )}
 
-      <div style={{ background: '#0d0d1a', borderRadius: 8, padding: 16, maxHeight: 500, overflow: 'auto', fontSize: 12, lineHeight: 1.6 }}>
-        <div style={{ color: '#666', marginBottom: 8 }}>로그</div>
+      {/* 중단 버튼 */}
+      {isRunning && (
+        <button onClick={() => { abortRef.current = true }}
+          style={{ marginBottom: 16, padding: '8px 20px', borderRadius: 8, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 13, cursor: 'pointer' }}>
+          ⛔ 중단
+        </button>
+      )}
+
+      {/* 결과 테이블 */}
+      {results.length > 0 && (
+        <div style={{ marginBottom: 20, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#888' }}>
+                <th style={{ padding: '8px 6px', textAlign: 'left' }}>#</th>
+                <th style={{ padding: '8px 6px', textAlign: 'left' }}>파일명</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right' }}>페이지</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right' }}>요소</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right' }}>빈p</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right' }}>이미지p</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right' }}>비용</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right' }}>시간</th>
+                <th style={{ padding: '8px 6px', textAlign: 'right' }}>p당</th>
+                <th style={{ padding: '8px 6px', textAlign: 'center' }}>상태</th>
+              </tr>
+            </thead>
+            <tbody>
+              {results.map((r, i) => (
+                <tr key={i} style={{
+                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  background: i === currentIdx ? 'rgba(245,158,11,0.06)' : 'transparent',
+                }}>
+                  <td style={{ padding: '6px', color: '#666' }}>{i + 1}</td>
+                  <td style={{ padding: '6px', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.fileName}</td>
+                  <td style={{ padding: '6px', textAlign: 'right' }}>{r.pageCount || '-'}</td>
+                  <td style={{ padding: '6px', textAlign: 'right' }}>{r.totalElements || '-'}</td>
+                  <td style={{ padding: '6px', textAlign: 'right', color: r.emptyPages > 0 ? '#ef4444' : '#666' }}>{r.emptyPages || '-'}</td>
+                  <td style={{ padding: '6px', textAlign: 'right', color: r.imagePages > 0 ? '#3b82f6' : '#666' }}>{r.imagePages || '-'}</td>
+                  <td style={{ padding: '6px', textAlign: 'right' }}>{r.costKRW ? `₩${r.costKRW}` : '-'}</td>
+                  <td style={{ padding: '6px', textAlign: 'right' }}>{r.elapsedSec ? `${r.elapsedSec}s` : '-'}</td>
+                  <td style={{ padding: '6px', textAlign: 'right' }}>{r.secPerPage ? `${r.secPerPage}s` : '-'}</td>
+                  <td style={{ padding: '6px', textAlign: 'center' }}>
+                    {r.status === 'pending' && <span style={{ color: '#666' }}>⏳</span>}
+                    {r.status === 'converting' && <span style={{ color: '#F59E0B' }}>🔄</span>}
+                    {r.status === 'done' && <span style={{ color: '#22c55e' }}>✅</span>}
+                    {r.status === 'error' && <span style={{ color: '#ef4444' }} title={r.error}>❌</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 요약 바 */}
+      {doneResults.length > 0 && (
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16, padding: '12px 16px', borderRadius: 10, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', fontSize: 13 }}>
+          <span>📄 {doneResults.length}개 완료</span>
+          <span>📑 총 {totalPages}p</span>
+          <span>💰 ₩{totalCost}</span>
+          <span>⏱️ {Math.round(totalTime)}초</span>
+          <span>📊 p당 {totalPages > 0 ? (totalTime / totalPages).toFixed(1) : 0}초</span>
+        </div>
+      )}
+
+      {/* 액션 버튼 */}
+      {isDone && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+          <button onClick={downloadCSV}
+            style={{ padding: '10px 20px', borderRadius: 8, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e', fontSize: 13, cursor: 'pointer' }}>
+            📊 CSV 리포트 다운로드
+          </button>
+          <button onClick={downloadAllEpubs}
+            style={{ padding: '10px 20px', borderRadius: 8, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#3b82f6', fontSize: 13, cursor: 'pointer' }}>
+            📚 EPUB 전체 재다운로드
+          </button>
+          <button onClick={() => { setResults([]); setLogs([]); setIsDone(false) }}
+            style={{ padding: '10px 20px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#aaa', fontSize: 13, cursor: 'pointer' }}>
+            🔄 초기화
+          </button>
+        </div>
+      )}
+
+      {/* 로그 */}
+      <div style={{ background: '#0a0a14', borderRadius: 8, padding: 16, maxHeight: 400, overflow: 'auto', fontSize: 11, lineHeight: 1.7 }}>
+        <div style={{ color: '#555', marginBottom: 8, fontWeight: 600 }}>실시간 로그</div>
         {logs.length === 0 ? (
-          <div style={{ color: '#444' }}>PDF를 선택하면 로그가 여기에 표시됩니다</div>
+          <div style={{ color: '#333' }}>폴더를 선택하면 로그가 표시됩니다</div>
         ) : (
           logs.map((log, i) => (
-            <div key={i} style={{ color: log.includes('ERROR') ? '#ef4444' : log.includes('debug:') ? '#888' : '#ccc', borderBottom: '1px solid rgba(255,255,255,0.03)', padding: '2px 0' }}>
+            <div key={i} style={{
+              color: log.includes('❌') || log.includes('ERROR') ? '#ef4444'
+                : log.includes('✅') ? '#22c55e'
+                : log.includes('📄') ? '#F59E0B'
+                : log.includes('🖼️') || log.includes('📦') ? '#3b82f6'
+                : log.includes('━━━') ? '#888'
+                : '#777',
+              borderBottom: '1px solid rgba(255,255,255,0.02)', padding: '1px 0',
+            }}>
               {log}
             </div>
           ))
