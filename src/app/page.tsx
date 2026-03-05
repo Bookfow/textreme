@@ -172,6 +172,7 @@ async function checkPdfCompatibility(
 
           const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
           const darkRatio = sampled > 0 ? darkCount / sampled : 0
+          console.log(`[compat] page ${pageNum}: data w=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, darkRatio=${(darkRatio*100).toFixed(1)}%`)
 
           if (whiteRatio > 0.70 && darkRatio < 0.02) {
             maskImagePages++
@@ -203,6 +204,7 @@ async function checkPdfCompatibility(
           const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
           const darkRatio = sampled > 0 ? darkCount / sampled : 0
           c2.remove()
+          console.log(`[compat] page ${pageNum}: bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, darkRatio=${(darkRatio*100).toFixed(1)}%`)
 
           if (whiteRatio > 0.70 && darkRatio < 0.02) {
             maskImagePages++
@@ -227,6 +229,7 @@ async function checkPdfCompatibility(
   }
 
   // 마스크/단색 이미지가 2개 이상 발견되면 → 경고
+  console.log(`[compat] 결과: maskImagePages=${maskImagePages}, lowTextPages=${lowTextPages}/${sampleCount}`)
   if (maskImagePages >= 2) {
     return {
       status: "warn",
@@ -254,7 +257,7 @@ export default function TeXTREME() {
         storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID!,
         channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY!,
         paymentId: paymentId,
-        orderName: `텍스트림 PDF→EPUB 변환 (${filePages}p)`,
+        orderName: `TeXTREME PDF→EPUB 변환 (${filePages}p)`,
         totalAmount: price,
         currency: "CURRENCY_KRW",
         payMethod: "CARD",
@@ -623,7 +626,7 @@ export default function TeXTREME() {
         <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
             <Zap size={20} color="#F59E0B" />
-            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>텍스트림</span>
+            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>TeXTREME</span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: 32 }}>
@@ -654,7 +657,7 @@ export default function TeXTREME() {
         <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
             <Zap size={20} color="#F59E0B" />
-            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>텍스트림</span>
+            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>TeXTREME</span>
           </div>
 
           {/* Error icon */}
@@ -698,7 +701,7 @@ export default function TeXTREME() {
         <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
             <Zap size={20} color="#F59E0B" />
-            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>텍스트림</span>
+            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>TeXTREME</span>
           </div>
 
           {/* Warning icon */}
@@ -753,7 +756,7 @@ export default function TeXTREME() {
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
             <Zap size={20} color="#F59E0B" />
-            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>텍스트림</span>
+            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>TeXTREME</span>
           </div>
 
           {/* File info */}
@@ -868,7 +871,7 @@ export default function TeXTREME() {
         <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
             <Zap size={20} color="#F59E0B" />
-            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>텍스트림</span>
+            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>TeXTREME</span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: 32 }}>
