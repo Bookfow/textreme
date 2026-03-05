@@ -178,7 +178,7 @@ async function checkPdfCompatibility(
           const stddev = sampled > 0 ? Math.sqrt(brightnessSqSum / sampled - avgBrightness * avgBrightness) : 0
           console.log(`[compat] page ${pageNum}: data w=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
-          if (whiteRatio > 0.70 && stddev < 30) {
+          if (whiteRatio > 0.70 && stddev < 65) {
             maskImagePages++
           }
         } else if (imgData?.bitmap) {
@@ -213,7 +213,7 @@ async function checkPdfCompatibility(
           c2.remove()
           console.log(`[compat] page ${pageNum}: bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
-          if (whiteRatio > 0.70 && stddev < 30) {
+          if (whiteRatio > 0.70 && stddev < 65) {
             maskImagePages++
           }
         } else {
