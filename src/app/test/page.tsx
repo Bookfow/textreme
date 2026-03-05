@@ -97,15 +97,15 @@ export default function BatchTestPage() {
       setCurrentProgress(5)
       addLog(`  분할 완료, Gemini API 호출 시작...`)
 
-      // ★ 2단계: 크기 기반 동적 배치로 서버에 전송 (Vercel 4.5MB body 제한 대응)
+      // ★ 2단계: 3배치 동시 전송 (Vercel 4.5MB body 제한 + 속도 최적화)
       const MAX_BATCH_BYTES = 3 * 1024 * 1024 // 3MB (JSON 오버헤드 고려)
+      const CONCURRENT = 3 // 동시 전송 배치 수
       const allPageResults: PageDataForEpub[] = []
+
+      // 먼저 모든 배치를 준비
+      const allBatches: (typeof singlePageBase64s)[] = []
       let batchIdx = 0
-
       while (batchIdx < singlePageBase64s.length) {
-        if (abortRef.current) throw new Error('사용자 중단')
-
-        // 동적 배치: 3MB 이하가 되도록 페이지 묶기 (최대 10개)
         const batchPages: typeof singlePageBase64s = []
         let batchBytes = 0
         while (batchIdx < singlePageBase64s.length && batchPages.length < 10) {
@@ -115,42 +115,63 @@ export default function BatchTestPage() {
           batchBytes += pageSize
           batchIdx++
         }
+        allBatches.push(batchPages)
+      }
 
-        const firstPage = batchPages[0].pageNumber
-        const lastPage = batchPages[batchPages.length - 1].pageNumber
-        setCurrentStatus(`${file.name} — p${firstPage}~${lastPage}/${result.pageCount} (${batchPages.length}p, ${(batchBytes / 1024 / 1024).toFixed(1)}MB)`)
+      addLog(`  ${allBatches.length}개 배치 준비 완료, ${CONCURRENT}개씩 동시 전송`)
 
-        const response = await fetch('/api/convert', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pages: batchPages }),
-        })
+      // CONCURRENT개씩 동시 전송
+      let completedPages = 0
+      for (let round = 0; round < allBatches.length; round += CONCURRENT) {
+        if (abortRef.current) throw new Error('사용자 중단')
 
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({ error: `서버 오류 ${response.status}` }))
-          throw new Error(err.error || `HTTP ${response.status}`)
-        }
+        const roundBatches = allBatches.slice(round, round + CONCURRENT)
+        const firstPage = roundBatches[0][0].pageNumber
+        const lastPage = roundBatches[roundBatches.length - 1][roundBatches[roundBatches.length - 1].length - 1].pageNumber
+        setCurrentStatus(`${file.name} — p${firstPage}~${lastPage}/${result.pageCount} (${roundBatches.length}배치 동시)`)
 
-        const data = await response.json()
-        const batchResults = data.results || []
+        // 동시 fetch
+        const responses = await Promise.all(
+          roundBatches.map(batchPages =>
+            fetch('/api/convert', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pages: batchPages }),
+            })
+          )
+        )
 
-        for (const r of batchResults) {
-          allPageResults.push({ pageNumber: r.pageNumber, elements: r.elements })
-          result.totalInputTokens += r.inputTokens || 0
-          result.totalOutputTokens += r.outputTokens || 0
-          result.totalElements += r.elements.length
+        // 응답 처리
+        for (const response of responses) {
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({ error: `서버 오류 ${response.status}` }))
+            throw new Error(err.error || `HTTP ${response.status}`)
+          }
 
-          if (r.elements.length === 0) result.emptyPages++
+          const data = await response.json()
+          const batchResults = data.results || []
 
-          const preview = r.elements.find((e: any) => e.text)?.text?.slice(0, 50) || '(빈 텍스트)'
-          addLog(`  p${r.pageNumber}: ${r.elements.length} els | ${preview}`)
+          for (const r of batchResults) {
+            allPageResults.push({ pageNumber: r.pageNumber, elements: r.elements })
+            result.totalInputTokens += r.inputTokens || 0
+            result.totalOutputTokens += r.outputTokens || 0
+            result.totalElements += r.elements.length
+
+            if (r.elements.length === 0) result.emptyPages++
+
+            const preview = r.elements.find((e: any) => e.text)?.text?.slice(0, 50) || '(빈 텍스트)'
+            addLog(`  p${r.pageNumber}: ${r.elements.length} els | ${preview}`)
+            completedPages++
+          }
         }
 
         // 진행률 업데이트
-        const processed = Math.min(batchIdx, result.pageCount)
-        const pct = 5 + Math.round((processed / result.pageCount) * 75) // 5~80%
+        const pct = 5 + Math.round((completedPages / result.pageCount) * 75) // 5~80%
         setCurrentProgress(pct)
       }
+
+      // 페이지 순서 정렬 (동시 전송으로 순서가 섞일 수 있음)
+      allPageResults.sort((a, b) => a.pageNumber - b.pageNumber)
 
       // 비용 계산
       const costUSD = result.totalInputTokens / 1_000_000 * 0.15 + result.totalOutputTokens / 1_000_000 * 0.60
