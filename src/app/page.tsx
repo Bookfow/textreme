@@ -83,7 +83,8 @@ ${fontLink}
 type CompatResult = { status: "ok" | "block" | "warn"; reason: string }
 
 async function checkPdfCompatibility(
-  pdfDoc: { numPages: number; getPage: (n: number) => Promise<any> }
+  pdfDoc: { numPages: number; getPage: (n: number) => Promise<any> },
+  OPS: any
 ): Promise<CompatResult> {
   // 1) 500페이지 초과 → 즉시 차단
   if (pdfDoc.numPages > 500) {
@@ -97,6 +98,17 @@ async function checkPdfCompatibility(
   for (let i = 0; i < sampleCount; i++) {
     sampleIndices.push(Math.floor((i / sampleCount) * total) + 1)
   }
+
+  // pdf.js OPS 상수 세트
+  const vectorSet = new Set([
+    OPS.moveTo, OPS.lineTo, OPS.curveTo, OPS.curveTo2, OPS.curveTo3,
+    OPS.rectangle, OPS.closePath,
+    OPS.fill, OPS.eoFill, OPS.fillStroke, OPS.eoFillStroke,
+    OPS.stroke, OPS.closeStroke, OPS.closeFillStroke
+  ])
+  const imageSet = new Set([
+    OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageXObjectRepeat
+  ])
 
   let lowTextPages = 0      // 텍스트가 거의 없는 페이지 수
   let vectorHeavyPages = 0  // 벡터 오퍼레이터가 과도한 페이지 수
@@ -117,13 +129,10 @@ async function checkPdfCompatibility(
       let vectorOps = 0
       let imageOps = 0
       for (const fn of ops.fnArray) {
-        // 벡터 드로잉: moveTo(13), lineTo(14), curveTo(15,16,17), fill(18~21), stroke(22~25), closePath(26)
-        if (fn >= 13 && fn <= 26) vectorOps++
-        // 이미지: paintImageXObject(82), paintInlineImageXObject(83)
-        if (fn === 82 || fn === 83) imageOps++
+        if (vectorSet.has(fn)) vectorOps++
+        if (imageSet.has(fn)) imageOps++
       }
 
-      // 이미지가 있으면서 벡터 오퍼레이터가 200개 이상 → 벡터 그래픽 의심
       console.log(`[compat] page ${pageNum}: text=${text.length}chars, vectorOps=${vectorOps}, imageOps=${imageOps}`)
       if (imageOps > 0 && vectorOps > 200) {
         vectorHeavyPages++
@@ -452,7 +461,7 @@ export default function TeXTREME() {
         setFilePages(pdfDoc.numPages)
 
         // 호환성 체크
-        const compat = await checkPdfCompatibility(pdfDoc)
+        const compat = await checkPdfCompatibility(pdfDoc, pdfjsLib.OPS)
         if (compat.status === "block") {
           setCompatMessage(compat.reason)
           setView("incompatible")
