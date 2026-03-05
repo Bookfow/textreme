@@ -5,8 +5,10 @@
 // 서버는 Gemini에 전달 후 JSON 결과 반환 (SSE 아님)
 //
 // ★ body 크기: 1페이지 PDF ~50-200KB × 10 = ~2MB 이하 (Vercel 4.5MB 제한 안전)
-export const maxDuration = 60
+
 import { NextRequest } from 'next/server'
+
+export const maxDuration = 60
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 타입 정의

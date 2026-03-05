@@ -200,14 +200,23 @@ export default function TeXTREME() {
       setProgress(5)
       setExtractedTexts([{ page: 0, text: 'AI가 페이지를 분석하고 있습니다...' }])
 
-      // ★ 2단계: 10페이지씩 배치로 서버에 전송
-      const BATCH_SIZE = 10
+      // ★ 2단계: 크기 기반 동적 배치로 서버에 전송 (Vercel 4.5MB body 제한 대응)
+      const MAX_BATCH_BYTES = 3 * 1024 * 1024
       const allPageResults: { pageNumber: number; elements: any[] }[] = []
       let totalInputTokens = 0
       let totalOutputTokens = 0
+      let batchIdx = 0
 
-      for (let batch = 0; batch < singlePageBase64s.length; batch += BATCH_SIZE) {
-        const batchPages = singlePageBase64s.slice(batch, batch + BATCH_SIZE)
+      while (batchIdx < singlePageBase64s.length) {
+        const batchPages: typeof singlePageBase64s = []
+        let batchBytes = 0
+        while (batchIdx < singlePageBase64s.length && batchPages.length < 10) {
+          const pageSize = singlePageBase64s[batchIdx].base64.length
+          if (batchPages.length > 0 && batchBytes + pageSize > MAX_BATCH_BYTES) break
+          batchPages.push(singlePageBase64s[batchIdx])
+          batchBytes += pageSize
+          batchIdx++
+        }
 
         const response = await fetch('/api/convert', {
           method: 'POST',
@@ -237,7 +246,7 @@ export default function TeXTREME() {
           }
         }
 
-        const processed = Math.min(batch + BATCH_SIZE, totalPages)
+        const processed = Math.min(batchIdx, totalPages)
         setProgress(5 + Math.round((processed / totalPages) * 75))
       }
 

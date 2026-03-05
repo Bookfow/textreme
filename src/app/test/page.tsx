@@ -97,15 +97,28 @@ export default function BatchTestPage() {
       setCurrentProgress(5)
       addLog(`  분할 완료, Gemini API 호출 시작...`)
 
-      // ★ 2단계: 10페이지씩 배치로 서버에 전송
-      const BATCH_SIZE = 10
+      // ★ 2단계: 크기 기반 동적 배치로 서버에 전송 (Vercel 4.5MB body 제한 대응)
+      const MAX_BATCH_BYTES = 3 * 1024 * 1024 // 3MB (JSON 오버헤드 고려)
       const allPageResults: PageDataForEpub[] = []
+      let batchIdx = 0
 
-      for (let batch = 0; batch < singlePageBase64s.length; batch += BATCH_SIZE) {
+      while (batchIdx < singlePageBase64s.length) {
         if (abortRef.current) throw new Error('사용자 중단')
 
-        const batchPages = singlePageBase64s.slice(batch, batch + BATCH_SIZE)
-        setCurrentStatus(`${file.name} — p${batch + 1}~${batch + batchPages.length}/${result.pageCount}`)
+        // 동적 배치: 3MB 이하가 되도록 페이지 묶기 (최대 10개)
+        const batchPages: typeof singlePageBase64s = []
+        let batchBytes = 0
+        while (batchIdx < singlePageBase64s.length && batchPages.length < 10) {
+          const pageSize = singlePageBase64s[batchIdx].base64.length
+          if (batchPages.length > 0 && batchBytes + pageSize > MAX_BATCH_BYTES) break
+          batchPages.push(singlePageBase64s[batchIdx])
+          batchBytes += pageSize
+          batchIdx++
+        }
+
+        const firstPage = batchPages[0].pageNumber
+        const lastPage = batchPages[batchPages.length - 1].pageNumber
+        setCurrentStatus(`${file.name} — p${firstPage}~${lastPage}/${result.pageCount} (${batchPages.length}p, ${(batchBytes / 1024 / 1024).toFixed(1)}MB)`)
 
         const response = await fetch('/api/convert', {
           method: 'POST',
@@ -114,7 +127,7 @@ export default function BatchTestPage() {
         })
 
         if (!response.ok) {
-          const err = await response.json().catch(() => ({ error: '서버 오류' }))
+          const err = await response.json().catch(() => ({ error: `서버 오류 ${response.status}` }))
           throw new Error(err.error || `HTTP ${response.status}`)
         }
 
@@ -134,7 +147,7 @@ export default function BatchTestPage() {
         }
 
         // 진행률 업데이트
-        const processed = Math.min(batch + BATCH_SIZE, result.pageCount)
+        const processed = Math.min(batchIdx, result.pageCount)
         const pct = 5 + Math.round((processed / result.pageCount) * 75) // 5~80%
         setCurrentProgress(pct)
       }
