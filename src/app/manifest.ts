@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'TeXTREME - PDF to EPUB (with Free Viewer)',
-    short_name: 'TeXTREME',
-    description: 'AI PDF to EPUB converter and EPUB/TXT/DOCX viewer',
+    name: '텍스트림 AI - PDF to EPUB 변환기 (with 무료 뷰어)',
+    short_name: '텍스트림',
+    description: 'AI PDF to EPUB 변환기 및 EPUB/TXT/DOCX 뷰어',
     start_url: '/',
     display: 'standalone',
     background_color: '#06060c',
