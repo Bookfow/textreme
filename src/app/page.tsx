@@ -221,7 +221,6 @@ export default function TeXTREME() {
       }
 
       setProgress(5)
-      throw new Error('테스트용 강제 에러 — 배포 전 삭제할 것')
       setExtractedTexts([{ page: 0, text: 'AI가 페이지를 분석하고 있습니다...' }])
 
       // ★ 2단계: 크기 기반 동적 배치로 서버에 전송 (Vercel 4.5MB body 제한 대응)
