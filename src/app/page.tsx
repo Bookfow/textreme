@@ -30,6 +30,15 @@ const PRICE_EXAMPLES = [
 
 type ViewType = "landing" | "pricing" | "converting" | "complete" | "viewer" | "pdf-viewer"
 
+const CONVERTING_MESSAGES = [
+  "AI가 페이지를 분석하고 있습니다",
+  "정밀 텍스트 추출 중...",
+  "문서 구조 분석 중...",
+  "한글 어미·조사 보정 중...",
+  "제목·본문·인용 구분 중...",
+  "최고 품질 EPUB 생성 중...",
+]
+
 interface ExtractedText { page: number; text: string }
 
 const fontLink = `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&family=Outfit:wght@600;700;800;900&display=swap');`
@@ -145,6 +154,7 @@ export default function TeXTREME() {
   const [epubUrl, setEpubUrl] = useState<string | null>(null)
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null)
   const [agreeNoRefund, setAgreeNoRefund] = useState(false)
+  const [convertingMsgIdx, setConvertingMsgIdx] = useState(0)
 
   // ━━━ PWA install prompt ━━━
   useEffect(() => {
@@ -158,6 +168,16 @@ export default function TeXTREME() {
     window.addEventListener('beforeinstallprompt', handler)
     return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
+
+  // ━━━ Converting 메시지 회전 ━━━
+  useEffect(() => {
+    if (view !== "converting") return
+    setConvertingMsgIdx(0)
+    const timer = setInterval(() => {
+      setConvertingMsgIdx(prev => (prev + 1) % CONVERTING_MESSAGES.length)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [view])
 
   const handleInstallPwa = async () => {
     if (!deferredPrompt) return
@@ -569,8 +589,8 @@ export default function TeXTREME() {
             </div>
           </div>
 
-          <p style={{ color: "#F59E0B", fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
-            {progress < 100 ? "AI가 페이지를 분석하고 있습니다" : "변환 완료!"}
+          <p key={convertingMsgIdx} className="slide-text" style={{ color: "#F59E0B", fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+            {progress < 100 ? CONVERTING_MESSAGES[convertingMsgIdx] : "변환 완료!"}
           </p>
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 32 }}>
             {currentPage}/{filePages} 페이지 처리됨
