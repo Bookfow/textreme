@@ -22,34 +22,29 @@ export default function TestPage() {
     setConverting(true)
     setProgress(0)
     setLogs([])
-    setStatus('PDF → 이미지 변환 중...')
+    setStatus('PDF 준비 중...')
     addLog(`파일: ${f.name} (${(f.size / 1024 / 1024).toFixed(1)}MB)`)
 
     try {
+      // ★ PDF를 base64로 변환 (이미지 변환 없음 — 서버에서 pdf-lib로 분할)
+      const arrayBuffer = await f.arrayBuffer()
+
+      // 페이지 수 확인용으로만 pdfjs 사용
       const pdfjsLib = await import('pdfjs-dist')
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
-      const arrayBuffer = await f.arrayBuffer()
       const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
       const totalPages = pdfDoc.numPages
       addLog(`총 ${totalPages}페이지 감지`)
 
-      const pageImages: { base64: string; mimeType: string }[] = []
-
-      for (let i = 1; i <= totalPages; i++) {
-        const page = await pdfDoc.getPage(i)
-        const viewport = page.getViewport({ scale: 1.5 })
-        const canvas = document.createElement('canvas')
-        canvas.width = viewport.width
-        canvas.height = viewport.height
-        const ctx = canvas.getContext('2d')!
-        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-        pageImages.push({ base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' })
-        canvas.remove()
-        setProgress(Math.round((i / totalPages) * 15))
-        setStatus(`이미지 변환 ${i}/${totalPages}`)
+      // PDF → base64
+      const uint8Array = new Uint8Array(arrayBuffer)
+      let binary = ''
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i])
       }
+      const pdfBase64 = btoa(binary)
 
+      setProgress(5)
       addLog('Gemini API 호출 시작...')
       setStatus('AI 텍스트 추출 중...')
 
@@ -57,7 +52,7 @@ export default function TestPage() {
       const response = await fetch('/api/convert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pages: pageImages, title }),
+        body: JSON.stringify({ pdfBase64, pageCount: totalPages, title }),
       })
 
       if (!response.ok) {
@@ -85,7 +80,7 @@ export default function TestPage() {
             const data = JSON.parse(line.slice(6))
 
             if (data.type === 'progress') {
-              const pct = 15 + Math.round((data.percent / 100) * 75)
+              const pct = 5 + Math.round((data.percent / 100) * 90)
               setProgress(pct)
               setStatus(`추출 중 ${data.page}/${totalPages}`)
               const preview = data.text?.slice(0, 60) || '(빈 텍스트)'
