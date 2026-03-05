@@ -134,8 +134,16 @@ async function checkPdfCompatibility(
 
       pagesWithImages++
 
-      // 첫 번째 이미지를 실제로 가져와서 픽셀 분석
+      // 페이지를 작은 스케일로 렌더링 → 이미지 객체 로드 → 픽셀 분석
       try {
+        const viewport = page.getViewport({ scale: 0.1 })
+        const canvas = document.createElement('canvas')
+        canvas.width = viewport.width
+        canvas.height = viewport.height
+        const ctx = canvas.getContext('2d')!
+        await page.render({ canvasContext: ctx, viewport }).promise
+
+        // 렌더링 후 이미지 객체가 로드됨
         const imgData: any = await new Promise((resolve, reject) => {
           const timer = setTimeout(() => reject(new Error('timeout')), 3000)
           page.objs.get(imgNames[0], (data: any) => {
@@ -143,6 +151,8 @@ async function checkPdfCompatibility(
             resolve(data)
           })
         })
+
+        canvas.remove()
 
         if (imgData?.data) {
           const pixels = imgData.data
@@ -165,8 +175,37 @@ async function checkPdfCompatibility(
           if (whiteRatio > 0.85) {
             maskImagePages++
           }
+        } else if (imgData?.bitmap) {
+          // bitmap 형태인 경우 — canvas에 그려서 픽셀 분석
+          const bmp = imgData.bitmap
+          const c2 = document.createElement('canvas')
+          c2.width = bmp.width
+          c2.height = bmp.height
+          const ctx2 = c2.getContext('2d')!
+          ctx2.drawImage(bmp, 0, 0)
+          const id = ctx2.getImageData(0, 0, c2.width, c2.height)
+          const pixels = id.data // RGBA
+          const totalPixels = c2.width * c2.height
+          const sampleStep = Math.max(1, Math.floor(totalPixels / 500))
+          let whiteCount = 0
+          let sampled = 0
+
+          for (let j = 0; j < totalPixels; j += sampleStep) {
+            const offset = j * 4
+            const r = pixels[offset], g = pixels[offset + 1], b = pixels[offset + 2]
+            if (r > 240 && g > 240 && b > 240) whiteCount++
+            sampled++
+          }
+
+          const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
+          console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio * 100).toFixed(1)}%`)
+          c2.remove()
+
+          if (whiteRatio > 0.85) {
+            maskImagePages++
+          }
         } else {
-          console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, imgData=없음`)
+          console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, imgData 형식 알수없음`, imgData)
         }
       } catch {
         console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, 이미지 추출 실패`)
