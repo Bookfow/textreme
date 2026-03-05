@@ -71,10 +71,39 @@ async function extractImagesFromPage(
     processedNames.add(imgName)
 
     try {
+      // ★ 비동기로 이미지 객체 가져오기 (로딩 완료 대기)
       let imgObj: any = null
-      try { imgObj = page.objs.get(imgName) } catch {}
+      try {
+        imgObj = await new Promise((resolve, reject) => {
+          try {
+            const obj = page.objs.get(imgName)
+            if (obj) { resolve(obj); return }
+          } catch {}
+          // 동기 방식 실패 시 → 콜백 방식 시도
+          try {
+            page.objs.get(imgName, (obj: any) => resolve(obj))
+            // 3초 타임아웃
+            setTimeout(() => resolve(null), 3000)
+          } catch { resolve(null) }
+        })
+      } catch {}
       if (onDebug) onDebug(`  [debug]   obj ${imgName}: type=${imgObj ? typeof imgObj : "null"}, constructor=${imgObj?.constructor?.name || "N/A"}, keys=${imgObj ? Object.keys(imgObj).slice(0, 5).join(",") : "N/A"}`)
       if (!imgObj) continue
+
+      // ★ bitmap 프로퍼티가 있으면 ImageBitmap으로 처리 (pdfjs 최신)
+      if (imgObj.bitmap && typeof ImageBitmap !== 'undefined' && imgObj.bitmap instanceof ImageBitmap) {
+        const bmp = imgObj.bitmap
+        if (bmp.width < 50 || bmp.height < 50) continue
+        const imgCanvas = document.createElement('canvas')
+        imgCanvas.width = bmp.width
+        imgCanvas.height = bmp.height
+        const imgCtx = imgCanvas.getContext('2d')!
+        imgCtx.drawImage(bmp, 0, 0)
+        images.push(imgCanvas.toDataURL('image/jpeg', 0.85))
+        imgCanvas.remove()
+        if (onDebug) onDebug(`  [debug]   ✅ bitmap 추출 성공: ${bmp.width}x${bmp.height}`)
+        continue
+      }
 
       // JPEG 이미지 (HTMLImageElement 또는 ImageBitmap)
       if (typeof HTMLImageElement !== 'undefined' && imgObj instanceof HTMLImageElement) {
@@ -103,9 +132,16 @@ async function extractImagesFromPage(
         continue
       }
 
-      // Raw 이미지 데이터 {width, height, data, kind}
+      // Raw 이미지 데이터 {width, height, data, kind?}
       if (imgObj.width && imgObj.height && imgObj.data) {
         if (imgObj.width < 50 || imgObj.height < 50) continue
+        // kind가 없으면 data 길이로 추정
+        const pixelCount2 = imgObj.width * imgObj.height
+        if (!imgObj.kind) {
+          if (imgObj.data.length === pixelCount2 * 4) imgObj.kind = 3 // RGBA
+          else if (imgObj.data.length === pixelCount2 * 3) imgObj.kind = 2 // RGB
+          else if (imgObj.data.length === pixelCount2) imgObj.kind = 1 // GRAYSCALE
+        }
 
         const imgCanvas = document.createElement('canvas')
         imgCanvas.width = imgObj.width
