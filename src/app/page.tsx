@@ -1261,6 +1261,50 @@ export default function TeXTREME() {
         </div>
       </section>
 
+      {/* ━━━ PDF 호환성 안내 ━━━ */}
+      <section style={{ padding: "60px 24px", background: "#06060c" }}>
+        <div style={{ maxWidth: 700, margin: "0 auto" }}>
+          <h3 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 24, letterSpacing: "-0.02em", marginBottom: 8 }}>
+            변환 전 잠깐 확인해요 ✅
+          </h3>
+          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.45)", fontSize: 14, marginBottom: 32 }}>
+            업로드하면 자동으로 호환성을 확인해드려요
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            {/* 잘 되는 PDF */}
+            <div style={{ padding: "24px 20px", borderRadius: 14, background: "rgba(34,197,94,0.04)", border: "1px solid rgba(34,197,94,0.15)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: 18 }}>✅</span>
+                <span style={{ color: "#22c55e", fontSize: 15, fontWeight: 700 }}>잘 되는 PDF</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {["텍스트 중심 PDF (교재, 소설, 보고서)", "JPEG/PNG 이미지가 포함된 PDF", "한글 폰트가 포함된 PDF"].map((t, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 12, marginTop: 2, flexShrink: 0 }}>●</span>
+                    <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.5 }}>{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* 제한이 있는 PDF */}
+            <div style={{ padding: "24px 20px", borderRadius: 14, background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.15)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: 18 }}>⚠️</span>
+                <span style={{ color: "#F59E0B", fontSize: 15, fontWeight: 700 }}>제한이 있는 PDF</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {["스캔본 PDF (이미지로만 구성)", "인포그래픽/벡터 디자인 문서", "500페이지 초과 PDF", "비밀번호 보호 PDF"].map((t, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <span style={{ color: "rgba(245,158,11,0.6)", fontSize: 12, marginTop: 2, flexShrink: 0 }}>●</span>
+                    <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.5 }}>{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* PRICING — Per-page */}
       <section style={{ padding: "100px 24px", background: "radial-gradient(ellipse 80% 50% at 50% 100%, rgba(245,158,11,0.04) 0%, transparent 60%), #06060c" }}>
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
