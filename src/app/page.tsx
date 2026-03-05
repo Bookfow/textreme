@@ -128,7 +128,6 @@ async function checkPdfCompatibility(
       }
 
       if (imgNames.length === 0) {
-        console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=0`)
         continue
       }
 
@@ -170,7 +169,6 @@ async function checkPdfCompatibility(
           }
 
           const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
-          console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, imgSize=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio * 100).toFixed(1)}%`)
 
           if (whiteRatio > 0.70) {
             maskImagePages++
@@ -198,17 +196,14 @@ async function checkPdfCompatibility(
           }
 
           const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
-          console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio * 100).toFixed(1)}%`)
           c2.remove()
 
           if (whiteRatio > 0.70) {
             maskImagePages++
           }
         } else {
-          console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, imgData 형식 알수없음`, imgData)
         }
       } catch {
-        console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, 이미지 추출 실패`)
       }
     } catch {
       // 개별 페이지 분석 실패는 무시
@@ -216,7 +211,6 @@ async function checkPdfCompatibility(
   }
 
   // 3) 판정
-  console.log(`[compat] 결과: lowTextPages=${lowTextPages}/${sampleCount}, maskImagePages=${maskImagePages}/${pagesWithImages}(이미지있는페이지)`)
 
   // 샘플의 60% 이상이 텍스트 없음 → 스캔본 경고
   if (lowTextPages >= Math.ceil(sampleCount * 0.6)) {
