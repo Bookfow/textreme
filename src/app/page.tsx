@@ -175,43 +175,27 @@ export default function TeXTREME() {
     setExtractedTexts([])
 
     try {
-      // 1단계: PDF를 페이지별 이미지로 변환 (클라이언트에서)
-      setExtractedTexts([{ page: 0, text: 'PDF 페이지를 이미지로 변환 중...' }])
+      // ★ PDF를 base64로 변환 (이미지 변환 없음 — 서버에서 pdf-lib로 분할)
+      setExtractedTexts([{ page: 0, text: 'PDF를 준비하고 있습니다...' }])
 
       const arrayBuffer = await file.arrayBuffer()
-      const pdfjsLib = await import('pdfjs-dist')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
-      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
-      const totalPages = pdfDoc.numPages
-
-      const pageImages: { base64: string; mimeType: string }[] = []
-
-      for (let i = 1; i <= totalPages; i++) {
-        const page = await pdfDoc.getPage(i)
-        const viewport = page.getViewport({ scale: 1.5 })
-        const canvas = document.createElement('canvas')
-        canvas.width = viewport.width
-        canvas.height = viewport.height
-        const ctx = canvas.getContext('2d')!
-        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise
-
-        // JPEG로 변환 (크기 절약)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-        const base64 = dataUrl.split(',')[1]
-        pageImages.push({ base64, mimeType: 'image/jpeg' })
-
-        setProgress(Math.round((i / totalPages) * 15)) // 0~15%: 이미지 변환
-        canvas.remove()
+      const uint8Array = new Uint8Array(arrayBuffer)
+      let binary = ''
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i])
       }
+      const pdfBase64 = btoa(binary)
 
-      // 2단계: SSE로 Gemini API 호출
+      setProgress(5) // PDF base64 변환 완료
+
+      // SSE로 Gemini API 호출 (서버에서 PDF 분할 후 Gemini 전달)
       setExtractedTexts([{ page: 0, text: 'AI가 페이지를 분석하고 있습니다...' }])
 
       const title = file.name.replace(/\.pdf$/i, '')
       const response = await fetch('/api/convert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pages: pageImages, title }),
+        body: JSON.stringify({ pdfBase64, pageCount: pages, title }),
       })
 
       if (!response.ok) {
@@ -239,7 +223,7 @@ export default function TeXTREME() {
             const data = JSON.parse(line.slice(6))
 
             if (data.type === 'progress') {
-              const pct = 15 + Math.round((data.percent / 100) * 75) // 15~90%: AI 추출
+              const pct = 5 + Math.round((data.percent / 100) * 90) // 5~95%: AI 추출
               setProgress(pct)
               setCurrentPage(data.page)
               if (data.text) {

@@ -1,10 +1,15 @@
 // src/app/api/convert/route.ts
 // TeXTREME — PDF → EPUB 변환 API (SSE 스트림)
 //
-// 흐름: 프론트엔드에서 PDF 페이지 이미지(base64) 전송 → Gemini API 추출 → EPUB 패키징
-// Vercel Serverless 호환 (canvas 불필요)
+// 흐름: 프론트엔드에서 PDF base64 전송
+//       → 서버에서 pdf-lib로 1페이지씩 분할
+//       → 각 1페이지 PDF를 Gemini API에 직접 전달
+//       → EPUB 패키징
+//
+// ★ 이미지 변환 없이 PDF 품질 유지 + 토큰 비용 절감 (전체 PDF 반복 전송 방지)
 
 import { NextRequest } from 'next/server'
+import { PDFDocument } from 'pdf-lib'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 타입 정의
@@ -28,7 +33,27 @@ interface PageResult {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Gemini API 호출
+// PDF 분할 — pdf-lib로 1페이지 PDF 생성
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function splitPdfToSinglePages(pdfBytes: Uint8Array): Promise<Uint8Array[]> {
+  const srcDoc = await PDFDocument.load(pdfBytes)
+  const pageCount = srcDoc.getPageCount()
+  const singlePages: Uint8Array[] = []
+
+  for (let i = 0; i < pageCount; i++) {
+    const newDoc = await PDFDocument.create()
+    const [copiedPage] = await newDoc.copyPages(srcDoc, [i])
+    newDoc.addPage(copiedPage)
+    const bytes = await newDoc.save()
+    singlePages.push(bytes)
+  }
+
+  return singlePages
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Gemini API 호출 — 1페이지 PDF 전달
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
@@ -36,7 +61,7 @@ const GEMINI_MODEL = 'gemini-2.5-flash'
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`
 
 // ★ 프롬프트 v3 — 본문 추출 최우선 + 이미지 판단 균형
-const SYSTEM_PROMPT = `당신은 한국어 PDF 페이지 이미지를 분석하여 텍스트를 구조화된 JSON으로 추출하는 전문가입니다.
+const SYSTEM_PROMPT = `당신은 한국어 PDF 페이지를 분석하여 텍스트를 구조화된 JSON으로 추출하는 전문가입니다.
 
 출력 JSON 형식:
 {"elements": [
@@ -69,12 +94,12 @@ image_placeholder 사용 (아래 경우만 해당):
 제외 항목: 페이지 번호, 머리글, 꼬리글
 출력: JSON만 반환. 마크다운 코드블록 사용 금지.`
 
-async function extractPageWithGemini(imageBase64: string, mimeType: string, retryCount = 0): Promise<{ elements: PageElement[], inputTokens: number, outputTokens: number, debugInfo: string }> {
+async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0): Promise<{ elements: PageElement[], inputTokens: number, outputTokens: number, debugInfo: string }> {
   const body = {
     contents: [{
       parts: [
         { text: SYSTEM_PROMPT + '\n\n이 PDF 페이지의 모든 텍스트를 빠짐없이 추출해주세요.' },
-        { inline_data: { mime_type: mimeType, data: imageBase64 } }
+        { inline_data: { mime_type: 'application/pdf', data: singlePagePdfBase64 } }
       ]
     }],
     generationConfig: {
@@ -94,7 +119,7 @@ async function extractPageWithGemini(imageBase64: string, mimeType: string, retr
     // Rate limit → 재시도
     if (res.status === 429 && retryCount < 3) {
       await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)))
-      return extractPageWithGemini(imageBase64, mimeType, retryCount + 1)
+      return extractPageWithGemini(singlePagePdfBase64, retryCount + 1)
     }
     throw new Error(`Gemini API error ${res.status}: ${err}`)
   }
@@ -304,7 +329,7 @@ function escapeXml(str: string): string {
 // API Route Handler
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// POST: 페이지 이미지 배열을 받아서 SSE로 변환 진행
+// POST: PDF base64를 받아서 SSE로 변환 진행
 export async function POST(req: NextRequest) {
   try {
     if (!GEMINI_API_KEY) {
@@ -312,17 +337,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { pages, title } = body as { pages: { base64: string; mimeType: string }[]; title: string }
+    const { pdfBase64, pageCount, title } = body as { pdfBase64: string; pageCount: number; title: string }
 
-    if (!pages || !Array.isArray(pages) || pages.length === 0) {
-      return new Response(JSON.stringify({ error: '페이지 이미지가 필요합니다' }), { status: 400 })
+    if (!pdfBase64 || !pageCount) {
+      return new Response(JSON.stringify({ error: 'PDF 데이터와 페이지 수가 필요합니다' }), { status: 400 })
     }
 
-    if (pages.length > 500) {
+    if (pageCount > 500) {
       return new Response(JSON.stringify({ error: '500페이지 이하의 PDF만 지원합니다' }), { status: 400 })
     }
-
-    const pageCount = pages.length
 
     // SSE 스트림 생성
     const stream = new ReadableStream({
@@ -336,28 +359,41 @@ export async function POST(req: NextRequest) {
         try {
           send({ type: 'info', totalPages: pageCount })
 
-          // Gemini API로 추출 (3페이지씩 병렬 — rate limit 고려)
+          // ★ 1단계: PDF를 1페이지씩 분할
+          send({ type: 'status', message: 'PDF 페이지 분할 중...' })
+          const pdfBytes = Buffer.from(pdfBase64, 'base64')
+          const singlePages = await splitPdfToSinglePages(pdfBytes)
+          const actualPageCount = singlePages.length
+
+          // ★ 2단계: 각 1페이지 PDF를 Gemini에 전달 (3페이지씩 병렬)
           const results: PageResult[] = []
           const BATCH_SIZE = 3
 
-          for (let batch = 0; batch < pages.length; batch += BATCH_SIZE) {
-            const batchPages = pages.slice(batch, batch + BATCH_SIZE)
-            const batchPromises = batchPages.map(async (pg, idx) => {
-              const pageNum = batch + idx + 1
-              const startTime = Date.now()
+          for (let batch = 0; batch < actualPageCount; batch += BATCH_SIZE) {
+            const batchEnd = Math.min(batch + BATCH_SIZE, actualPageCount)
+            const batchPromises: Promise<PageResult>[] = []
 
-              try {
-                const { elements, inputTokens, outputTokens, debugInfo } = await extractPageWithGemini(pg.base64, pg.mimeType)
-                const elapsedMs = Date.now() - startTime
-                return { pageNumber: pageNum, elements, inputTokens, outputTokens, elapsedMs, debugInfo } as PageResult
-              } catch (err: any) {
-                return {
-                  pageNumber: pageNum,
-                  elements: [{ type: 'paragraph' as const, text: `(페이지 ${pageNum} 추출 실패: ${err.message?.slice(0, 50)})` }],
-                  inputTokens: 0, outputTokens: 0, elapsedMs: 0,
-                } as PageResult
-              }
-            })
+            for (let idx = batch; idx < batchEnd; idx++) {
+              const pageNum = idx + 1
+              batchPromises.push(
+                (async () => {
+                  const startTime = Date.now()
+                  try {
+                    // 1페이지 PDF를 base64로 변환
+                    const pageBase64 = Buffer.from(singlePages[idx]).toString('base64')
+                    const { elements, inputTokens, outputTokens, debugInfo } = await extractPageWithGemini(pageBase64)
+                    const elapsedMs = Date.now() - startTime
+                    return { pageNumber: pageNum, elements, inputTokens, outputTokens, elapsedMs, debugInfo } as PageResult
+                  } catch (err: any) {
+                    return {
+                      pageNumber: pageNum,
+                      elements: [{ type: 'paragraph' as const, text: `(페이지 ${pageNum} 추출 실패: ${err.message?.slice(0, 50)})` }],
+                      inputTokens: 0, outputTokens: 0, elapsedMs: 0,
+                    } as PageResult
+                  }
+                })()
+              )
+            }
 
             const batchResults = await Promise.all(batchPromises)
             results.push(...batchResults)
@@ -368,8 +404,8 @@ export async function POST(req: NextRequest) {
               send({
                 type: 'progress',
                 page: r.pageNumber,
-                total: pageCount,
-                percent: Math.round((r.pageNumber / pageCount) * 100),
+                total: actualPageCount,
+                percent: Math.round((r.pageNumber / actualPageCount) * 100),
                 text: preview,
                 tokens: { input: r.inputTokens, output: r.outputTokens },
                 debug: { elementCount: r.elements.length, types: r.elements.map(e => e.type), info: (r as any).debugInfo || '' },
@@ -377,7 +413,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // EPUB 패키징
+          // ★ 3단계: EPUB 패키징
           send({ type: 'status', message: 'EPUB 패키징 중...' })
           const epubData = await buildEpub(results, title || 'Converted')
 
@@ -392,7 +428,7 @@ export async function POST(req: NextRequest) {
 
           send({
             type: 'complete',
-            totalPages: pageCount,
+            totalPages: actualPageCount,
             epubBase64,
             costKRW,
             totalInputTokens,
