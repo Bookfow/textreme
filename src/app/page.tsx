@@ -510,8 +510,7 @@ export default function TeXTREME() {
                 {agreeNoRefund && <span style={{ color: "#000", fontSize: 13, fontWeight: 900, lineHeight: 1 }}>✓</span>}
               </div>
               <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.6 }}>
-                변환 완료 시 EPUB 파일이 자동 저장되며, 디지털 콘텐츠 특성상 <strong style={{ color: "rgba(255,255,255,0.85)" }}>환불이 불가</strong>함에 동의합니다. (<a href="/policies/terms" target="_blank" style={{ color: "#F59E0B", textDecoration: "underline" }}>이용약관</a>)
-                <br /><span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>* PDF 또는 변환 처리 문제 시 환불 가능</span>
+                변환 완료 시 EPUB 파일이 자동 저장되며, 디지털 콘텐츠 특성상 <strong style={{ color: "rgba(255,255,255,0.85)" }}>환불이 불가</strong>함에 동의합니다. (<a href="/policies/terms" target="_blank" style={{ color: "#F59E0B", textDecoration: "underline" }}>이용약관</a>) <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>*PDF 또는 변환 처리 문제 시 환불 가능</span>
               </span>
             </label>
           </div>
