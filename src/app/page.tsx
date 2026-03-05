@@ -28,7 +28,7 @@ const PRICE_EXAMPLES = [
   { pages: 487, display: "487p 기술서적" },
 ]
 
-type ViewType = "landing" | "pricing" | "converting" | "convert-error" | "complete" | "viewer" | "pdf-viewer"
+type ViewType = "landing" | "pricing" | "converting" | "convert-error" | "complete" | "viewer" | "pdf-viewer" | "checking" | "incompatible" | "warning"
 
 const CONVERTING_MESSAGES = [
   "AI가 페이지를 분석하고 있습니다",
@@ -78,6 +78,79 @@ ${fontLink}
 .converter-box-glow { animation: boxGlow 3s ease-in-out infinite; }
 .converter-box-glow:hover { animation: none; box-shadow: 0 0 40px rgba(245,158,11,0.2), 0 0 80px rgba(245,158,11,0.1) !important; border-color: rgba(245,158,11,0.5) !important; }
 `
+
+// ━━━ PDF 호환성 체크 (결제 전) ━━━
+type CompatResult = { status: "ok" | "block" | "warn"; reason: string }
+
+async function checkPdfCompatibility(
+  pdfDoc: { numPages: number; getPage: (n: number) => Promise<any> }
+): Promise<CompatResult> {
+  // 1) 500페이지 초과 → 즉시 차단
+  if (pdfDoc.numPages > 500) {
+    return { status: "block", reason: "500페이지를 초과하는 PDF는 변환할 수 없습니다." }
+  }
+
+  // 2) 샘플 페이지 선정 (최대 5개, 고르게 분포)
+  const total = pdfDoc.numPages
+  const sampleCount = Math.min(5, total)
+  const sampleIndices: number[] = []
+  for (let i = 0; i < sampleCount; i++) {
+    sampleIndices.push(Math.floor((i / sampleCount) * total) + 1)
+  }
+
+  let lowTextPages = 0      // 텍스트가 거의 없는 페이지 수
+  let vectorHeavyPages = 0  // 벡터 오퍼레이터가 과도한 페이지 수
+
+  for (const pageNum of sampleIndices) {
+    try {
+      const page = await pdfDoc.getPage(pageNum)
+
+      // 텍스트 추출 시도
+      const textContent = await page.getTextContent()
+      const text = textContent.items.map((item: any) => item.str || "").join("").trim()
+      if (text.length < 20) {
+        lowTextPages++
+      }
+
+      // 오퍼레이터 리스트로 벡터 그래픽 밀도 체크
+      const ops = await page.getOperatorList()
+      let vectorOps = 0
+      let imageOps = 0
+      for (const fn of ops.fnArray) {
+        // 벡터 드로잉: moveTo(13), lineTo(14), curveTo(15,16,17), fill(18~21), stroke(22~25), closePath(26)
+        if (fn >= 13 && fn <= 26) vectorOps++
+        // 이미지: paintImageXObject(82), paintInlineImageXObject(83)
+        if (fn === 82 || fn === 83) imageOps++
+      }
+
+      // 이미지가 있으면서 벡터 오퍼레이터가 200개 이상 → 벡터 그래픽 의심
+      if (imageOps > 0 && vectorOps > 200) {
+        vectorHeavyPages++
+      }
+    } catch {
+      // 개별 페이지 분석 실패는 무시
+    }
+  }
+
+  // 3) 판정
+  // 샘플의 60% 이상이 텍스트 없음 → 스캔본 경고
+  if (lowTextPages >= Math.ceil(sampleCount * 0.6)) {
+    return {
+      status: "warn",
+      reason: "이 PDF는 스캔 이미지 기반으로 보입니다. 텍스트 추출 품질이 낮을 수 있으며, 이미지가 원본과 다르게 표시될 수 있습니다."
+    }
+  }
+
+  // 샘플의 60% 이상이 벡터 그래픽 과다 → 벡터 경고
+  if (vectorHeavyPages >= Math.ceil(sampleCount * 0.6)) {
+    return {
+      status: "warn",
+      reason: "이 PDF는 인포그래픽/벡터 이미지가 많아 일부 이미지가 정상적으로 추출되지 않을 수 있습니다."
+    }
+  }
+
+  return { status: "ok", reason: "" }
+}
 
 function calcPrice(pages: number): number {
   return Math.max(500, Math.floor((pages * PRICE_PER_PAGE) / 100) * 100)
@@ -158,6 +231,7 @@ export default function TeXTREME() {
   const [convertingMsgIdx, setConvertingMsgIdx] = useState(0)
   const [lastPaymentId, setLastPaymentId] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
+  const [compatMessage, setCompatMessage] = useState("")
 
   // ━━━ PWA install prompt ━━━
   useEffect(() => {
@@ -365,18 +439,34 @@ export default function TeXTREME() {
         setView("pdf-viewer")
         return
       }
-      // 오른쪽 박스: 실제 페이지 수 확인 후 변환
+      // 오른쪽 박스: PDF 호환성 체크 후 변환
       setFile(f)
+      setView("checking")
       try {
         const pdfjsLib = await import('pdfjs-dist')
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
         const arrayBuffer = await f.arrayBuffer()
         const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
         setFilePages(pdfDoc.numPages)
+
+        // 호환성 체크
+        const compat = await checkPdfCompatibility(pdfDoc)
+        if (compat.status === "block") {
+          setCompatMessage(compat.reason)
+          setView("incompatible")
+          return
+        }
+        if (compat.status === "warn") {
+          setCompatMessage(compat.reason)
+          setView("warning")
+          return
+        }
+        setView("pricing")
       } catch {
+        setCompatMessage("PDF 파일이 손상되었거나 읽을 수 없습니다. 비밀번호가 설정된 PDF도 변환할 수 없습니다.")
         setFilePages(0)
+        setView("incompatible")
       }
-      setView("pricing")
       return
     }
   }
@@ -384,7 +474,7 @@ export default function TeXTREME() {
   const reset = () => {
     if (epubUrl) URL.revokeObjectURL(epubUrl)
     if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
-    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null); setPdfViewerUrl(null); setAgreeNoRefund(false); setLastPaymentId(""); setErrorMessage("")
+    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null); setPdfViewerUrl(null); setAgreeNoRefund(false); setLastPaymentId(""); setErrorMessage(""); setCompatMessage("")
     if (progressInterval.current) clearInterval(progressInterval.current)
   }
 
@@ -434,6 +524,134 @@ export default function TeXTREME() {
             }
           }}
         />
+      </div>
+    )
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Checking View — PDF 호환성 분석 중
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (view === "checking") {
+    return (
+      <div style={{ fontFamily: "'Noto Sans KR', sans-serif", minHeight: "100vh", background: "#06060c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <style>{globalStyles}</style>
+        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
+            <Zap size={20} color="#F59E0B" />
+            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>TeXTREME</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: 32 }}>
+            <FileText size={20} color="#F59E0B" />
+            <div style={{ textAlign: "left", flex: 1 }}>
+              <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{fileName || "document.pdf"}</div>
+            </div>
+          </div>
+
+          {/* Spinner */}
+          <div style={{ margin: "0 auto 24px", width: 48, height: 48, border: "3px solid rgba(255,255,255,0.1)", borderTopColor: "#F59E0B", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+          <p style={{ color: "#F59E0B", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>PDF 호환성을 확인하고 있습니다</p>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>잠시만 기다려주세요...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Incompatible View — 변환 불가 PDF
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (view === "incompatible") {
+    return (
+      <div style={{ fontFamily: "'Noto Sans KR', sans-serif", minHeight: "100vh", background: "#06060c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <style>{globalStyles}</style>
+        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
+            <Zap size={20} color="#F59E0B" />
+            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>TeXTREME</span>
+          </div>
+
+          {/* Error icon */}
+          <div className="fade-up" style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "2px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>
+            <span style={{ fontSize: 36 }}>✕</span>
+          </div>
+
+          <h2 className="fade-up-d1" style={{ fontWeight: 800, fontSize: 22, color: "#fff", marginBottom: 12, letterSpacing: "-0.02em" }}>
+            이 PDF는 변환할 수 없습니다
+          </h2>
+          <p className="fade-up-d2" style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
+            {compatMessage}
+          </p>
+
+          {/* 파일 정보 */}
+          <div className="fade-up-d2" style={{ display: "flex", alignItems: "center", gap: 12, padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: 32 }}>
+            <FileText size={20} color="rgba(255,255,255,0.3)" />
+            <div style={{ textAlign: "left", flex: 1 }}>
+              <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600 }}>{fileName || "document.pdf"}</div>
+              {filePages > 0 && <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{filePages}페이지</div>}
+            </div>
+          </div>
+
+          {/* 버튼 */}
+          <button className="fade-up-d3" onClick={reset}
+            style={{ width: "100%", padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 16, fontWeight: 800, cursor: "pointer", boxShadow: "0 0 30px rgba(245,158,11,0.2)" }}>
+            다른 PDF 선택
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Warning View — 경고 후 사용자 선택
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (view === "warning") {
+    return (
+      <div style={{ fontFamily: "'Noto Sans KR', sans-serif", minHeight: "100vh", background: "#06060c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <style>{globalStyles}</style>
+        <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40, justifyContent: "center" }}>
+            <Zap size={20} color="#F59E0B" />
+            <span style={{ fontFamily: "'Outfit'", fontWeight: 800, fontSize: 18, color: "#fff" }}>TeXTREME</span>
+          </div>
+
+          {/* Warning icon */}
+          <div className="fade-up" style={{ width: 80, height: 80, borderRadius: "50%", background: "rgba(245,158,11,0.1)", border: "2px solid rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }}>
+            <span style={{ fontSize: 36 }}>⚠️</span>
+          </div>
+
+          <h2 className="fade-up-d1" style={{ fontWeight: 800, fontSize: 22, color: "#fff", marginBottom: 12, letterSpacing: "-0.02em" }}>
+            변환 품질이 제한될 수 있습니다
+          </h2>
+          <p className="fade-up-d2" style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, lineHeight: 1.7, marginBottom: 12 }}>
+            {compatMessage}
+          </p>
+          <p className="fade-up-d2" style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6, marginBottom: 28 }}>
+            텍스트 위주로 읽으실 거라면 그대로 진행하셔도 괜찮습니다.
+          </p>
+
+          {/* 파일 정보 */}
+          <div className="fade-up-d2" style={{ display: "flex", alignItems: "center", gap: 12, padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: 32 }}>
+            <FileText size={20} color="#F59E0B" />
+            <div style={{ textAlign: "left", flex: 1 }}>
+              <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{fileName || "document.pdf"}</div>
+              {filePages > 0 && <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>{filePages}페이지 · 예상 가격 ₩{calcPrice(filePages).toLocaleString()}</div>}
+            </div>
+          </div>
+
+          {/* 버튼 */}
+          <div className="fade-up-d3" style={{ display: "flex", gap: 12 }}>
+            <button onClick={reset}
+              style={{ flex: 1, padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+              다른 PDF 선택
+            </button>
+            <button onClick={() => setView("pricing")}
+              style={{ flex: 2, padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 16, fontWeight: 800, cursor: "pointer", boxShadow: "0 0 30px rgba(245,158,11,0.2)" }}>
+              그래도 진행
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
