@@ -31,7 +31,6 @@ async function extractImagesFromPage(
   pdfDoc: any, // PDFDocumentProxy
   pdfjsLib: any,
   pageNum: number,
-  onDebug?: (msg: string) => void,
 ): Promise<string[]> {
   const page = await pdfDoc.getPage(pageNum)
   const viewport = page.getViewport({ scale: 1.5 })
@@ -48,19 +47,6 @@ async function extractImagesFromPage(
   const OPS = pdfjsLib.OPS
   const images: string[] = []
   const processedNames = new Set<string>()
-
-  // ★ 디버그: 어떤 operator가 있는지 로그
-  const opNames: Record<number, string> = {}
-  for (const [name, code] of Object.entries(OPS)) {
-    opNames[code as number] = name as string
-  }
-  const imageFns = ops.fnArray
-    .map((fn: number, i: number) => ({ fn, name: opNames[fn] || 'unknown', args: ops.argsArray[i] }))
-    .filter((o: any) => o.name.toLowerCase().includes('image') || o.name.toLowerCase().includes('paint'))
-  if (onDebug) {
-    onDebug(`  [debug] p${pageNum}: ${ops.fnArray.length} operators, ${imageFns.length} image-related`)
-    imageFns.forEach((o: any) => onDebug(`  [debug]   ${o.name}(${o.fn}): args=${JSON.stringify(o.args).slice(0, 100)}`))
-  }
 
   for (let i = 0; i < ops.fnArray.length; i++) {
     const fn = ops.fnArray[i]
@@ -87,7 +73,6 @@ async function extractImagesFromPage(
           } catch { resolve(null) }
         })
       } catch {}
-      if (onDebug) onDebug(`  [debug]   obj ${imgName}: type=${imgObj ? typeof imgObj : "null"}, constructor=${imgObj?.constructor?.name || "N/A"}, keys=${imgObj ? Object.keys(imgObj).slice(0, 5).join(",") : "N/A"}`)
       if (!imgObj) continue
 
       // ★ bitmap 프로퍼티가 있으면 ImageBitmap으로 처리 (pdfjs 최신)
@@ -101,7 +86,6 @@ async function extractImagesFromPage(
         imgCtx.drawImage(bmp, 0, 0)
         images.push(imgCanvas.toDataURL('image/jpeg', 0.85))
         imgCanvas.remove()
-        if (onDebug) onDebug(`  [debug]   ✅ bitmap 추출 성공: ${bmp.width}x${bmp.height}`)
         continue
       }
 
@@ -215,7 +199,7 @@ export async function extractPageImages(
 
   for (const pageNum of pageNumbers) {
     try {
-      const images = await extractImagesFromPage(pdfDoc, pdfjsLib, pageNum, onProgress)
+      const images = await extractImagesFromPage(pdfDoc, pdfjsLib, pageNum)
       if (images.length > 0) {
         result.set(pageNum, images)
         onProgress?.(`p${pageNum}: ${images.length}개 이미지 추출`)
