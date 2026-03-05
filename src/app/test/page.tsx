@@ -14,8 +14,6 @@ interface PageElement {
   description?: string
 }
 
-
-
 interface TestResult {
   fileName: string
   fileSize: number
@@ -71,112 +69,102 @@ export default function BatchTestPage() {
     }
 
     try {
-      // PDF → base64
+      // ★ 1단계: 클라이언트에서 pdf-lib로 PDF 분할
+      setCurrentStatus(`${file.name} — PDF 분할 중...`)
+      addLog(`📄 ${file.name} — ${(file.size / 1024 / 1024).toFixed(1)}MB`)
+
+      const { PDFDocument } = await import('pdf-lib')
       const arrayBuffer = await file.arrayBuffer()
-      const uint8Array = new Uint8Array(arrayBuffer)
+      const srcDoc = await PDFDocument.load(arrayBuffer)
+      result.pageCount = srcDoc.getPageCount()
+      addLog(`  ${result.pageCount}페이지 감지, 분할 중...`)
 
-      // 페이지 수 확인 (복사본으로 pdfjs 호출)
-      const pdfjsLib = await import('pdfjs-dist')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
-      const pdfDoc = await pdfjsLib.getDocument({
-        data: uint8Array.slice().buffer,
-        cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/',
-        cMapPacked: true,
-      }).promise
-      result.pageCount = pdfDoc.numPages
-      addLog(`📄 ${file.name} — ${result.pageCount}p, ${(file.size / 1024 / 1024).toFixed(1)}MB`)
-
-      // base64 변환
-      let binary = ''
-      for (let i = 0; i < uint8Array.length; i++) {
-        binary += String.fromCharCode(uint8Array[i])
-      }
-      const pdfBase64 = btoa(binary)
-
-      setCurrentProgress(3)
-
-      // API 호출
-      const title = file.name.replace(/\.pdf$/i, '')
-      const response = await fetch('/api/convert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pdfBase64, pageCount: result.pageCount, title }),
-      })
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: '서버 오류' }))
-        throw new Error(err.error || `HTTP ${response.status}`)
-      }
-
-      const reader = response.body?.getReader()
-      if (!reader) throw new Error('스트림 없음')
-
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let pageElementCounts: number[] = []
-      let pageResults: PageDataForEpub[] = []
-      let imagePagesNeeded: number[] = []
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const data = JSON.parse(line.slice(6))
-
-            if (data.type === 'progress') {
-              const pct = 3 + Math.round((data.percent / 100) * 77) // 3~80%: AI 추출
-              setCurrentProgress(pct)
-              setCurrentStatus(`${file.name} — p${data.page}/${result.pageCount}`)
-
-              const elCount = data.debug?.elementCount || 0
-              pageElementCounts.push(elCount)
-              if (elCount === 0) result.emptyPages++
-
-              const preview = data.text?.slice(0, 50) || '(빈 텍스트)'
-              addLog(`  p${data.page}: ${elCount} els | ${preview}`)
-            } else if (data.type === 'status') {
-              addLog(`  ${data.message}`)
-            } else if (data.type === 'complete') {
-              result.totalInputTokens = data.totalInputTokens || 0
-              result.totalOutputTokens = data.totalOutputTokens || 0
-              result.costKRW = data.costKRW || 0
-              result.totalElements = pageElementCounts.reduce((a, b) => a + b, 0)
-
-              pageResults = data.pageResults || []
-              imagePagesNeeded = data.imagePagesNeeded || []
-              result.imagePages = imagePagesNeeded.length
-            } else if (data.type === 'error') {
-              throw new Error(data.message)
-            }
-          } catch (parseErr: any) {
-            if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr
-          }
+      // 1페이지 PDF들로 분할
+      const singlePageBase64s: { base64: string; pageNumber: number }[] = []
+      for (let i = 0; i < result.pageCount; i++) {
+        const newDoc = await PDFDocument.create()
+        const [copiedPage] = await newDoc.copyPages(srcDoc, [i])
+        newDoc.addPage(copiedPage)
+        const bytes = await newDoc.save()
+        // Uint8Array → base64
+        let binary = ''
+        for (let j = 0; j < bytes.length; j++) {
+          binary += String.fromCharCode(bytes[j])
         }
+        singlePageBase64s.push({ base64: btoa(binary), pageNumber: i + 1 })
       }
 
-      // ★ 이미지 렌더링 (필요한 페이지만)
+      setCurrentProgress(5)
+      addLog(`  분할 완료, Gemini API 호출 시작...`)
+
+      // ★ 2단계: 10페이지씩 배치로 서버에 전송
+      const BATCH_SIZE = 10
+      const allPageResults: PageDataForEpub[] = []
+
+      for (let batch = 0; batch < singlePageBase64s.length; batch += BATCH_SIZE) {
+        if (abortRef.current) throw new Error('사용자 중단')
+
+        const batchPages = singlePageBase64s.slice(batch, batch + BATCH_SIZE)
+        setCurrentStatus(`${file.name} — p${batch + 1}~${batch + batchPages.length}/${result.pageCount}`)
+
+        const response = await fetch('/api/convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pages: batchPages }),
+        })
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: '서버 오류' }))
+          throw new Error(err.error || `HTTP ${response.status}`)
+        }
+
+        const data = await response.json()
+        const batchResults = data.results || []
+
+        for (const r of batchResults) {
+          allPageResults.push({ pageNumber: r.pageNumber, elements: r.elements })
+          result.totalInputTokens += r.inputTokens || 0
+          result.totalOutputTokens += r.outputTokens || 0
+          result.totalElements += r.elements.length
+
+          if (r.elements.length === 0) result.emptyPages++
+
+          const preview = r.elements.find((e: any) => e.text)?.text?.slice(0, 50) || '(빈 텍스트)'
+          addLog(`  p${r.pageNumber}: ${r.elements.length} els | ${preview}`)
+        }
+
+        // 진행률 업데이트
+        const processed = Math.min(batch + BATCH_SIZE, result.pageCount)
+        const pct = 5 + Math.round((processed / result.pageCount) * 75) // 5~80%
+        setCurrentProgress(pct)
+      }
+
+      // 비용 계산
+      const costUSD = result.totalInputTokens / 1_000_000 * 0.15 + result.totalOutputTokens / 1_000_000 * 0.60
+      result.costKRW = Math.round(costUSD * 1450)
+
+      // 이미지 필요한 페이지 찾기
+      const imagePagesNeeded = allPageResults
+        .filter(p => p.elements.some(e => e.type === 'image_placeholder'))
+        .map(p => p.pageNumber)
+      result.imagePages = imagePagesNeeded.length
+
+      // ★ 3단계: 이미지 렌더링 (필요한 페이지만)
       setCurrentProgress(80)
       let pageImages: Map<number, string[]> = new Map()
       if (imagePagesNeeded.length > 0) {
-        addLog(`  🖼️ 이미지 렌더링: ${imagePagesNeeded.length}개 페이지`)
-        setCurrentStatus(`${file.name} — 이미지 렌더링 중...`)
+        addLog(`  🖼️ 이미지 추출: ${imagePagesNeeded.length}개 페이지`)
+        setCurrentStatus(`${file.name} — 이미지 추출 중...`)
         pageImages = await extractPageImages(file, imagePagesNeeded, addLog)
-        addLog(`  🖼️ 이미지 렌더링 완료: ${Array.from(pageImages.values()).reduce((s, a) => s + a.length, 0)}개`)
+        addLog(`  🖼️ 이미지 추출 완료: ${Array.from(pageImages.values()).reduce((s, a) => s + a.length, 0)}개`)
       }
 
-      // ★ 클라이언트에서 EPUB 빌드
+      // ★ 4단계: EPUB 빌드
       setCurrentProgress(90)
       setCurrentStatus(`${file.name} — EPUB 빌드 중...`)
       addLog(`  📦 EPUB 빌드 중...`)
-      const title2 = file.name.replace(/\.pdf$/i, '')
-      result.epubBlob = await buildEpubOnClient(pageResults, title2, pageImages)
+      const title = file.name.replace(/\.pdf$/i, '')
+      result.epubBlob = await buildEpubOnClient(allPageResults, title, pageImages)
       addLog(`  📦 EPUB 빌드 완료 (${(result.epubBlob.size / 1024).toFixed(0)}KB)`)
 
       setCurrentProgress(100)
@@ -322,7 +310,7 @@ export default function BatchTestPage() {
   return (
     <div style={{ fontFamily: "'Noto Sans KR', monospace", background: '#0d0d1a', color: '#eee', minHeight: '100vh', padding: 24 }}>
       <h1 style={{ fontSize: 22, marginBottom: 4, color: '#F59E0B' }}>⚡ TeXTREME 배치 테스트</h1>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>폴더 선택 → 순차 변환 → EPUB 자동 다운로드 → CSV 리포트</p>
+      <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>폴더 선택 → 클라이언트 분할 → 배치 변환 → EPUB 자동 다운로드 → CSV 리포트</p>
 
       {/* 폴더 선택 */}
       <div
