@@ -165,14 +165,14 @@ async function checkPdfCompatibility(
           for (let j = 0; j < totalPixels; j += sampleStep) {
             const offset = j * bytesPerPixel
             const r = pixels[offset], g = pixels[offset + 1], b = pixels[offset + 2]
-            if (r > 240 && g > 240 && b > 240) whiteCount++
+            if (r > 200 && g > 200 && b > 200) whiteCount++
             sampled++
           }
 
           const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
           console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, imgSize=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio * 100).toFixed(1)}%`)
 
-          if (whiteRatio > 0.85) {
+          if (whiteRatio > 0.70) {
             maskImagePages++
           }
         } else if (imgData?.bitmap) {
@@ -193,7 +193,7 @@ async function checkPdfCompatibility(
           for (let j = 0; j < totalPixels; j += sampleStep) {
             const offset = j * 4
             const r = pixels[offset], g = pixels[offset + 1], b = pixels[offset + 2]
-            if (r > 240 && g > 240 && b > 240) whiteCount++
+            if (r > 200 && g > 200 && b > 200) whiteCount++
             sampled++
           }
 
@@ -201,7 +201,7 @@ async function checkPdfCompatibility(
           console.log(`[compat] page ${pageNum}: text=${text.length}chars, images=${imgNames.length}, bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio * 100).toFixed(1)}%`)
           c2.remove()
 
-          if (whiteRatio > 0.85) {
+          if (whiteRatio > 0.70) {
             maskImagePages++
           }
         } else {
@@ -226,8 +226,8 @@ async function checkPdfCompatibility(
     }
   }
 
-  // 이미지가 있는 페이지 중 60% 이상이 마스크/단색 → 경고
-  if (pagesWithImages >= 2 && maskImagePages >= Math.ceil(pagesWithImages * 0.6)) {
+  // 마스크/단색 이미지가 1개라도 발견되면 → 경고
+  if (maskImagePages >= 1) {
     return {
       status: "warn",
       reason: "이 PDF의 이미지가 정상적으로 추출되지 않을 수 있습니다. 텍스트만 필요하다면 계속 진행하셔도 괜찮습니다."
