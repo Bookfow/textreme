@@ -1209,7 +1209,7 @@ export default function TeXTREME() {
                 <span style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 11, fontWeight: 600 }}>EPUB</span>
               </div>
               <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
-                한글특화 · 정확도 99%+ · 모바일 최적화<br />모든 뷰어 호환 · 구조 보존
+                이미지·표 원본 배치 · 한글특화 99%+<br />품질 보증 변환 · 최대 500페이지
               </p>
               <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: "none" }}
                 onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
@@ -1242,12 +1242,12 @@ export default function TeXTREME() {
           </div>
           <div className="features-grid">
             {[
-              { icon: <Type size={22} />, title: "한글 특화", desc: "한글 조사·어미·띄어쓰기를 정확히 인식하는 AI 엔진" },
-              { icon: "🔤", title: "한글 정확도 99%+", desc: "조사·어미·띄어쓰기까지 정확한 텍스트 추출" },
+              { icon: "🖼️", title: "이미지·표 원본 보존", desc: "그림, 차트, 표를 원본 위치 그대로 추출하여 EPUB에 배치" },
+              { icon: <Type size={22} />, title: "한글 정확도 99%+", desc: "조사·어미·띄어쓰기까지 정확한 한글 특화 AI 엔진" },
+              { icon: "🛡️", title: "품질 보증 변환", desc: "완벽한 변환이 어려운 PDF는 사전에 감지하여 결제 전 안내" },
               { icon: <Smartphone size={22} />, title: "모바일 최적화", desc: "화면 크기에 맞춰 자동 리플로우되는 EPUB 생성" },
-              { icon: "📖", title: "모든 뷰어 호환", desc: "EPUB 3.0 표준 준수, 원하는 앱에서 바로 열기" },
-              { icon: <Globe size={22} />, title: "어디서든 변환", desc: "PC·태블릿·스마트폰, 브라우저만 있으면 OK" },
               { icon: <BookOpen size={22} />, title: "구조 보존", desc: "제목·본문·인용·리스트를 자동 분석하여 구조 유지" },
+              { icon: "📖", title: "모든 뷰어 호환", desc: "EPUB 3.0 표준 준수, 원하는 앱에서 바로 열기" },
             ].map((f, i) => (
               <div key={i} style={{ padding: "24px 20px", borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)" }} className="card-hover">
                 <div style={{ color: "#F59E0B", marginBottom: 14, fontSize: typeof f.icon === "string" ? 22 : undefined }}>
@@ -1278,7 +1278,7 @@ export default function TeXTREME() {
                 <span style={{ color: "#22c55e", fontSize: 15, fontWeight: 700 }}>잘 되는 PDF</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {["텍스트 중심 PDF (교재, 소설, 보고서)", "JPEG/PNG 이미지가 포함된 PDF", "한글 폰트가 포함된 PDF"].map((t, i) => (
+                {["텍스트 중심 PDF (교재, 소설, 보고서)", "이미지·표·차트가 포함된 PDF", "500페이지 이하 PDF"].map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 12, marginTop: 2, flexShrink: 0 }}>●</span>
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.5 }}>{t}</span>
@@ -1302,6 +1302,9 @@ export default function TeXTREME() {
               </div>
             </div>
           </div>
+          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 20 }}>
+            완벽한 품질의 변환이 어려운 PDF는 결제 전에 미리 알려드립니다. 변환이 진행되면, 품질을 보장합니다.
+          </p>
         </div>
       </section>
 
