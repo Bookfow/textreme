@@ -138,7 +138,7 @@ export default function TermsPage() {
 
         <div style={{ paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>부칙: 이 약관은 2026년 3월 4일부터 시행합니다.</p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>약관에 관한 문의: support@textreme.io</p>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>약관에 관한 문의: support@textreme.co.kr</p>
         </div>
 
         <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>

@@ -68,7 +68,7 @@ export default function CopyrightPage() {
             <li style={liStyle}>침해된 저작물에 대한 설명</li>
             <li style={liStyle}>침해 사실을 확인할 수 있는 증거</li>
           </ul>
-          <p style={{ ...pStyle, marginTop: 12 }}>신고 접수: <strong style={{ color: '#F59E0B' }}>copyright@textreme.io</strong></p>
+          <p style={{ ...pStyle, marginTop: 12 }}>신고 접수: <strong style={{ color: '#F59E0B' }}>copyright@textreme.co.kr</strong></p>
         </div>
 
         <div style={sectionStyle}>
@@ -82,7 +82,7 @@ export default function CopyrightPage() {
         </div>
 
         <div style={{ paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>문의: copyright@textreme.io</p>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>문의: copyright@textreme.co.kr</p>
         </div>
 
         <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>

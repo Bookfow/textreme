@@ -115,10 +115,12 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
   }
 
   let parsed: { elements: PageElement[] } | null = null
+  let cleaned = ''
 
   if (text.trim()) {
-    let cleaned = text.trim()
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?\s*```$/i, '')
+    cleaned = text.trim()
+    // 코드 펜스 제거 (다양한 변형 대응)
+    cleaned = cleaned.replace(/^```+\s*(?:json)?\s*[\r\n]*/i, '').replace(/[\r\n]*\s*```+\s*$/i, '').trim()
 
     try {
       const obj = JSON.parse(cleaned)
@@ -140,8 +142,8 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
   }
 
   if (!parsed || !parsed.elements || parsed.elements.length === 0) {
-    if (text.trim() && !text.trim().startsWith('{')) {
-      parsed = { elements: [{ type: 'paragraph', text: text.trim() }] }
+    if (cleaned && !cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+      parsed = { elements: [{ type: 'paragraph', text: cleaned }] }
     } else {
       parsed = { elements: [] }
     }

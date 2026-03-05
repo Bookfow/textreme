@@ -91,7 +91,7 @@ export default function PrivacyPage() {
             <li style={liStyle}>개인정보 열람, 정정, 삭제, 처리 정지 요구</li>
             <li style={liStyle}>결제 내역 조회</li>
           </ul>
-          <p style={{ ...pStyle, marginTop: 8 }}>위 권리 행사는 이메일(privacy@textreme.io)을 통해 요청할 수 있으며, 회사는 지체 없이 조치합니다.</p>
+          <p style={{ ...pStyle, marginTop: 8 }}>위 권리 행사는 이메일(privacy@textreme.co.kr)을 통해 요청할 수 있으며, 회사는 지체 없이 조치합니다.</p>
         </div>
 
         <div style={sectionStyle}>
@@ -122,7 +122,7 @@ export default function PrivacyPage() {
           <h2 style={h2Style}>10. 개인정보 보호책임자 및 사업자 정보</h2>
           <ul style={{ paddingLeft: 0, listStyle: 'none' }}>
             <li style={liStyle}><strong style={{ color: '#fff' }}>개인정보 보호책임자:</strong> TeXTREME 운영팀</li>
-            <li style={liStyle}><strong style={{ color: '#fff' }}>연락처:</strong> privacy@textreme.io</li>
+            <li style={liStyle}><strong style={{ color: '#fff' }}>연락처:</strong> privacy@textreme.co.kr</li>
           </ul>
           <div style={{ marginTop: 12, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

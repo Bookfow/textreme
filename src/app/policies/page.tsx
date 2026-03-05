@@ -49,7 +49,7 @@ export default function PoliciesPage() {
         {/* Footer */}
         <div style={{ marginTop: 48, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>© 2026 텍스트림 · 사업자등록번호 653-33-01529</p>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>문의: support@textreme.io</p>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>문의: support@textreme.co.kr</p>
           <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 16, textDecoration: 'none' }}>
             <ArrowLeft size={14} /> 홈으로 돌아가기
           </Link>

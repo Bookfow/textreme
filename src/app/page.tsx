@@ -1049,7 +1049,7 @@ export default function TeXTREME() {
             <Link href="/policies/copyright" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "none" }}>저작권 및 면책</Link>
           </div>
           <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
-            © 2026 텍스트림 · 사업자등록번호 653-33-01529
+            © 2026 텍스트림 · 사업자등록번호 653-33-01529 · support@textreme.co.kr
           </div>
         </div>
       </footer>
