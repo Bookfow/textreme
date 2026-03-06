@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, BarChart3, FileText, Clock, DollarSign, AlertTriangle, Image, Shield } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ChevronLeft, ChevronRight, BarChart3, FileText, Clock, DollarSign, AlertTriangle, Image, Shield, Smartphone, Monitor, Coins } from 'lucide-react';
 import Link from 'next/link';
 
 interface Stats {
@@ -10,14 +10,18 @@ interface Stats {
   successfulPages: number;
   failedPages: number;
   totalCostWon: number;
+  totalRevenue: number;
   totalImagesExtracted: number;
   totalMasksDetected: number;
   totalJpegCompressed: number;
   totalFileSizeBytes: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
   avgDurationSeconds: number;
   avgPagesPerConversion: number;
   successRate: number;
   statusBreakdown: { success: number; partial: number; failed: number };
+  deviceBreakdown: { mobile: number; desktop: number; other: number };
 }
 
 interface LogEntry {
@@ -38,6 +42,12 @@ interface LogEntry {
   failed_page_numbers: number[];
   error_messages: string[];
   user_agent: string;
+  payment_id: string;
+  payment_amount: number;
+  referrer: string;
+  device_type: string;
+  input_tokens: number;
+  output_tokens: number;
 }
 
 interface Pagination {
@@ -131,6 +141,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const deviceLabel = (d: string) => {
+    switch (d) {
+      case 'mobile': return '모바일';
+      case 'desktop': return 'PC';
+      default: return d || '기타';
+    }
+  };
+
+  const formatTokens = (n: number) => {
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
+    return n.toString();
+  };
+
   // ━━━ 로그인 화면 ━━━
   if (!authenticated) {
     return (
@@ -200,16 +224,18 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
         {/* 통계 카드 */}
         {stats && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-            <StatCard icon={<FileText size={18} />} label="총 변환" value={stats.totalConversions.toString()} sub={`${stats.totalPages} 페이지`} color="#a78bfa" />
-            <StatCard icon={<BarChart3 size={18} />} label="성공률" value={`${stats.successRate.toFixed(1)}%`} sub={`성공 ${stats.statusBreakdown.success} / 부분 ${stats.statusBreakdown.partial} / 실패 ${stats.statusBreakdown.failed}`} color="#4ade80" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 14, marginBottom: 28 }}>
+            <StatCard icon={<FileText size={18} />} label="총 변환" value={stats.totalConversions.toString()} sub={`${stats.totalPages.toLocaleString()} 페이지`} color="#a78bfa" />
+            <StatCard icon={<BarChart3 size={18} />} label="성공률" value={`${stats.successRate.toFixed(1)}%`} sub={`성공 ${stats.statusBreakdown.success} · 부분 ${stats.statusBreakdown.partial} · 실패 ${stats.statusBreakdown.failed}`} color="#4ade80" />
             <StatCard icon={<Clock size={18} />} label="평균 변환시간" value={formatDuration(stats.avgDurationSeconds)} sub={`평균 ${stats.avgPagesPerConversion.toFixed(0)}p/건`} color="#38bdf8" />
-            <StatCard icon={<DollarSign size={18} />} label="총 비용" value={`₩${stats.totalCostWon.toLocaleString()}`} sub={`${stats.totalPages}p × 9원`} color="#fbbf24" />
-            <StatCard icon={<Image size={18} />} label="이미지 추출" value={stats.totalImagesExtracted.toString()} sub={`JPEG압축 ${stats.totalJpegCompressed}p`} color="#f472b6" />
+            <StatCard icon={<DollarSign size={18} />} label="총 매출" value={`₩${stats.totalRevenue.toLocaleString()}`} sub={`API비용 ₩${stats.totalCostWon.toLocaleString()}`} color="#fbbf24" />
+            <StatCard icon={<Coins size={18} />} label="Gemini 토큰" value={formatTokens(stats.totalInputTokens + stats.totalOutputTokens)} sub={`In ${formatTokens(stats.totalInputTokens)} · Out ${formatTokens(stats.totalOutputTokens)}`} color="#f472b6" />
+            <StatCard icon={<Image size={18} />} label="이미지 추출" value={stats.totalImagesExtracted.toString()} sub={`JPEG압축 ${stats.totalJpegCompressed}p`} color="#34d399" />
             <StatCard icon={<AlertTriangle size={18} />} label="마스크 감지" value={stats.totalMasksDetected.toString()} sub={`실패 ${stats.failedPages}p`} color="#fb923c" />
+            <StatCard icon={<Smartphone size={18} />} label="디바이스" value={`${stats.deviceBreakdown.mobile} : ${stats.deviceBreakdown.desktop}`} sub={`모바일 : PC`} color="#60a5fa" />
           </div>
         )}
 
@@ -224,7 +250,7 @@ export default function AdminDashboard() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {['시간', '파일명', '페이지', '성공', '실패', '시간', '비용', '이미지', '마스크', 'JPEG', '상태'].map(h => (
+                  {['시간', '파일명', '페이지', '성공', '실패', '시간', '결제', '디바이스', '토큰', '상태'].map(h => (
                     <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: 'rgba(255,255,255,0.4)', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -240,15 +266,16 @@ export default function AdminDashboard() {
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
                       <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.5)' }}>{formatDate(log.created_at)}</td>
-                      <td style={{ padding: '10px 12px', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.file_name}>{log.file_name}</td>
+                      <td style={{ padding: '10px 12px', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.file_name}>{log.file_name}</td>
                       <td style={{ padding: '10px 12px' }}>{log.total_pages}</td>
                       <td style={{ padding: '10px 12px', color: '#4ade80' }}>{log.successful_pages}</td>
                       <td style={{ padding: '10px 12px', color: log.failed_pages > 0 ? '#f87171' : 'rgba(255,255,255,0.3)' }}>{log.failed_pages}</td>
                       <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{formatDuration(log.duration_seconds)}</td>
-                      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>₩{log.cost_won.toLocaleString()}</td>
-                      <td style={{ padding: '10px 12px' }}>{log.images_extracted}</td>
-                      <td style={{ padding: '10px 12px', color: log.masks_detected > 0 ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>{log.masks_detected}</td>
-                      <td style={{ padding: '10px 12px', color: log.jpeg_compressed_pages > 0 ? '#f472b6' : 'rgba(255,255,255,0.3)' }}>{log.jpeg_compressed_pages}</td>
+                      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>₩{log.payment_amount.toLocaleString()}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {log.device_type === 'mobile' ? <Smartphone size={14} color="#60a5fa" /> : <Monitor size={14} color="#a78bfa" />}
+                      </td>
+                      <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{formatTokens(log.input_tokens + log.output_tokens)}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: `${statusColor(log.status)}20`, color: statusColor(log.status) }}>
                           {statusLabel(log.status)}
@@ -257,8 +284,8 @@ export default function AdminDashboard() {
                     </tr>
                     {expandedRow === log.id && (
                       <tr key={`${log.id}-detail`}>
-                        <td colSpan={11} style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 12 }}>
+                        <td colSpan={10} style={{ padding: '12px 20px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, fontSize: 12 }}>
                             <div>
                               <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>파일 크기</p>
                               <p>{formatBytes(log.file_size_bytes)}</p>
@@ -268,8 +295,32 @@ export default function AdminDashboard() {
                               <p>{log.batch_count}개</p>
                             </div>
                             <div>
+                              <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>결제 ID</p>
+                              <p style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(255,255,255,0.5)', wordBreak: 'break-all' }}>{log.payment_id || '-'}</p>
+                            </div>
+                            <div>
+                              <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>이미지 추출</p>
+                              <p>{log.images_extracted}개</p>
+                            </div>
+                            <div>
+                              <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>JPEG 압축</p>
+                              <p>{log.jpeg_compressed_pages}p</p>
+                            </div>
+                            <div>
+                              <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>마스크 감지</p>
+                              <p>{log.masks_detected}개</p>
+                            </div>
+                            <div>
+                              <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>유입 경로</p>
+                              <p style={{ color: 'rgba(255,255,255,0.5)', wordBreak: 'break-all' }}>{log.referrer || '직접 접속'}</p>
+                            </div>
+                            <div>
+                              <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>토큰 (In/Out)</p>
+                              <p>{formatTokens(log.input_tokens)} / {formatTokens(log.output_tokens)}</p>
+                            </div>
+                            <div>
                               <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>User Agent</p>
-                              <p style={{ wordBreak: 'break-all', color: 'rgba(255,255,255,0.5)' }}>{log.user_agent}</p>
+                              <p style={{ wordBreak: 'break-all', color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{log.user_agent}</p>
                             </div>
                             {log.failed_page_numbers?.length > 0 && (
                               <div>
@@ -293,7 +344,7 @@ export default function AdminDashboard() {
                 ))}
                 {logs.length === 0 && (
                   <tr>
-                    <td colSpan={11} style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+                    <td colSpan={10} style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
                       {loading ? '로딩 중...' : '데이터가 없습니다'}
                     </td>
                   </tr>
@@ -332,13 +383,13 @@ export default function AdminDashboard() {
 
 function StatCard({ icon, label, value, sub, color }: { icon: React.ReactNode; label: string; value: string; sub: string; color: string }) {
   return (
-    <div style={{ background: '#141414', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+    <div style={{ background: '#141414', borderRadius: 12, padding: 18, border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <div style={{ color }}>{icon}</div>
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{label}</span>
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{label}</span>
       </div>
-      <div style={{ fontSize: 24, fontWeight: 700, color }}>{value}</div>
-      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{sub}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{sub}</div>
     </div>
   );
 }

@@ -3,10 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// 서버 전용 (service_role key → RLS 우회)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-// ━━━ 타입 정의 ━━━
 export interface ConversionLog {
   id?: string;
   created_at?: string;
@@ -25,4 +23,10 @@ export interface ConversionLog {
   failed_page_numbers: number[];
   error_messages: string[];
   user_agent: string;
+  payment_id: string;
+  payment_amount: number;
+  referrer: string;
+  device_type: string;
+  input_tokens: number;
+  output_tokens: number;
 }

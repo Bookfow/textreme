@@ -1,6 +1,3 @@
-// src/lib/conversion-logger.ts
-// 변환 완료 후 호출하여 로그를 서버에 전송
-
 export interface ConversionResult {
   fileName: string;
   fileSizeBytes: number;
@@ -16,6 +13,12 @@ export interface ConversionResult {
   jpegCompressedPages: number;
   failedPageNumbers: number[];
   errorMessages: string[];
+  paymentId: string;
+  paymentAmount: number;
+  referrer: string;
+  deviceType: string;
+  inputTokens: number;
+  outputTokens: number;
 }
 
 export async function logConversion(result: ConversionResult): Promise<boolean> {

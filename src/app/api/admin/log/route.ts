@@ -21,6 +21,12 @@ export async function POST(req: NextRequest) {
       failed_page_numbers: body.failedPageNumbers || [],
       error_messages: body.errorMessages || [],
       user_agent: req.headers.get('user-agent') || 'unknown',
+      payment_id: body.paymentId || '',
+      payment_amount: body.paymentAmount || 0,
+      referrer: body.referrer || '',
+      device_type: body.deviceType || '',
+      input_tokens: body.inputTokens || 0,
+      output_tokens: body.outputTokens || 0,
     };
 
     const { error } = await supabaseAdmin

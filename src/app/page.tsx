@@ -13,6 +13,7 @@ import EpubViewerLite from "@/components/epub-viewer-lite"
 
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
 import { buildEpubOnClient, extractPageImages } from "@/lib/epub-builder"
+import { logConversion } from "@/lib/conversion-logger"
 
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -374,6 +375,14 @@ export default function TeXTREME() {
     setDeferredPrompt(null)
   }
 
+  // ━━━ 디바이스 감지 ━━━
+  const getDeviceType = (): string => {
+    if (typeof navigator === 'undefined') return 'unknown'
+    const ua = navigator.userAgent
+    if (/Mobi|Android|iPhone|iPad|iPod/i.test(ua)) return 'mobile'
+    return 'desktop'
+  }
+
   // ━━━ Real conversion via Gemini API ━━━
   const startConversion = useCallback(async (pages: number) => {
     if (!file) return
@@ -381,6 +390,11 @@ export default function TeXTREME() {
     setProgress(0)
     setCurrentPage(0)
     setExtractedTexts([])
+    const conversionStartTime = Date.now()
+    let jpegCompressedCount = 0
+    let batchCount = 0
+    let failedPageNumbers: number[] = []
+    let errorMessages: string[] = []
 
     try {
       // ★ 1단계: 클라이언트에서 pdf-lib로 PDF 분할
@@ -449,6 +463,7 @@ export default function TeXTREME() {
           canvas.remove()
           singlePageBase64s[i].base64 = jpegBase64
           singlePageBase64s[i].mimeType = 'image/jpeg'
+          jpegCompressedCount++
         }
       }
 
@@ -498,6 +513,7 @@ export default function TeXTREME() {
           }
         }
 
+        batchCount++
         const processed = Math.min(batchIdx, totalPages)
         setProgress(5 + Math.round((processed / totalPages) * 75))
       }
@@ -531,11 +547,63 @@ export default function TeXTREME() {
       setEpubUrl(viewerUrl)
 
       setProgress(100)
+
+      // ━━━ 변환 로그 전송 ━━━
+      const durationSeconds = (Date.now() - conversionStartTime) / 1000
+      logConversion({
+        fileName: file!.name,
+        fileSizeBytes: file!.size,
+        totalPages: totalPages,
+        successfulPages: allPageResults.length,
+        failedPages: failedPageNumbers.length,
+        batchCount: batchCount,
+        durationSeconds: durationSeconds,
+        costWon: calcPrice(totalPages),
+        status: failedPageNumbers.length === 0 ? 'success' : 'partial',
+        imagesExtracted: pageImages.size,
+        masksDetected: 0,
+        jpegCompressedPages: jpegCompressedCount,
+        failedPageNumbers: failedPageNumbers,
+        errorMessages: errorMessages.slice(0, 10),
+        paymentId: lastPaymentId,
+        paymentAmount: calcPrice(totalPages),
+        referrer: typeof document !== 'undefined' ? document.referrer : '',
+        deviceType: getDeviceType(),
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+      })
+
       setTimeout(() => setView("complete"), 600)
 
     } catch (err: any) {
       console.error('변환 실패:', err)
       setErrorMessage(err.message || '알 수 없는 오류가 발생했습니다')
+
+      // ━━━ 실패 로그 전송 ━━━
+      const durationSeconds = (Date.now() - conversionStartTime) / 1000
+      logConversion({
+        fileName: file!.name,
+        fileSizeBytes: file!.size,
+        totalPages: filePages || 0,
+        successfulPages: 0,
+        failedPages: filePages || 0,
+        batchCount: batchCount,
+        durationSeconds: durationSeconds,
+        costWon: calcPrice(filePages || 0),
+        status: 'failed',
+        imagesExtracted: 0,
+        masksDetected: 0,
+        jpegCompressedPages: jpegCompressedCount,
+        failedPageNumbers: [],
+        errorMessages: [err.message || '알 수 없는 오류'],
+        paymentId: lastPaymentId,
+        paymentAmount: calcPrice(filePages || 0),
+        referrer: typeof document !== 'undefined' ? document.referrer : '',
+        deviceType: getDeviceType(),
+        inputTokens: 0,
+        outputTokens: 0,
+      })
+
       setView("convert-error")
     }
   }, [file])
