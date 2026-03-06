@@ -150,7 +150,7 @@ async function checkPdfCompatibility(
 
       pagesWithImages++
 
-      // 페이지를 작은 스케일로 렌더링 → 이미지 객체 로드 → 픽셀 분석
+      // 페이지를 작은 스케일로 렌더링 → 이미지 객체 로드 → 픽셀 분석 (최대 3개)
       try {
         const viewport = page.getViewport({ scale: 0.1 })
         const canvas = document.createElement('canvas')
@@ -159,16 +159,18 @@ async function checkPdfCompatibility(
         const ctx = canvas.getContext('2d')!
         await page.render({ canvasContext: ctx, viewport }).promise
 
-        // 렌더링 후 이미지 객체가 로드됨
+        // 렌더링 후 이미지 객체 최대 3개 분석
+        const checkCount = Math.min(3, imgNames.length)
+        let pageMaskCount = 0
+
+        for (let imgIdx = 0; imgIdx < checkCount; imgIdx++) {
         const imgData: any = await new Promise((resolve, reject) => {
           const timer = setTimeout(() => reject(new Error('timeout')), 3000)
-          page.objs.get(imgNames[0], (data: any) => {
+          page.objs.get(imgNames[imgIdx], (data: any) => {
             clearTimeout(timer)
             resolve(data)
           })
         })
-
-        canvas.remove()
 
         if (imgData?.data) {
           const pixels = imgData.data
@@ -195,8 +197,8 @@ async function checkPdfCompatibility(
           const stddev = sampled > 0 ? Math.sqrt(brightnessSqSum / sampled - avgBrightness * avgBrightness) : 0
           console.log(`[compat] page ${pageNum}: data w=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
-          if (whiteRatio > 0.75 && stddev < 55) {
-            maskImagePages++
+          if (whiteRatio > 0.75 && stddev < 62) {
+            pageMaskCount++
           }
         } else if (imgData?.bitmap) {
           const bmp = imgData.bitmap
@@ -230,11 +232,19 @@ async function checkPdfCompatibility(
           c2.remove()
           console.log(`[compat] page ${pageNum}: bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
-          if (whiteRatio > 0.75 && stddev < 55) {
-            maskImagePages++
+          if (whiteRatio > 0.75 && stddev < 62) {
+            pageMaskCount++
           }
         } else {
         }
+        } // for imgIdx 루프 끝
+
+        // 이 페이지에서 분석한 이미지 중 절반 이상이 마스크면 카운트
+        if (pageMaskCount > 0 && pageMaskCount >= Math.ceil(checkCount / 2)) {
+          maskImagePages++
+        }
+
+        canvas.remove()
       } catch {
       }
     } catch {
