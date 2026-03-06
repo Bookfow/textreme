@@ -1180,7 +1180,7 @@ export default function TeXTREME() {
               <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 20, color: "#fff", letterSpacing: "-0.02em" }}>
                 TeXTREME
               </span>
-              <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)", fontWeight: 500, letterSpacing: "0.05em" }}>
+              <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)", fontWeight: 500, letterSpacing: "0.04em" }}>
                 PDF to EPUB 변환기
               </span>
             </div>
