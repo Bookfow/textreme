@@ -1299,7 +1299,7 @@ export default function TeXTREME() {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, maxWidth: 520, margin: "0 auto 56px" }}>
             {[
-              { value: "₩9", label: "페이지당", sub: "🎉 런칭 이벤트" },
+              { value: "₩9", label: "페이지당", sub: "🎉런칭 이벤트" },
               { value: "~2초", label: "페이지당 변환", sub: "AI 비전 엔진" },
               { value: "99%+", label: "한글 인식률", sub: "한글 특화" },
             ].map((s, i) => (
