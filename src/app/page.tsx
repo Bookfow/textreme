@@ -275,6 +275,27 @@ export default function TeXTREME() {
     const paymentId = `textreme-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 
     try {
+      // ━━━ 결제 전 Gemini API quota 체크 ━━━
+      setQuotaChecking(true)
+      setQuotaMessage("")
+      try {
+        const checkRes = await fetch('/api/convert/check')
+        const checkData = await checkRes.json()
+        if (!checkData.available) {
+          if (checkData.reason === 'daily_limit') {
+            setQuotaMessage(`현재 많은 분들이 이용 중이어서 오늘의 변환 한도에 도달했습니다. ${checkData.resetTime}부터 다시 이용 가능합니다.`)
+          } else if (checkData.reason === 'rate_limit') {
+            setQuotaMessage(`현재 동시 이용자가 많아 처리가 지연되고 있습니다. 약 ${checkData.waitMinutes}분 후에 다시 시도해주세요.`)
+          } else {
+            setQuotaMessage(checkData.message || '일시적 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+          }
+          setQuotaChecking(false)
+          return
+        }
+      } catch {
+        // 체크 실패 시 그냥 진행 (체크 자체가 실패해도 결제는 시도)
+      }
+      setQuotaChecking(false)
       // 1단계: 포트원 결제창 열기
       const response = await PortOne.requestPayment({
         storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID!,
@@ -343,6 +364,8 @@ export default function TeXTREME() {
   const [lastPaymentId, setLastPaymentId] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
   const [compatMessage, setCompatMessage] = useState("")
+  const [quotaMessage, setQuotaMessage] = useState("")
+  const [quotaChecking, setQuotaChecking] = useState(false)
 
   // ━━━ PWA install prompt ━━━
   useEffect(() => {
@@ -697,7 +720,7 @@ export default function TeXTREME() {
   const reset = () => {
     if (epubUrl) URL.revokeObjectURL(epubUrl)
     if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl)
-    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null); setPdfViewerUrl(null); setAgreeNoRefund(false); setLastPaymentId(""); setErrorMessage(""); setCompatMessage("")
+    setView("landing"); setFile(null); setFileName(""); setFilePages(0); setProgress(0); setCurrentPage(0); setExtractedTexts([]); setEpubUrl(null); setPdfViewerUrl(null); setAgreeNoRefund(false); setLastPaymentId(""); setErrorMessage(""); setCompatMessage(""); setQuotaMessage("")
     if (progressInterval.current) clearInterval(progressInterval.current)
   }
 
@@ -986,7 +1009,7 @@ export default function TeXTREME() {
               취소
             </button>
             <button onClick={handlePayment}
-              disabled={!agreeNoRefund}
+              disabled={!agreeNoRefund || quotaChecking}
               style={{ flex: 2, padding: "16px 20px", borderRadius: 12, background: agreeNoRefund ? "linear-gradient(135deg, #F59E0B, #D97706)" : "rgba(255,255,255,0.08)", border: "none", color: agreeNoRefund ? "#000" : "rgba(255,255,255,0.3)", fontSize: 16, fontWeight: 800, cursor: agreeNoRefund ? "pointer" : "not-allowed", boxShadow: agreeNoRefund ? "0 0 30px rgba(245,158,11,0.2)" : "none", transition: "all 0.3s" }}>
               ₩{price.toLocaleString()} 결제 및 변환
             </button>
