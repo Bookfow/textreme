@@ -75,7 +75,6 @@ ${fontLink}
 @keyframes priceGlow { 0%,100% { text-shadow: 0 0 20px rgba(245,158,11,0.3); } 50% { text-shadow: 0 0 40px rgba(245,158,11,0.6), 0 0 80px rgba(245,158,11,0.3); } }
 @keyframes badgePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 @keyframes wiggle { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
-@keyframes redXPop { 0% { transform: scale(0) rotate(-45deg); opacity: 0; } 60% { transform: scale(1.3) rotate(0deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
 .feature-card { transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; cursor: default; }
 .feature-card:hover { transform: translateY(-6px) scale(1.02); border-color: rgba(245,158,11,0.3) !important; box-shadow: 0 12px 32px rgba(245,158,11,0.12); background: rgba(245,158,11,0.06) !important; }
 .feature-card .feat-icon { transition: transform 0.4s ease; display: inline-flex; }
@@ -1349,7 +1348,7 @@ export default function TeXTREME() {
                 <span style={{ color: "#22c55e", fontSize: 15, fontWeight: 700 }}>잘 되는 PDF</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {["텍스트 중심 PDF (소설, 에세이, 보고서, 교재)", "이미지·표·차트가 포함된 PDF", "500p 이하 PDF (변환 속도를 감안한 제한)"].map((t, i) => (
+                {["텍스트 중심 PDF (소설, 에세이, 보고서, 교재)", "이미지·표·차트가 포함된 PDF", "500p 이하 PDF (변환 속도를 감안한 제한)", "빠른 접속 환경"].map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 12, marginTop: 2, flexShrink: 0 }}>●</span>
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.5 }}>{t}</span>
@@ -1361,10 +1360,10 @@ export default function TeXTREME() {
             <div style={{ padding: "24px 20px", borderRadius: 14, background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.15)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <span style={{ fontSize: 18 }}>⚠️</span>
-                <span style={{ color: "#F59E0B", fontSize: 15, fontWeight: 700 }}>제한이 있는 PDF</span>
+                <span style={{ color: "#F59E0B", fontSize: 15, fontWeight: 700 }}>잘 안 되는 PDF</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {["스캔본 PDF (텍스트 자체가 이미지로만 구성)", "일부 디자인 특수/벡터 그래픽 PDF", "500페이지 초과 PDF", "비밀번호 보호 PDF"].map((t, i) => (
+                {["스캔본 PDF (전체 이미지로된 구성)", "일부 디자인 특수/벡터 그래픽 PDF", "500p 초과 PDF", "비밀번호 보호 PDF"].map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span style={{ color: "rgba(245,158,11,0.6)", fontSize: 12, marginTop: 2, flexShrink: 0 }}>●</span>
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.5 }}>{t}</span>
@@ -1394,11 +1393,8 @@ export default function TeXTREME() {
             <div style={{ position: "absolute", top: -30, right: -20, fontFamily: "'Outfit'", fontWeight: 900, fontSize: 140, color: "rgba(245,158,11,0.04)", lineHeight: 1 }}>₩</div>
             <div className="event-badge" style={{ display: "inline-block", padding: "6px 18px", borderRadius: 20, background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(251,191,36,0.15))", color: "#F59E0B", fontSize: 14, fontWeight: 800, marginBottom: 16, border: "1px solid rgba(245,158,11,0.3)" }}>🎉 런칭 이벤트</div>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>페이지당</p>
-            <div style={{ fontFamily: "'Outfit'", fontWeight: 900, fontSize: 72, color: "#fff", lineHeight: 1, position: "relative", display: "inline-flex", alignItems: "center", gap: 8 }}>
-              <span style={{ position: "relative", fontFamily: "'Outfit'", fontWeight: 700, fontSize: 36, color: "rgba(255,255,255,0.25)" }}>
-                ₩10
-                <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: "#EF4444", fontSize: 42, fontWeight: 900, lineHeight: 1, animation: "redXPop 0.6s ease-out 0.3s both" }}>✕</span>
-              </span>
+            <div style={{ fontFamily: "'Outfit'", fontWeight: 900, fontSize: 72, color: "#fff", lineHeight: 1, position: "relative", display: "inline-flex", alignItems: "baseline", gap: 12 }}>
+              <span style={{ fontFamily: "'Outfit'", fontWeight: 700, fontSize: 32, color: "rgba(255,255,255,0.25)", textDecoration: "line-through", textDecorationColor: "rgba(239,68,68,0.6)", textDecorationThickness: 3, transform: "rotate(-4deg)", display: "inline-block" }}>₩10</span>
               <span className="price-amount" style={{ background: "linear-gradient(135deg, #F59E0B, #FBBF24)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>₩9</span>
             </div>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 12 }}>100원 단위 내림 · 단, 최소 ₩500</p>
@@ -1475,7 +1471,7 @@ export default function TeXTREME() {
             <Link href="/policies/copyright" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "none" }}>저작권 및 면책</Link>
           </div>
           <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
-            © 2026 텍스트림 · 사업자등록번호 653-33-01529 · support@textreme.co.kr
+            © 2026 텍스트림 · support@textreme.co.kr
           </div>
         </div>
       </footer>
