@@ -1174,13 +1174,13 @@ export default function TeXTREME() {
       {/* NAV */}
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "16px 24px", background: "rgba(6,6,12,0.8)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <Zap size={22} color="#F59E0B" strokeWidth={2.5} />
-            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 5 }}>
+            <Zap size={22} color="#F59E0B" strokeWidth={2.5} style={{ marginTop: 2 }} />
+            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
               <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 20, color: "#fff", letterSpacing: "-0.02em" }}>
                 TeXTREME
               </span>
-              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", fontWeight: 500, letterSpacing: "0.02em" }}>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 500, letterSpacing: "0.08em" }}>
                 PDF to EPUB 변환기
               </span>
             </div>
