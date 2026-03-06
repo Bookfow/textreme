@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Minus, Plus, List, AlignLeft, AlignJustify, Settings2, Focus, Highlighter, Trash2, X, Bookmark, BookmarkCheck, Search, Maximize2, Minimize2, Home } from 'lucide-react'
 import JSZip from 'jszip'
+import { trackEvent, EVENTS } from '@/lib/event-tracker'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 타입 & 상수
@@ -379,6 +380,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
   const selectionOverlayRef = useRef<HTMLDivElement>(null)
   const mouseDownPosRef = useRef<{ x: number; y: number; t: number } | null>(null)
   const blobUrlsRef = useRef<string[]>([])
+  const viewerOpenTimeRef = useRef<number>(Date.now())
   const [columnWidthPx, setColumnWidthPx] = useState(0)
   const themeStyle = THEMES[theme]
   const fontStyle = FONTS[font]
@@ -618,6 +620,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
 
         setLoadProgress(100)
         setChapters(parsedChapters)
+        trackEvent(EVENTS.VIEWER_OPEN, { chapters: parsedChapters.length, source: epubUrl?.slice(-60) || '' })
         setTocItems(parsedToc)
         setChapterPageCounts(new Array(parsedChapters.length).fill(1))
         setLoading(false)
@@ -1250,7 +1253,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
       {/* ━━━ 상단 바 (9버튼) ━━━ */}
       <div style={{ borderColor: themeStyle.border, display: "flex", justifyContent: "center", borderBottom: showSearch ? 'none' : `1px solid ${themeStyle.border}`, flexShrink: 0, boxShadow: showSearch ? 'none' : `0 1px 8px ${themeStyle.border}40` }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gap: 8, padding: "14px 20px", width: "100%", maxWidth: 560 }}>
-        <button onClick={e => { e.stopPropagation(); if (onBack) onBack() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: themeStyle.muted }}><Home className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>나가기</span></button>
+        <button onClick={e => { e.stopPropagation(); trackEvent(EVENTS.VIEWER_CLOSE, { durationSec: Math.round((Date.now() - viewerOpenTimeRef.current) / 1000), lastPage: virtualPageNumber, totalPages: virtualTotalPages }); if (onBack) onBack() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: themeStyle.muted }}><Home className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>나가기</span></button>
         <button onClick={e => { e.stopPropagation(); setShowToc(!showToc) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showToc ? ACCENT : themeStyle.muted }}><List className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>목차</span></button>
         <button onClick={e => { e.stopPropagation(); setShowSearch(!showSearch) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showSearch ? ACCENT : themeStyle.muted }}><Search className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>검색</span></button>
         <button onClick={e => { e.stopPropagation(); setFocusMode(!focusMode) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg" style={{ color: focusMode ? ACCENT : themeStyle.muted, backgroundColor: focusMode ? `${ACCENT}15` : 'transparent' }}><Focus className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>집중</span></button>
