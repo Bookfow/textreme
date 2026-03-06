@@ -70,6 +70,22 @@ ${fontLink}
 .step-card:hover { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
 @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
 .shimmer-text { background: linear-gradient(90deg, #F59E0B 30%, #fde68a 50%, #F59E0B 70%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 3s linear infinite; }
+@keyframes iconSpin { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
+@keyframes iconBounce { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-8px); } 60% { transform: translateY(-4px); } }
+@keyframes priceGlow { 0%,100% { text-shadow: 0 0 20px rgba(245,158,11,0.3); } 50% { text-shadow: 0 0 40px rgba(245,158,11,0.6), 0 0 80px rgba(245,158,11,0.3); } }
+@keyframes badgePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+@keyframes wiggle { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+@keyframes redXPop { 0% { transform: scale(0) rotate(-45deg); opacity: 0; } 60% { transform: scale(1.3) rotate(0deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+.feature-card { transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; cursor: default; }
+.feature-card:hover { transform: translateY(-6px) scale(1.02); border-color: rgba(245,158,11,0.3) !important; box-shadow: 0 12px 32px rgba(245,158,11,0.12); background: rgba(245,158,11,0.06) !important; }
+.feature-card .feat-icon { transition: transform 0.4s ease; display: inline-flex; }
+.feature-card:hover .feat-icon { animation: iconSpin 0.6s ease-out; }
+.price-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.price-card:hover { transform: scale(1.02); box-shadow: 0 0 60px rgba(245,158,11,0.2), 0 0 120px rgba(245,158,11,0.08); }
+.event-badge { animation: badgePulse 2s ease-in-out infinite, wiggle 3s ease-in-out infinite; }
+.price-amount { animation: priceGlow 3s ease-in-out infinite; }
+.stat-card { transition: transform 0.25s ease; }
+.stat-card:hover { transform: translateY(-4px) scale(1.05); }
 .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 @media (max-width: 640px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
 .upload-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 560px; }
@@ -1288,7 +1304,7 @@ export default function TeXTREME() {
               { value: "~2초", label: "페이지당 변환", sub: "AI 비전 엔진" },
               { value: "99%+", label: "한글 인식률", sub: "한글 특화" },
             ].map((s, i) => (
-              <div key={i} style={{ textAlign: "center" }}>
+              <div key={i} className="stat-card" style={{ textAlign: "center" }}>
                 <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 32, color: "#F59E0B", letterSpacing: "-0.02em" }}>{s.value}</div>
                 <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 15, fontWeight: 500, marginTop: 6 }}>{s.label}</div>
                 <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, marginTop: 3 }}>{s.sub}</div>
@@ -1304,8 +1320,8 @@ export default function TeXTREME() {
               { icon: <BookOpen size={22} />, title: "구조 보존", desc: "제목·본문·인용·리스트를 자동 분석하여 구조 유지" },
               { icon: "📖", title: "모든 뷰어 호환", desc: "EPUB 3.0 표준 준수, 원하는 앱에서 바로 열기" },
             ].map((f, i) => (
-              <div key={i} style={{ padding: "24px 20px", borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)" }} className="card-hover">
-                <div style={{ color: "#F59E0B", marginBottom: 14, fontSize: typeof f.icon === "string" ? 22 : undefined }}>
+              <div key={i} style={{ padding: "24px 20px", borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)" }} className="feature-card">
+                <div className="feat-icon" style={{ color: "#F59E0B", marginBottom: 14, fontSize: typeof f.icon === "string" ? 22 : undefined }}>
                   {f.icon}
                 </div>
                 <h4 style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 8 }}>{f.title}</h4>
@@ -1374,13 +1390,16 @@ export default function TeXTREME() {
           </p>
 
           {/* Main price card */}
-          <div style={{ textAlign: "center", padding: "48px 32px", borderRadius: 20, background: "linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02))", border: "1px solid rgba(245,158,11,0.25)", marginBottom: 32, position: "relative", overflow: "hidden" }}>
+          <div className="price-card" style={{ textAlign: "center", padding: "48px 32px", borderRadius: 20, background: "linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02))", border: "1px solid rgba(245,158,11,0.25)", marginBottom: 32, position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -30, right: -20, fontFamily: "'Outfit'", fontWeight: 900, fontSize: 140, color: "rgba(245,158,11,0.04)", lineHeight: 1 }}>₩</div>
-            <div style={{ display: "inline-block", padding: "4px 14px", borderRadius: 20, background: "rgba(245,158,11,0.15)", color: "#F59E0B", fontSize: 13, fontWeight: 700, marginBottom: 12 }}>🎉 런칭 이벤트</div>
+            <div className="event-badge" style={{ display: "inline-block", padding: "6px 18px", borderRadius: 20, background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(251,191,36,0.15))", color: "#F59E0B", fontSize: 14, fontWeight: 800, marginBottom: 16, border: "1px solid rgba(245,158,11,0.3)" }}>🎉 런칭 이벤트</div>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>페이지당</p>
-            <div style={{ fontFamily: "'Outfit'", fontWeight: 900, fontSize: 72, color: "#fff", lineHeight: 1, position: "relative", display: "inline-block" }}>
-              <span style={{ fontFamily: "'Outfit'", fontWeight: 700, fontSize: 32, color: "rgba(255,255,255,0.3)", textDecoration: "line-through", marginRight: 12, verticalAlign: "middle" }}>₩10</span>
-              <span style={{ background: "linear-gradient(135deg, #F59E0B, #FBBF24)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>₩9</span>
+            <div style={{ fontFamily: "'Outfit'", fontWeight: 900, fontSize: 72, color: "#fff", lineHeight: 1, position: "relative", display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <span style={{ position: "relative", fontFamily: "'Outfit'", fontWeight: 700, fontSize: 36, color: "rgba(255,255,255,0.25)" }}>
+                ₩10
+                <span style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: "#EF4444", fontSize: 42, fontWeight: 900, lineHeight: 1, animation: "redXPop 0.6s ease-out 0.3s both" }}>✕</span>
+              </span>
+              <span className="price-amount" style={{ background: "linear-gradient(135deg, #F59E0B, #FBBF24)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>₩9</span>
             </div>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 12 }}>100원 단위 내림 · 단, 최소 ₩500</p>
           </div>
@@ -1388,7 +1407,7 @@ export default function TeXTREME() {
           {/* Price examples */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
             {PRICE_EXAMPLES.map((ex, i) => (
-              <div key={i} style={{ padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div key={i} className="card-hover" style={{ padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 14 }}>{ex.display}</span>
                 <span style={{ fontFamily: "'Outfit'", fontWeight: 700, fontSize: 16, color: "#fff" }}>₩{calcPrice(ex.pages).toLocaleString()}</span>
               </div>
