@@ -80,7 +80,7 @@ export default function BatchTestPage() {
       addLog(`  ${result.pageCount}페이지 감지, 분할 중...`)
 
       // 1페이지 PDF들로 분할
-      const singlePageBase64s: { base64: string; pageNumber: number }[] = []
+      const singlePageBase64s: { base64: string; pageNumber: number; mimeType: string }[] = []
       for (let i = 0; i < result.pageCount; i++) {
         const newDoc = await PDFDocument.create()
         const [copiedPage] = await newDoc.copyPages(srcDoc, [i])
@@ -91,14 +91,61 @@ export default function BatchTestPage() {
         for (let j = 0; j < bytes.length; j++) {
           binary += String.fromCharCode(bytes[j])
         }
-        singlePageBase64s.push({ base64: btoa(binary), pageNumber: i + 1 })
+        singlePageBase64s.push({ base64: btoa(binary), pageNumber: i + 1, mimeType: 'application/pdf' })
+      }
+
+      // 대용량 페이지 JPEG 압축 (Vercel 4.5MB body 제한 대응)
+      const MAX_PAGE_BYTES = 3.5 * 1024 * 1024
+      const oversizedCount = singlePageBase64s.filter(p => p.base64.length > MAX_PAGE_BYTES).length
+      if (oversizedCount > 0) {
+        addLog(`  대용량 페이지 ${oversizedCount}개 감지, JPEG 압축 중...`)
+        const pdfjsComp = await import('pdfjs-dist')
+        pdfjsComp.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+        const compDoc = await pdfjsComp.getDocument({ data: arrayBuffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
+
+        for (let i = 0; i < singlePageBase64s.length; i++) {
+          if (singlePageBase64s[i].base64.length <= MAX_PAGE_BYTES) continue
+
+          const pg = await compDoc.getPage(i + 1)
+          const scale150 = (150 / 72)
+          const vp = pg.getViewport({ scale: scale150 })
+          const canvas = document.createElement('canvas')
+          canvas.width = vp.width
+          canvas.height = vp.height
+          const ctx = canvas.getContext('2d')!
+          await pg.render({ canvasContext: ctx, viewport: vp, canvas } as any).promise
+
+          // 점진적 압축: 85% → 70% → 60%
+          let jpegBase64 = ''
+          for (const quality of [0.85, 0.70, 0.60]) {
+            const dataUrl = canvas.toDataURL('image/jpeg', quality)
+            jpegBase64 = dataUrl.split(',')[1]
+            if (jpegBase64.length <= MAX_PAGE_BYTES) break
+          }
+
+          // 그래도 크면 100dpi로 재렌더링
+          if (jpegBase64.length > MAX_PAGE_BYTES) {
+            const scale100 = (100 / 72)
+            const vp2 = pg.getViewport({ scale: scale100 })
+            canvas.width = vp2.width
+            canvas.height = vp2.height
+            await pg.render({ canvasContext: ctx, viewport: vp2, canvas } as any).promise
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.60)
+            jpegBase64 = dataUrl.split(',')[1]
+          }
+
+          canvas.remove()
+          singlePageBase64s[i].base64 = jpegBase64
+          singlePageBase64s[i].mimeType = 'image/jpeg'
+        }
+        compDoc.destroy()
       }
 
       setCurrentProgress(5)
       addLog(`  분할 완료, Gemini API 호출 시작...`)
 
       // ★ 2단계: 3배치 동시 전송 (Vercel 4.5MB body 제한 + 속도 최적화)
-      const MAX_BATCH_BYTES = 3 * 1024 * 1024 // 3MB (JSON 오버헤드 고려)
+      const MAX_BATCH_BYTES = 3.5 * 1024 * 1024 // 3.5MB (Vercel 4.5MB 제한, 1MB 마진)
       const CONCURRENT = 6 // 동시 전송 배치 수
       const allPageResults: PageDataForEpub[] = []
 
