@@ -110,7 +110,7 @@ async function checkPdfCompatibility(
 
   // 2) 샘플 페이지 선정 (최대 5개, 고르게 분포)
   const total = pdfDoc.numPages
-  const sampleCount = Math.min(10, total)
+  const sampleCount = Math.min(15, total)
   const sampleIndices: number[] = []
   for (let i = 0; i < sampleCount; i++) {
     sampleIndices.push(Math.floor((i / sampleCount) * total) + 1)
@@ -195,7 +195,7 @@ async function checkPdfCompatibility(
           const stddev = sampled > 0 ? Math.sqrt(brightnessSqSum / sampled - avgBrightness * avgBrightness) : 0
           console.log(`[compat] page ${pageNum}: data w=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
-          if (whiteRatio > 0.70 && stddev < 65) {
+          if (whiteRatio > 0.75 && stddev < 55) {
             maskImagePages++
           }
         } else if (imgData?.bitmap) {
@@ -230,7 +230,7 @@ async function checkPdfCompatibility(
           c2.remove()
           console.log(`[compat] page ${pageNum}: bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
-          if (whiteRatio > 0.70 && stddev < 65) {
+          if (whiteRatio > 0.75 && stddev < 55) {
             maskImagePages++
           }
         } else {
@@ -245,7 +245,7 @@ async function checkPdfCompatibility(
   // 3) 판정
 
   // 샘플의 60% 이상이 텍스트 없음 → 스캔본 경고
-  if (lowTextPages >= Math.ceil(sampleCount * 0.6)) {
+  if (lowTextPages >= Math.ceil(sampleCount * 0.5)) {
     return {
       status: "warn",
       reason: "이 PDF는 스캔 이미지 기반으로 보입니다. 텍스트 추출 품질이 낮을 수 있으며, 이미지가 원본과 다르게 표시될 수 있습니다."
@@ -254,7 +254,7 @@ async function checkPdfCompatibility(
 
   // 마스크/단색 이미지가 2개 이상 발견되면 → 경고
   console.log(`[compat] 결과: maskImagePages=${maskImagePages}, lowTextPages=${lowTextPages}/${sampleCount}`)
-  if (maskImagePages >= 2) {
+  if (maskImagePages >= 3) {
     return {
       status: "warn",
       reason: "이 PDF의 이미지가 정상적으로 추출되지 않을 수 있습니다. 텍스트만 필요하다면 계속 진행하셔도 괜찮습니다."
