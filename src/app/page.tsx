@@ -14,6 +14,7 @@ import EpubViewerLite from "@/components/epub-viewer-lite"
 import { convertTxtToEpub, convertDocxToEpub } from "@/lib/text-to-epub"
 import { buildEpubOnClient, extractPageImages } from "@/lib/epub-builder"
 import { logConversion } from "@/lib/conversion-logger"
+import { trackEvent, EVENTS } from "@/lib/event-tracker"
 
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -275,6 +276,8 @@ export default function TeXTREME() {
     const paymentId = `textreme-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 
     try {
+      trackEvent(EVENTS.PAYMENT_START, { pages: filePages, price: price })
+
       // ━━━ 결제 전 Gemini API quota 체크 ━━━
       setQuotaChecking(true)
       setQuotaMessage("")
@@ -290,6 +293,7 @@ export default function TeXTREME() {
             setQuotaMessage(checkData.message || '일시적 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
           }
           setQuotaChecking(false)
+          trackEvent(EVENTS.QUOTA_BLOCKED, { reason: checkData.reason })
           return
         }
       } catch {
@@ -311,6 +315,7 @@ export default function TeXTREME() {
       // 사용자가 결제창을 닫았거나 에러 발생
       if (response?.code != null) {
         if (response.code === "FAILURE_TYPE_PG" || response.message?.includes("cancel")) {
+          trackEvent(EVENTS.PAYMENT_CANCEL, { pages: filePages, price: price })
           return // 사용자가 취소한 경우 조용히 종료
         }
         alert("결제 중 오류가 발생했습니다: " + response.message)
@@ -335,6 +340,7 @@ export default function TeXTREME() {
       }
 
       // 3단계: 검증 통과! 변환 시작
+      trackEvent(EVENTS.PAYMENT_COMPLETE, { pages: filePages, price: price, paymentId: paymentId, amount: price })
       setLastPaymentId(paymentId)
       startConversion(filePages)
 
@@ -372,6 +378,7 @@ export default function TeXTREME() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     }
+    trackEvent(EVENTS.PAGE_VIEW)
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsPwaInstalled(true)
     }
@@ -394,7 +401,7 @@ export default function TeXTREME() {
     if (!deferredPrompt) return
     deferredPrompt.prompt()
     const result = await deferredPrompt.userChoice
-    if (result.outcome === 'accepted') setIsPwaInstalled(true)
+    if (result.outcome === 'accepted') { setIsPwaInstalled(true); trackEvent(EVENTS.PWA_INSTALL) }
     setDeferredPrompt(null)
   }
 
@@ -414,6 +421,7 @@ export default function TeXTREME() {
     setCurrentPage(0)
     setExtractedTexts([])
     const conversionStartTime = Date.now()
+    trackEvent(EVENTS.CONVERSION_START, { pages: pages, fileName: file!.name, fileSize: file!.size })
     let jpegCompressedCount = 0
     let batchCount = 0
     let failedPageNumbers: number[] = []
@@ -563,6 +571,7 @@ export default function TeXTREME() {
       a.href = downloadUrl
       a.download = title + '.epub'
       a.click()
+      trackEvent(EVENTS.EPUB_DOWNLOAD, { title, pages: totalPages })
       URL.revokeObjectURL(downloadUrl)
 
       // 뷰어용 URL 설정
@@ -570,6 +579,11 @@ export default function TeXTREME() {
       setEpubUrl(viewerUrl)
 
       setProgress(100)
+
+      trackEvent(EVENTS.CONVERSION_COMPLETE, {
+        pages: totalPages, successfulPages: allPageResults.length, failedPages: failedPageNumbers.length,
+        durationSeconds: (Date.now() - conversionStartTime) / 1000, images: pageImages.size,
+      })
 
       // ━━━ 변환 로그 전송 ━━━
       const durationSeconds = (Date.now() - conversionStartTime) / 1000
@@ -639,6 +653,7 @@ export default function TeXTREME() {
     if (!f) return
     const ext = f.name.split('.').pop()?.toLowerCase() || ''
     setFileName(f.name)
+    trackEvent(EVENTS.FILE_UPLOAD, { fileType: ext, fileSize: f.size, mode })
 
     // EPUB → 바로 뷰어
     if (ext === 'epub') {
@@ -698,15 +713,18 @@ export default function TeXTREME() {
         // 호환성 체크
         const compat = await checkPdfCompatibility(pdfDoc, pdfjsLib.OPS)
         if (compat.status === "block") {
+          trackEvent(EVENTS.COMPAT_CHECK, { result: 'block', pages: pdfDoc.numPages, reason: compat.reason })
           setCompatMessage(compat.reason)
           setView("incompatible")
           return
         }
         if (compat.status === "warn") {
+          trackEvent(EVENTS.COMPAT_CHECK, { result: 'warn', pages: pdfDoc.numPages, reason: compat.reason })
           setCompatMessage(compat.reason)
           setView("warning")
           return
         }
+        trackEvent(EVENTS.COMPAT_CHECK, { result: 'ok', pages: pdfDoc.numPages })
         setView("pricing")
       } catch {
         setCompatMessage("PDF 파일이 손상되었거나 읽을 수 없습니다. 비밀번호가 설정된 PDF도 변환할 수 없습니다.")
@@ -728,6 +746,7 @@ export default function TeXTREME() {
   // Viewer — EpubViewerLite (EPUB/TXT/DOCX)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (view === "viewer" && epubUrl) {
+    trackEvent(EVENTS.VIEWER_OPEN, { fileName })
     return (
       <div style={{ width: "100vw", height: "100dvh", fontFamily: "'Noto Sans KR', system-ui, sans-serif" }}>
         <style>{`* { margin: 0; padding: 0; box-sizing: border-box; }`}</style>
@@ -892,7 +911,7 @@ export default function TeXTREME() {
               style={{ flex: 1, padding: "16px 20px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
               다른 PDF 선택
             </button>
-            <button onClick={() => setView("pricing")}
+            <button onClick={() => { trackEvent(EVENTS.WARN_PROCEED, { reason: compatMessage }); setView("pricing") }}
               style={{ flex: 2, padding: "16px 20px", borderRadius: 12, background: "linear-gradient(135deg, #F59E0B, #D97706)", border: "none", color: "#000", fontSize: 16, fontWeight: 800, cursor: "pointer", boxShadow: "0 0 30px rgba(245,158,11,0.2)" }}>
               그래도 진행
             </button>
