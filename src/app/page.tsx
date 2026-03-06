@@ -123,6 +123,7 @@ async function checkPdfCompatibility(
   let lowTextPages = 0
   let maskImagePages = 0
   let pagesWithImages = 0
+  let totalImageCount = 0
 
   for (const pageNum of sampleIndices) {
     try {
@@ -149,6 +150,7 @@ async function checkPdfCompatibility(
       }
 
       pagesWithImages++
+      totalImageCount += imgNames.length
 
       // 페이지를 작은 스케일로 렌더링 → 이미지 객체 로드 → 픽셀 분석 (최대 3개)
       try {
@@ -262,8 +264,17 @@ async function checkPdfCompatibility(
     }
   }
 
-  // 마스크/단색 이미지가 2개 이상 발견되면 → 경고
-  console.log(`[compat] 결과: maskImagePages=${maskImagePages}, lowTextPages=${lowTextPages}/${sampleCount}`)
+  // 페이지당 평균 이미지 수가 4개 이상 → 장식/마스크 이미지 PDF 경고
+  const avgImgsPerPage = pagesWithImages > 0 ? totalImageCount / pagesWithImages : 0
+  console.log(`[compat] 결과: maskImagePages=${maskImagePages}, lowTextPages=${lowTextPages}/${sampleCount}, avgImgsPerPage=${avgImgsPerPage.toFixed(1)}`)
+  if (avgImgsPerPage >= 4) {
+    return {
+      status: "warn",
+      reason: "이 PDF의 이미지가 정상적으로 추출되지 않을 수 있습니다. 텍스트만 필요하다면 계속 진행하셔도 괜찮습니다."
+    }
+  }
+
+  // 마스크/단색 이미지가 3개 이상 발견되면 → 경고
   if (maskImagePages >= 3) {
     return {
       status: "warn",
