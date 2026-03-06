@@ -197,7 +197,6 @@ async function checkPdfCompatibility(
           const whiteRatio = sampled > 0 ? whiteCount / sampled : 0
           const avgBrightness = sampled > 0 ? brightnessSum / sampled : 0
           const stddev = sampled > 0 ? Math.sqrt(brightnessSqSum / sampled - avgBrightness * avgBrightness) : 0
-          console.log(`[compat] page ${pageNum}: data w=${imgData.width}x${imgData.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
           if (whiteRatio > 0.75 && stddev < 62) {
             pageMaskCount++
@@ -232,7 +231,6 @@ async function checkPdfCompatibility(
           const avgBrightness = sampled > 0 ? brightnessSum / sampled : 0
           const stddev = sampled > 0 ? Math.sqrt(brightnessSqSum / sampled - avgBrightness * avgBrightness) : 0
           c2.remove()
-          console.log(`[compat] page ${pageNum}: bitmap=${bmp.width}x${bmp.height}, whiteRatio=${(whiteRatio*100).toFixed(1)}%, stddev=${stddev.toFixed(1)}`)
 
           if (whiteRatio > 0.75 && stddev < 62) {
             pageMaskCount++
@@ -266,7 +264,6 @@ async function checkPdfCompatibility(
 
   // 페이지당 평균 이미지 수가 4개 이상 → 장식/마스크 이미지 PDF 경고
   const avgImgsPerPage = pagesWithImages > 0 ? totalImageCount / pagesWithImages : 0
-  console.log(`[compat] 결과: maskImagePages=${maskImagePages}, lowTextPages=${lowTextPages}/${sampleCount}, avgImgsPerPage=${avgImgsPerPage.toFixed(1)}`)
   if (avgImgsPerPage >= 4) {
     return {
       status: "warn",
