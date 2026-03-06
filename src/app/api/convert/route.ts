@@ -70,12 +70,12 @@ image_placeholder 사용 (아래 경우만 해당):
 제외 항목: 페이지 번호, 머리글, 꼬리글
 출력: JSON만 반환. 마크다운 코드블록 사용 금지.`
 
-async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0): Promise<{ elements: PageElement[], inputTokens: number, outputTokens: number }> {
+async function extractPageWithGemini(singlePagePdfBase64: string, mimeType: string = 'application/pdf', retryCount = 0): Promise<{ elements: PageElement[], inputTokens: number, outputTokens: number }> {
   const body = {
     contents: [{
       parts: [
         { text: SYSTEM_PROMPT + '\n\n이 PDF 페이지의 모든 텍스트를 빠짐없이 추출해주세요.' },
-        { inline_data: { mime_type: 'application/pdf', data: singlePagePdfBase64 } }
+        { inline_data: { mime_type: mimeType, data: singlePagePdfBase64 } }
       ]
     }],
     generationConfig: {
@@ -94,7 +94,7 @@ async function extractPageWithGemini(singlePagePdfBase64: string, retryCount = 0
     const err = await res.text()
     if (res.status === 429 && retryCount < 3) {
       await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)))
-      return extractPageWithGemini(singlePagePdfBase64, retryCount + 1)
+      return extractPageWithGemini(singlePagePdfBase64, mimeType, retryCount + 1)
     }
     throw new Error(`Gemini API error ${res.status}: ${err}`)
   }
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { pages } = body as { pages: { base64: string; pageNumber: number }[] }
+    const { pages } = body as { pages: { base64: string; pageNumber: number; mimeType?: string }[] }
 
     if (!pages || !Array.isArray(pages) || pages.length === 0) {
       return Response.json({ error: '페이지 데이터가 필요합니다' }, { status: 400 })
@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
     const results: PageResult[] = await Promise.all(
       pages.map(async (pg) => {
         try {
-          const { elements, inputTokens, outputTokens } = await extractPageWithGemini(pg.base64)
+          const { elements, inputTokens, outputTokens } = await extractPageWithGemini(pg.base64, pg.mimeType || 'application/pdf')
           return { pageNumber: pg.pageNumber, elements, inputTokens, outputTokens }
         } catch (err: any) {
           return {

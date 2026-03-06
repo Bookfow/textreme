@@ -376,7 +376,7 @@ export default function TeXTREME() {
       const srcDoc = await PDFDocument.load(arrayBuffer)
       const totalPages = srcDoc.getPageCount()
 
-      const singlePageBase64s: { base64: string; pageNumber: number }[] = []
+      const singlePageBase64s: { base64: string; pageNumber: number; mimeType: string }[] = []
       for (let i = 0; i < totalPages; i++) {
         const newDoc = await PDFDocument.create()
         const [copiedPage] = await newDoc.copyPages(srcDoc, [i])
@@ -386,14 +386,59 @@ export default function TeXTREME() {
         for (let j = 0; j < bytes.length; j++) {
           binary += String.fromCharCode(bytes[j])
         }
-        singlePageBase64s.push({ base64: btoa(binary), pageNumber: i + 1 })
+        singlePageBase64s.push({ base64: btoa(binary), pageNumber: i + 1, mimeType: 'application/pdf' })
       }
 
       setProgress(5)
       setExtractedTexts([{ page: 0, text: 'AI가 페이지를 분석하고 있습니다...' }])
 
+      // ★ 1.5단계: 대용량 페이지 JPEG 압축 (Vercel 4.5MB body 제한 대응)
+      const MAX_PAGE_BYTES = 3.5 * 1024 * 1024
+      const oversizedCount = singlePageBase64s.filter(p => p.base64.length > MAX_PAGE_BYTES).length
+      if (oversizedCount > 0) {
+        const pdfjsComp = await import('pdfjs-dist')
+        pdfjsComp.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+        const compDoc = await pdfjsComp.getDocument({ data: arrayBuffer, cMapUrl: 'https://unpkg.com/pdfjs-dist/cmaps/', cMapPacked: true }).promise
+
+        for (let i = 0; i < singlePageBase64s.length; i++) {
+          if (singlePageBase64s[i].base64.length <= MAX_PAGE_BYTES) continue
+
+          const pg = await compDoc.getPage(i + 1)
+          const scale150 = (150 / 72)
+          const vp = pg.getViewport({ scale: scale150 })
+          const canvas = document.createElement('canvas')
+          canvas.width = vp.width
+          canvas.height = vp.height
+          const ctx = canvas.getContext('2d')!
+          await pg.render({ canvasContext: ctx, viewport: vp, canvas } as any).promise
+
+          // 점진적 압축: 85% → 70% → 60%
+          let jpegBase64 = ''
+          for (const quality of [0.85, 0.70, 0.60]) {
+            const dataUrl = canvas.toDataURL('image/jpeg', quality)
+            jpegBase64 = dataUrl.split(',')[1]
+            if (jpegBase64.length <= MAX_PAGE_BYTES) break
+          }
+
+          // 그래도 크면 100dpi로 재렌더링
+          if (jpegBase64.length > MAX_PAGE_BYTES) {
+            const scale100 = (100 / 72)
+            const vp2 = pg.getViewport({ scale: scale100 })
+            canvas.width = vp2.width
+            canvas.height = vp2.height
+            await pg.render({ canvasContext: ctx, viewport: vp2, canvas } as any).promise
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.60)
+            jpegBase64 = dataUrl.split(',')[1]
+          }
+
+          canvas.remove()
+          singlePageBase64s[i].base64 = jpegBase64
+          singlePageBase64s[i].mimeType = 'image/jpeg'
+        }
+      }
+
       // ★ 2단계: 크기 기반 동적 배치로 서버에 전송 (Vercel 4.5MB body 제한 대응)
-      const MAX_BATCH_BYTES = 3 * 1024 * 1024
+      const MAX_BATCH_BYTES = 3.5 * 1024 * 1024
       const allPageResults: { pageNumber: number; elements: any[] }[] = []
       let totalInputTokens = 0
       let totalOutputTokens = 0
@@ -1182,7 +1227,7 @@ export default function TeXTREME() {
                 ))}
               </div>
               <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, lineHeight: 1.5 }}>
-                단, PDF는 문서 구조 특성상<br />EPUB만의 활용도 높은 기능을<br />제대로 사용하지 못할 수 있습니다.
+                단, PDF는 문서 구조 특성 상<br />EPUB만의 활용도 높은 기능을<br />제대로 사용하지 못할 수 있습니다.
               </p>
               <input ref={viewerInputRef} type="file" accept=".epub,.txt,.docx,.pdf" style={{ display: "none" }}
                 onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0], 'viewer') }} />
@@ -1219,7 +1264,7 @@ export default function TeXTREME() {
                 <span style={{ padding: "2px 8px", borderRadius: 5, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", color: "#F59E0B", fontSize: 11, fontWeight: 600 }}>EPUB</span>
               </div>
               <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
-                이미지·표 원본 배치 · 한글특화 99%<br />품질 보증 변환 · 최대 500p
+                이미지·표 원본 배치 · 한글특화 99.9%<br />품질 보증 변환 · 최대 500p 가능
               </p>
               <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: "none" }}
                 onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]) }} />
@@ -1232,7 +1277,7 @@ export default function TeXTREME() {
       <section style={{ padding: "25px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 36, letterSpacing: "-0.02em", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
-            왜 <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}><Zap size={36} color="#F59E0B" style={{ position: "relative", top: 2 }} />텍스트림</span> PDF to EPUB 변환기인가?
+            왜 <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}><Zap size={36} color="#F59E0B" style={{ position: "relative", top: 2 }} />텍스트림</span> AI PDF to EPUB 변환기인가?
           </h2>
           <p style={{ textAlign: "center", color: "rgba(255,255,255,0.65)", fontSize: 20, marginBottom: 40 }}>
             한글 PDF에 최적화된 AI 변환 엔진
@@ -1288,7 +1333,7 @@ export default function TeXTREME() {
                 <span style={{ color: "#22c55e", fontSize: 15, fontWeight: 700 }}>잘 되는 PDF</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {["텍스트 중심 PDF (교재, 소설, 보고서)", "이미지·표·차트가 포함된 PDF", "500페이지 이하 PDF"].map((t, i) => (
+                {["텍스트 중심 PDF (소설, 에세이, 보고서, 교재)", "이미지·표·차트가 포함된 PDF", "500p 이하 PDF (변환 속도를 감안한 제한)"].map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 12, marginTop: 2, flexShrink: 0 }}>●</span>
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.5 }}>{t}</span>
@@ -1303,7 +1348,7 @@ export default function TeXTREME() {
                 <span style={{ color: "#F59E0B", fontSize: 15, fontWeight: 700 }}>제한이 있는 PDF</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {["스캔본 PDF (이미지로만 구성)", "일부 디자인 특수/벡터 그래픽 PDF", "500페이지 초과 PDF", "비밀번호 보호 PDF"].map((t, i) => (
+                {["스캔본 PDF (텍스트 자체가 이미지로만 구성)", "일부 디자인 특수/벡터 그래픽 PDF", "500페이지 초과 PDF", "비밀번호 보호 PDF"].map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span style={{ color: "rgba(245,158,11,0.6)", fontSize: 12, marginTop: 2, flexShrink: 0 }}>●</span>
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.5 }}>{t}</span>
