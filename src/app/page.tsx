@@ -1176,12 +1176,14 @@ export default function TeXTREME() {
         <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <Zap size={22} color="#F59E0B" strokeWidth={2.5} />
-            <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 20, color: "#fff", letterSpacing: "-0.02em" }}>
-              TeXTREME
-            </span>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontWeight: 500, marginLeft: 6 }}>
-              PDF to EPUB 변환기
-            </span>
+            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+              <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 20, color: "#fff", letterSpacing: "-0.02em" }}>
+                TeXTREME
+              </span>
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", fontWeight: 500, letterSpacing: "0.02em" }}>
+                PDF to EPUB 변환기
+              </span>
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button onClick={() => fileInputRef.current?.click()}
@@ -1299,7 +1301,7 @@ export default function TeXTREME() {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, maxWidth: 520, margin: "0 auto 56px" }}>
             {[
-              { value: "₩9", label: "페이지당", sub: "🎉런칭 이벤트\u00A0" },
+              { value: "₩9", label: "페이지당", sub: "🎉런칭 이벤트" },
               { value: "~2초", label: "페이지당 변환", sub: "AI 비전 엔진" },
               { value: "99%+", label: "한글 인식률", sub: "한글 특화" },
             ].map((s, i) => (
