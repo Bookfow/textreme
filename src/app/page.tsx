@@ -19,7 +19,7 @@ import { buildEpubOnClient, extractPageImages } from "@/lib/epub-builder"
 // TeXTREME — Landing + Convert + Complete
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const PRICE_PER_PAGE = 10
+const PRICE_PER_PAGE = 9
 
 const PRICE_EXAMPLES = [
   { pages: 50, display: "50p 이하 소책자" },
@@ -1284,7 +1284,7 @@ export default function TeXTREME() {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, maxWidth: 520, margin: "0 auto 56px" }}>
             {[
-              { value: "₩10", label: "페이지당", sub: "사용한 만큼만" },
+              { value: "₩9", label: "페이지당", sub: "런칭 이벤트" },
               { value: "~2초", label: "페이지당 변환", sub: "AI 비전 엔진" },
               { value: "99%+", label: "한글 인식률", sub: "한글 특화" },
             ].map((s, i) => (
@@ -1333,7 +1333,7 @@ export default function TeXTREME() {
                 <span style={{ color: "#22c55e", fontSize: 15, fontWeight: 700 }}>잘 되는 PDF</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {["텍스트 중심 PDF (소설, 에세이, 보고서, 교재)", "이미지·표·차트가 포함된 PDF", "500p 이하 PDF (변환 속도를 감안한 제한)", "빠른 접속 환경"].map((t, i) => (
+                {["텍스트 중심 PDF (소설, 에세이, 보고서, 교재)", "이미지·표·차트가 포함된 PDF", "500p 이하 PDF (변환 속도를 감안한 제한)"].map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span style={{ color: "rgba(34,197,94,0.6)", fontSize: 12, marginTop: 2, flexShrink: 0 }}>●</span>
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.5 }}>{t}</span>
@@ -1345,10 +1345,10 @@ export default function TeXTREME() {
             <div style={{ padding: "24px 20px", borderRadius: 14, background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.15)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <span style={{ fontSize: 18 }}>⚠️</span>
-                <span style={{ color: "#F59E0B", fontSize: 15, fontWeight: 700 }}>잘 안 되는 PDF</span>
+                <span style={{ color: "#F59E0B", fontSize: 15, fontWeight: 700 }}>제한이 있는 PDF</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {["스캔본 PDF (전체가 이미지로된 구성)", "일부 디자인 특수/벡터 그래픽 PDF", "500p 초과 PDF", "비밀번호 보호 PDF"].map((t, i) => (
+                {["스캔본 PDF (텍스트 자체가 이미지로만 구성)", "일부 디자인 특수/벡터 그래픽 PDF", "500페이지 초과 PDF", "비밀번호 보호 PDF"].map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span style={{ color: "rgba(245,158,11,0.6)", fontSize: 12, marginTop: 2, flexShrink: 0 }}>●</span>
                     <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.5 }}>{t}</span>
@@ -1376,9 +1376,11 @@ export default function TeXTREME() {
           {/* Main price card */}
           <div style={{ textAlign: "center", padding: "48px 32px", borderRadius: 20, background: "linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02))", border: "1px solid rgba(245,158,11,0.25)", marginBottom: 32, position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -30, right: -20, fontFamily: "'Outfit'", fontWeight: 900, fontSize: 140, color: "rgba(245,158,11,0.04)", lineHeight: 1 }}>₩</div>
+            <div style={{ display: "inline-block", padding: "4px 14px", borderRadius: 20, background: "rgba(245,158,11,0.15)", color: "#F59E0B", fontSize: 13, fontWeight: 700, marginBottom: 12 }}>🎉 런칭 이벤트</div>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>페이지당</p>
-            <div style={{ fontFamily: "'Outfit'", fontWeight: 900, fontSize: 72, color: "#fff", lineHeight: 1 }}>
-              <span style={{ background: "linear-gradient(135deg, #F59E0B, #FBBF24)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>₩10</span>
+            <div style={{ fontFamily: "'Outfit'", fontWeight: 900, fontSize: 72, color: "#fff", lineHeight: 1, position: "relative", display: "inline-block" }}>
+              <span style={{ fontFamily: "'Outfit'", fontWeight: 700, fontSize: 32, color: "rgba(255,255,255,0.3)", textDecoration: "line-through", marginRight: 12, verticalAlign: "middle" }}>₩10</span>
+              <span style={{ background: "linear-gradient(135deg, #F59E0B, #FBBF24)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>₩9</span>
             </div>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 12 }}>100원 단위 내림 · 단, 최소 ₩500</p>
           </div>
