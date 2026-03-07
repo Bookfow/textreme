@@ -1421,17 +1421,34 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
 
       {/* ━━━ 메모 툴팁 ━━━ */}
       {memoTooltip && (
-        <div className="fixed z-[80] pointer-events-none" style={{
-          left: Math.max(8, Math.min(memoTooltip.x, (typeof window !== 'undefined' ? window.innerWidth : 400) - 260)),
-          top: Math.max(8, memoTooltip.y - 8), transform: 'translateY(-100%)',
+        <div style={{
+          position: 'fixed', zIndex: 80, pointerEvents: 'none',
+          left: Math.max(12, Math.min(memoTooltip.x - 20, (typeof window !== 'undefined' ? window.innerWidth : 400) - 280)),
+          top: Math.max(12, memoTooltip.y - 12), transform: 'translateY(-100%)',
         }}>
           <div style={{
-            maxWidth: 250, padding: '8px 12px', borderRadius: 10, fontSize: Math.round(fontSize * 0.75), lineHeight: 1.5,
-            color: themeStyle.text, background: theme === 'dark' ? '#2E2620' : theme === 'sepia' ? '#e8dcc8' : '#f5f0eb',
-            border: `1px solid ${themeStyle.border}`, boxShadow: '0 4px 16px rgba(0,0,0,0.25)', wordBreak: 'keep-all', whiteSpace: 'pre-wrap',
+            maxWidth: 260, borderRadius: 14, overflow: 'hidden',
+            background: theme === 'dark' ? 'rgba(36,30,24,0.95)' : theme === 'sepia' ? 'rgba(240,232,216,0.97)' : 'rgba(252,250,248,0.97)',
+            border: `1px solid ${themeStyle.border}`,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.15)',
+            backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
           }}>
-            <span style={{ opacity: 0.5, marginRight: 4 }}>✎</span>{memoTooltip.text}
+            <div style={{ padding: '6px 12px', fontSize: 10, fontWeight: 600, letterSpacing: 0.5, color: ACCENT, borderBottom: `1px solid ${themeStyle.border}`, background: theme === 'dark' ? 'rgba(245,158,11,0.06)' : 'rgba(245,158,11,0.08)' }}>
+              메모
+            </div>
+            <div style={{
+              padding: '10px 14px', fontSize: Math.max(11, Math.round(fontSize * 0.78)), lineHeight: 1.65,
+              color: themeStyle.text, wordBreak: 'keep-all', whiteSpace: 'pre-wrap',
+            }}>
+              {memoTooltip.text}
+            </div>
           </div>
+          <div style={{
+            width: 10, height: 10, position: 'absolute', bottom: -5, left: 28,
+            background: theme === 'dark' ? 'rgba(36,30,24,0.95)' : theme === 'sepia' ? 'rgba(240,232,216,0.97)' : 'rgba(252,250,248,0.97)',
+            border: `1px solid ${themeStyle.border}`, borderTop: 'none', borderLeft: 'none',
+            transform: 'rotate(45deg)',
+          }} />
         </div>
       )}
 
