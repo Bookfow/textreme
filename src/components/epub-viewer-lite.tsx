@@ -1437,23 +1437,27 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
 
       {/* ━━━ 메모 모달 ━━━ */}
       {showMemoModal && editingHighlight && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px', backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
           onClick={() => { setShowMemoModal(false); setEditingHighlight(null) }}>
-          <div className="w-full max-w-sm rounded-2xl p-5 shadow-xl" style={{ backgroundColor: themeStyle.bg }} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium" style={{ color: themeStyle.text }}>메모</span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => deleteHighlight(editingHighlight.id)} className="p-1.5 rounded-lg hover:bg-red-500/10" style={{ color: '#ef4444' }}><Trash2 className="w-4 h-4" /></button>
-                <button onClick={() => { setShowMemoModal(false); setEditingHighlight(null) }} className="p-1.5 rounded-lg" style={{ color: themeStyle.muted }}><X className="w-4 h-4" /></button>
+          <div style={{ width: '100%', maxWidth: 360, borderRadius: 20, padding: '20px 22px 22px', boxShadow: '0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)', backgroundColor: theme === 'dark' ? 'rgba(26,22,18,0.92)' : theme === 'sepia' ? 'rgba(243,235,218,0.96)' : 'rgba(250,250,248,0.96)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', border: `1px solid ${themeStyle.border}` }} onClick={e => e.stopPropagation()}>
+            {/* 헤더 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <span style={{ fontSize: 15, fontWeight: 600, color: themeStyle.text }}>메모</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={() => deleteHighlight(editingHighlight.id)} style={{ padding: 6, borderRadius: 8, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 className="w-4 h-4" /></button>
+                <button onClick={() => { setShowMemoModal(false); setEditingHighlight(null) }} style={{ padding: 6, borderRadius: 8, color: themeStyle.muted, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X className="w-4 h-4" /></button>
               </div>
             </div>
-            <p className="text-xs mb-3 px-2 py-1.5 rounded-lg" style={{ backgroundColor: HIGHLIGHT_COLORS[editingHighlight.color], color: themeStyle.text }}>
-              "{editingHighlight.selected_text.slice(0, 100)}{editingHighlight.selected_text.length > 100 ? '...' : ''}"
-            </p>
+            {/* 선택된 텍스트 */}
+            <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 12, backgroundColor: HIGHLIGHT_COLORS[editingHighlight.color], fontSize: 12, lineHeight: 1.7, color: themeStyle.text, borderLeft: `3px solid ${ACCENT}` }}>
+              &ldquo;{editingHighlight.selected_text.slice(0, 100)}{editingHighlight.selected_text.length > 100 ? '...' : ''}&rdquo;
+            </div>
+            {/* 메모 입력 */}
             <textarea value={memoText} onChange={e => setMemoText(e.target.value)} placeholder="메모를 입력하세요..."
-              className="w-full rounded-xl border px-3 py-2 text-sm resize-none" rows={3}
-              style={{ backgroundColor: themeStyle.bg, color: themeStyle.text, borderColor: themeStyle.border }} autoFocus />
-            <button onClick={saveMemo} className="w-full mt-3 py-2 rounded-xl text-sm font-medium text-white" style={{ backgroundColor: ACCENT }}>저장</button>
+              rows={4} autoFocus
+              style={{ width: '100%', borderRadius: 14, border: `1px solid ${themeStyle.border}`, padding: '12px 14px', fontSize: 13, lineHeight: 1.6, resize: 'none', backgroundColor: 'transparent', color: themeStyle.text, outline: 'none', boxSizing: 'border-box' }} />
+            {/* 저장 버튼 */}
+            <button onClick={saveMemo} style={{ width: '100%', marginTop: 14, padding: '12px 0', borderRadius: 14, border: 'none', fontSize: 14, fontWeight: 600, color: '#000', background: `linear-gradient(135deg, ${ACCENT}, #D97706)`, cursor: 'pointer', boxShadow: `0 4px 16px ${ACCENT}30` }}>저장</button>
           </div>
         </div>
       )}
