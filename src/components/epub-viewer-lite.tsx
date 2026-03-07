@@ -68,7 +68,7 @@ interface SearchResult {
   matchStart: number
 }
 
-type ReflowFont = 'sans' | 'pretendard' | 'serif' | 'nanum' | 'mono'
+type ReflowFont = 'sans' | 'pretendard' | 'serif' | 'nanum'
 type ReflowTheme = 'light' | 'sepia' | 'dark'
 type ReflowAlign = 'left' | 'justify'
 
@@ -77,7 +77,6 @@ const FONTS: Record<ReflowFont, { label: string; family: string }> = {
   pretendard: { label: '프리텐', family: '"Pretendard", system-ui, -apple-system, sans-serif' },
   serif: { label: '명조', family: '"Noto Serif KR", "Batang", Georgia, serif' },
   nanum: { label: '나눔명조', family: '"Nanum Myeongjo", "Batang", Georgia, serif' },
-  mono: { label: '고정폭', family: '"Noto Sans Mono", "D2Coding", monospace' },
 }
 
 const THEMES: Record<ReflowTheme, {
