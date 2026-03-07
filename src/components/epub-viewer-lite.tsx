@@ -387,6 +387,8 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
   // ━━━ Fullscreen ━━━
   const readerContainerRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [barsVisible, setBarsVisible] = useState(true)
+  const barsTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const toggleFullscreen = useCallback(async () => {
     try {
@@ -402,7 +404,20 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
   }, [])
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    const handler = () => {
+      const fs = !!document.fullscreenElement
+      setIsFullscreen(fs)
+      if (fs) {
+        // 전체화면 진입: 2초 후 바 숨김
+        setBarsVisible(true)
+        if (barsTimerRef.current) clearTimeout(barsTimerRef.current)
+        barsTimerRef.current = setTimeout(() => setBarsVisible(false), 2000)
+      } else {
+        // 전체화면 해제: 바 항상 표시
+        if (barsTimerRef.current) clearTimeout(barsTimerRef.current)
+        setBarsVisible(true)
+      }
+    }
     document.addEventListener('fullscreenchange', handler)
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
@@ -795,6 +810,15 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
     const relativeX = (e.clientX - rect.left) / rect.width
     if (relativeX < 0.44) goToPrevPage()
     else if (relativeX > 0.56) goToNextPage()
+    else if (isFullscreen) {
+      // 전체화면 데드존 탭: 바 토글
+      setBarsVisible(v => {
+        const next = !v
+        if (barsTimerRef.current) clearTimeout(barsTimerRef.current)
+        if (next) barsTimerRef.current = setTimeout(() => setBarsVisible(false), 3000)
+        return next
+      })
+    }
   }
 
   // 텍스트 선택 → 하이라이트 메뉴
@@ -1250,7 +1274,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
 
 
       {/* ━━━ 상단 바 (9버튼) ━━━ */}
-      <div style={{ borderColor: themeStyle.border, display: "flex", justifyContent: "center", borderBottom: showSearch ? 'none' : `1px solid ${themeStyle.border}`, flexShrink: 0, boxShadow: showSearch ? 'none' : `0 1px 8px ${themeStyle.border}40` }}>
+      <div style={{ borderColor: themeStyle.border, display: "flex", justifyContent: "center", borderBottom: showSearch ? 'none' : `1px solid ${themeStyle.border}`, flexShrink: 0, boxShadow: showSearch ? 'none' : `0 1px 8px ${themeStyle.border}40`, transition: 'transform 0.3s ease, opacity 0.3s ease', ...( isFullscreen && !barsVisible ? { transform: 'translateY(-100%)', opacity: 0, pointerEvents: 'none' as const } : {}) }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gap: 8, padding: "14px 20px", width: "100%", maxWidth: 560 }}>
         <button onClick={e => { e.stopPropagation(); trackEvent(EVENTS.VIEWER_CLOSE, { durationSec: Math.round((Date.now() - viewerOpenTimeRef.current) / 1000), lastPage: virtualPageNumber, totalPages: virtualTotalPages }); if (onBack) onBack() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: themeStyle.muted }}><Home className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>나가기</span></button>
         <button onClick={e => { e.stopPropagation(); setShowToc(!showToc) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showToc ? ACCENT : themeStyle.muted }}><List className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>목차</span></button>
@@ -1260,7 +1284,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
         <button onClick={e => { e.stopPropagation(); setNotesTab('highlights'); setShowNotesPanel(!showNotesPanel) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg" style={{ color: showNotesPanel && notesTab === 'highlights' ? ACCENT : highlights.length > 0 ? ACCENT : themeStyle.muted }}><Highlighter className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>형광펜</span></button>
         <button onClick={e => { e.stopPropagation(); setNotesTab('bookmarks'); setShowNotesPanel(!showNotesPanel) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showNotesPanel && notesTab === 'bookmarks' ? ACCENT : isCurrentPageBookmarked ? ACCENT : themeStyle.muted }}>{isCurrentPageBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}<span style={{ fontSize: 10, marginTop: 5 }}>책갈피</span></button>
         <button onClick={e => { e.stopPropagation(); toggleFullscreen() }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: isFullscreen ? ACCENT : themeStyle.muted, backgroundColor: isFullscreen ? `${ACCENT}15` : 'transparent' }}>{isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}<span style={{ fontSize: 10, marginTop: 5 }}>{isFullscreen ? '축소' : '전체'}</span></button>
-        <button onClick={e => { e.stopPropagation(); setShowSettings(!showSettings) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showSettings ? ACCENT : themeStyle.muted }}><Settings2 className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>설정</span></button>
+        <button onClick={e => { e.stopPropagation(); setShowSettings(!showSettings); if (barsTimerRef.current) clearTimeout(barsTimerRef.current) }} className="flex flex-col items-center justify-center py-2.5 rounded-lg hover:opacity-70" style={{ color: showSettings ? ACCENT : themeStyle.muted }}><Settings2 className="w-4 h-4" /><span style={{ fontSize: 10, marginTop: 5 }}>설정</span></button>
       </div>
       </div>
 
@@ -1480,7 +1504,7 @@ export default function EpubViewerLite({ epubUrl, onBack, onPageChange, onDocume
 
       {/* ━━━ 하단 바 ━━━ */}
       {chapters.length > 0 && (
-        <div style={{ padding: "10px 24px", width: "100%", maxWidth: 520, margin: '0 auto' }}>
+        <div style={{ padding: "10px 24px", width: "100%", maxWidth: 520, margin: '0 auto', transition: 'transform 0.3s ease, opacity 0.3s ease', ...( isFullscreen && !barsVisible ? { transform: 'translateY(100%)', opacity: 0, pointerEvents: 'none' as const } : {}) }}>
           <div className="flex items-center gap-3">
             <button onClick={e => { e.stopPropagation(); goToPrevPage() }} disabled={isFirstPage} className="p-1 rounded disabled:opacity-30" style={{ color: themeStyle.muted }}><ChevronLeft className="w-4 h-4" /></button>
             <div className="flex-1 relative" onClick={e => {
