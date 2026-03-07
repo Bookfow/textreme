@@ -77,8 +77,8 @@ export default function PrivacyPage() {
               </thead>
               <tbody>
                 <tr><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>Vercel Inc.</td><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>웹 호스팅 및 서버리스 함수</td></tr>
-                <tr><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>포트원(PortOne)</td><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>결제 처리 대행</td></tr>
-                <tr><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)' }}>Anthropic</td><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)' }}>AI 기반 PDF 텍스트 추출</td></tr>
+                <tr><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>코리아포트원</td><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>결제 연동 서비스 제공</td></tr>
+                <tr><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)' }}>Google (Gemini API)</td><td style={{ padding: '10px 16px', color: 'rgba(255,255,255,0.55)' }}>AI 기반 PDF 텍스트 추출</td></tr>
               </tbody>
             </table>
           </div>
