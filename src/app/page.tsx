@@ -1502,7 +1502,7 @@ export default function TeXTREME() {
       </section>
 
       {/* ━━━ FEATURES ━━━ */}
-      <section style={{ padding: "25px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
+      <section style={{ padding: "50px 24px", background: "linear-gradient(180deg, #06060c 0%, #0a0a14 50%, #06060c 100%)" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 36, letterSpacing: "-0.02em", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
             왜 <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}><Zap size={36} color="#F59E0B" style={{ position: "relative", top: 2 }} />텍스트림</span> AI PDF to EPUB 변환기인가?
@@ -1652,7 +1652,7 @@ export default function TeXTREME() {
       </section>
 
       {/* ━━━ PDF 호환성 안내 ━━━ */}
-      <section style={{ padding: "60px 24px", background: "#06060c" }}>
+      <section style={{ padding: "30px 24px", background: "#06060c" }}>
         <div style={{ maxWidth: 700, margin: "0 auto" }}>
           <h3 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 24, letterSpacing: "-0.02em", marginBottom: 8 }}>
             변환 전 잠깐 확인해요 ✅
@@ -1699,7 +1699,7 @@ export default function TeXTREME() {
       </section>
 
       {/* PRICING — Per-page */}
-      <section style={{ padding: "100px 24px", background: "radial-gradient(ellipse 80% 50% at 50% 100%, rgba(245,158,11,0.04) 0%, transparent 60%), #06060c" }}>
+      <section style={{ padding: "50px 24px", background: "radial-gradient(ellipse 80% 50% at 50% 100%, rgba(245,158,11,0.04) 0%, transparent 60%), #06060c" }}>
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
           <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 36, letterSpacing: "-0.02em", marginBottom: 12 }}>
             심플한 가격
