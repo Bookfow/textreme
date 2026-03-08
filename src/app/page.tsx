@@ -91,6 +91,8 @@ ${fontLink}
 @media (max-width: 640px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
 .upload-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 560px; }
 @media (max-width: 480px) { .upload-boxes { gap: 12px; } }
+@keyframes bouncyPop { 0%, 100% { transform: translateY(0) scale(1); } 20% { transform: translateY(-3px) scale(1.015); } 40% { transform: translateY(1px) scale(0.99); } 60% { transform: translateY(-1.5px) scale(1.005); } 80% { transform: translateY(0.5px) scale(0.995); } }
+.bouncy-text { animation: bouncyPop 3s ease-in-out infinite; display: inline-block; }
 @keyframes boxGlow { 0%,100% { box-shadow: 0 0 20px rgba(245,158,11,0.08), 0 0 40px rgba(245,158,11,0.04); } 50% { box-shadow: 0 0 30px rgba(245,158,11,0.15), 0 0 60px rgba(245,158,11,0.08); } }
 .converter-box-glow { animation: boxGlow 3s ease-in-out infinite; }
 .converter-box-glow:hover { animation: none; box-shadow: 0 0 40px rgba(245,158,11,0.2), 0 0 80px rgba(245,158,11,0.1) !important; border-color: rgba(245,158,11,0.5) !important; }
@@ -1528,12 +1530,14 @@ export default function TeXTREME() {
                 <div style={{ fontSize: 14, color: "#F59E0B", fontWeight: 700, letterSpacing: "0.15em", marginBottom: 12, textTransform: "uppercase" as const }}>
                   Quality Guaranteed
                 </div>
-                <h3 style={{ color: "#fff", fontSize: 26, fontWeight: 900, lineHeight: 1.4, marginBottom: 10 }}>
-                  변환할 수 없으면,<br />
-                  <span style={{
+                <h3 style={{ color: "#fff", fontWeight: 900, lineHeight: 1.5, marginBottom: 10 }}>
+                  <span style={{ fontSize: 17, color: "#22c55e", fontWeight: 700 }}>최상의 변환 품질을 위해</span><br />
+                  <span style={{ fontSize: 26 }}>완벽하게 변환할 수 없으면,</span><br />
+                  <span className="bouncy-text" style={{
+                    fontSize: 28,
                     background: "linear-gradient(135deg, #F59E0B, #FBBF24)",
                     WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                  }}>시도하지 않습니다</span>
+                  }}>시도 조차 하지 않습니다!</span>
                 </h3>
                 <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.7 }}>
                   텍스트림은 최고 품질의 EPUB 변환만을 제공합니다.<br />
