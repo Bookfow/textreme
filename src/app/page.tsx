@@ -377,6 +377,86 @@ export default function TeXTREME() {
   const [currentPage, setCurrentPage] = useState(0)
   const [extractedTexts, setExtractedTexts] = useState<ExtractedText[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  // ━━━ 커서 파티클 효과 (데스크톱만) ━━━
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const WORDS = ['PDF', '→', 'EPUB', 'AI', '99%', '변환', 'TeXTREME', 'OCR', '.epub']
+    const MAX_PARTICLES = 15
+    type Particle = { x: number; y: number; text: string; opacity: number; vy: number; vx: number; size: number; life: number; green: boolean }
+    const particles: Particle[] = []
+    let animId = 0
+    let lastSpawn = 0
+
+    const resize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const handleMove = (e: MouseEvent) => {
+      const x = e.clientX
+      const y = e.clientY
+
+      const now = Date.now()
+      if (now - lastSpawn < 120) return
+      lastSpawn = now
+
+      if (particles.length >= MAX_PARTICLES) particles.shift()
+      particles.push({
+        x: x + (Math.random() - 0.5) * 30,
+        y: y + (Math.random() - 0.5) * 20,
+        text: WORDS[Math.floor(Math.random() * WORDS.length)],
+        opacity: 0.7,
+        vy: -(0.3 + Math.random() * 0.5),
+        vx: (Math.random() - 0.5) * 0.4,
+        size: 7 + Math.random() * 3,
+        life: 1,
+        green: Math.random() < 0.35,
+      })
+    }
+
+    const animate = () => {
+      if (!ctx) return
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i]
+        p.x += p.vx
+        p.y += p.vy
+        p.life -= 0.008
+        p.opacity = Math.max(0, p.life * 0.7)
+
+        if (p.life <= 0) { particles.splice(i, 1); continue }
+
+        ctx.save()
+        ctx.globalAlpha = p.opacity
+        ctx.font = `${Math.round(p.size)}px "Outfit", "Noto Sans KR", system-ui`
+        ctx.fillStyle = p.green ? `rgba(34, 197, 94, ${p.opacity})` : `rgba(245, 158, 11, ${p.opacity})`
+        ctx.fillText(p.text, p.x, p.y)
+        ctx.restore()
+      }
+
+      animId = requestAnimationFrame(animate)
+    }
+
+    document.addEventListener('mousemove', handleMove)
+    animId = requestAnimationFrame(animate)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('resize', resize)
+      cancelAnimationFrame(animId)
+    }
+  }, [])
   const viewerInputRef = useRef<HTMLInputElement>(null)
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
@@ -1298,6 +1378,7 @@ export default function TeXTREME() {
   return (
     <div style={{ fontFamily: "'Noto Sans KR', system-ui, sans-serif", background: "#06060c", minHeight: "100vh" }}>
       <style>{globalStyles}</style>
+      <canvas ref={canvasRef} style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", pointerEvents: "none", zIndex: 2 }} />
 
       {/* NAV */}
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "16px 24px", background: "rgba(6,6,12,0.8)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
