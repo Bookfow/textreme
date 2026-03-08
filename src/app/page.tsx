@@ -1727,7 +1727,7 @@ export default function TeXTREME() {
           </div>
 
           {/* FAQ 버튼 */}
-          <div style={{ textAlign: "center", marginTop: 32 }}>
+          <div style={{ textAlign: "center", marginTop: 64 }}>
             <Link href="/faq" style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "12px 24px", borderRadius: 12,
