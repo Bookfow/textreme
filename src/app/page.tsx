@@ -1726,6 +1726,19 @@ export default function TeXTREME() {
             ))}
           </div>
 
+          {/* FAQ 버튼 */}
+          <div style={{ textAlign: "center", marginTop: 32 }}>
+            <Link href="/faq" style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "12px 24px", borderRadius: 12,
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)",
+              color: "rgba(255,255,255,0.6)", fontSize: 14, fontWeight: 600,
+              textDecoration: "none", transition: "all 0.2s",
+            }}>
+              자주 묻는 질문 (FAQ)
+              <span style={{ fontSize: 16 }}>→</span>
+            </Link>
+          </div>
 
         </div>
       </section>
