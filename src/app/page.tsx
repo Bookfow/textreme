@@ -1505,9 +1505,114 @@ export default function TeXTREME() {
           <h2 style={{ textAlign: "center", color: "#fff", fontWeight: 800, fontSize: 36, letterSpacing: "-0.02em", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
             왜 <span style={{ display: "inline-flex", alignItems: "center", gap: 2 }}><Zap size={36} color="#F59E0B" style={{ position: "relative", top: 2 }} />텍스트림</span> AI PDF to EPUB 변환기인가?
           </h2>
-          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.65)", fontSize: 20, marginBottom: 40 }}>
+          <p style={{ textAlign: "center", color: "rgba(255,255,255,0.65)", fontSize: 20, marginBottom: 32 }}>
             한글 PDF에 최적화된 AI 변환 엔진
           </p>
+
+          {/* ━━━ 품질 보증 섹션 ━━━ */}
+          <div style={{ maxWidth: 680, margin: "0 auto 48px" }}>
+
+            {/* 메인 카피 */}
+            <div style={{
+              textAlign: "center", padding: "40px 28px", borderRadius: 20,
+              background: "linear-gradient(180deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.02) 100%)",
+              border: "1px solid rgba(245,158,11,0.2)",
+              position: "relative", overflow: "hidden", marginBottom: 20,
+            }}>
+              <div style={{
+                position: "absolute", top: -40, left: "50%", transform: "translateX(-50%)",
+                width: 200, height: 200, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)",
+              }} />
+              <div style={{ position: "relative" }}>
+                <div style={{ fontSize: 14, color: "#F59E0B", fontWeight: 700, letterSpacing: "0.15em", marginBottom: 12, textTransform: "uppercase" as const }}>
+                  Quality Guaranteed
+                </div>
+                <h3 style={{ color: "#fff", fontSize: 26, fontWeight: 900, lineHeight: 1.4, marginBottom: 10 }}>
+                  변환할 수 없으면,<br />
+                  <span style={{
+                    background: "linear-gradient(135deg, #F59E0B, #FBBF24)",
+                    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                  }}>시도하지 않습니다</span>
+                </h3>
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.7 }}>
+                  텍스트림은 최고 품질의 EPUB 변환만을 제공합니다.<br />
+                  품질이 보장되지 않는 PDF는 결제 전에 미리 알려드립니다.
+                </p>
+              </div>
+            </div>
+
+            {/* 3열 거부 사유 카드 */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+              {[
+                { icon: "🚫", label: "스캔본 PDF", desc: "이미지 전용 PDF는\n변환 시도 안 함" },
+                { icon: "📏", label: "500p 초과", desc: "속도·안정성 감안\n변환 시도 안 함" },
+                { icon: "🔒", label: "보호된 PDF", desc: "비밀번호 보호 시\n변환 시도 안 함" },
+              ].map((item, i) => (
+                <div key={i} style={{
+                  textAlign: "center", padding: "20px 12px", borderRadius: 14,
+                  background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.12)",
+                }}>
+                  <span style={{ fontSize: 24, display: "block", marginBottom: 8 }}>{item.icon}</span>
+                  <div style={{ color: "rgba(239,68,68,0.8)", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{item.label}</div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, lineHeight: 1.5, whiteSpace: "pre-line" as const }}>{item.desc}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* 흐름 요약 바 */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "16px", borderRadius: 12,
+              background: "rgba(34,197,94,0.04)", border: "1px solid rgba(34,197,94,0.12)",
+              flexWrap: "wrap" as const, marginBottom: 16,
+            }}>
+              {["업로드", "→", "AI 검증", "→", "결제", "→", "변환"].map((t, i) =>
+                t === "→" ? (
+                  <span key={i} style={{ color: "rgba(255,255,255,0.2)", fontSize: 14 }}>→</span>
+                ) : (
+                  <span key={i} style={{
+                    padding: "4px 12px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                    background: t === "변환" ? "rgba(34,197,94,0.15)" : t === "AI 검증" ? "rgba(245,158,11,0.1)" : "rgba(255,255,255,0.06)",
+                    color: t === "변환" ? "#22c55e" : t === "AI 검증" ? "#F59E0B" : "rgba(255,255,255,0.6)",
+                    border: t === "AI 검증" ? "1px solid rgba(245,158,11,0.2)" : t === "변환" ? "1px solid rgba(34,197,94,0.2)" : "1px solid transparent",
+                  }}>{t}{t === "변환" && " ✓ 품질 보장"}</span>
+                )
+              )}
+            </div>
+
+            {/* 0% / 99.9%+ 2열 카드 */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{
+                textAlign: "center", padding: "28px 16px", borderRadius: 16,
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+              }}>
+                <div style={{
+                  fontFamily: "'Outfit', sans-serif", fontWeight: 900, fontSize: 44,
+                  color: "#ef4444", letterSpacing: "-0.03em", lineHeight: 1,
+                }}>0%</div>
+                <div style={{ color: "#fff", fontSize: 14, fontWeight: 700, marginTop: 10 }}>저품질 변환</div>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>
+                  품질 보장 불가 시<br />결제 전 차단
+                </div>
+              </div>
+              <div style={{
+                textAlign: "center", padding: "28px 16px", borderRadius: 16,
+                background: "rgba(34,197,94,0.04)", border: "1px solid rgba(34,197,94,0.12)",
+              }}>
+                <div style={{
+                  fontFamily: "'Outfit', sans-serif", fontWeight: 900, fontSize: 44,
+                  color: "#22c55e", letterSpacing: "-0.03em", lineHeight: 1,
+                }}>99.9%+</div>
+                <div style={{ color: "#fff", fontSize: 14, fontWeight: 700, marginTop: 10 }}>품질 보장</div>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>
+                  변환이 진행되면<br />품질을 보장합니다
+                </div>
+              </div>
+            </div>
+
+          </div>
+          {/* ━━━ /품질 보증 섹션 ━━━ */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, maxWidth: 520, margin: "0 auto 56px" }}>
             {[
               { value: "₩9", label: "페이지당", sub: "🎉런칭 이벤트" },
